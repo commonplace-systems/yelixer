@@ -7,7 +7,7 @@ defmodule Yelixer.Types.YMap do
   one as deleted (last-write-wins).
   """
 
-  alias Yelixer.{Doc, ID, Item, BlockStore, StateVector, Integrate}
+  alias Yelixer.{Doc, ID, Item, BlockStore, DeleteSet, StateVector, Integrate}
 
   @doc "Set a key to a value."
   def set(%Doc{} = doc, type_name, key, value) do
@@ -121,9 +121,10 @@ defmodule Yelixer.Types.YMap do
       nil ->
         doc
 
-      %Item{id: id} ->
+      %Item{id: id} = item ->
         store = Integrate.mark_deleted(doc.store, id)
-        %{doc | store: store}
+        delete_set = DeleteSet.insert(doc.delete_set, id.client, id.clock, item.length)
+        %{doc | store: store, delete_set: delete_set}
     end
   end
 end

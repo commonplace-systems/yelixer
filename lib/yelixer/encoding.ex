@@ -193,6 +193,13 @@ defmodule Yelixer.Encoding do
 
           items_bin =
             Enum.reduce(items, <<>>, fn item, iacc ->
+              item =
+                if item.deleted or DeleteSet.deleted?(ds, item.id.client, item.id.clock) do
+                  %{item | content: {:deleted, item.length}, deleted: true}
+                else
+                  item
+                end
+
               if item.id.clock < remote_clock do
                 # Partial item — only encode the portion after remote_clock
                 offset = remote_clock - item.id.clock
@@ -596,8 +603,11 @@ defmodule Yelixer.Encoding do
           {:ok, doc, sv} ->
             integrate_items(rest, doc, sv, pending, blocked_clients)
 
-          :pending ->
+          :pending_dep ->
             integrate_items(rest, doc, sv, [trimmed | pending], MapSet.put(blocked_clients, client))
+
+          :pending_parent ->
+            integrate_items(rest, doc, sv, [trimmed | pending], blocked_clients)
         end
 
       true ->
@@ -606,8 +616,11 @@ defmodule Yelixer.Encoding do
           {:ok, doc, sv} ->
             integrate_items(rest, doc, sv, pending, blocked_clients)
 
-          :pending ->
+          :pending_dep ->
             integrate_items(rest, doc, sv, [item | pending], MapSet.put(blocked_clients, client))
+
+          :pending_parent ->
+            integrate_items(rest, doc, sv, [item | pending], blocked_clients)
         end
     end
   end
@@ -623,15 +636,15 @@ defmodule Yelixer.Encoding do
     # Check for missing cross-client dependencies (origin and right_origin)
     # matching yrs Update::missing() — defer if dependency not yet integrated
     if has_missing_dep?(item, sv) do
-      :pending
+      :pending_dep
     else
       item = resolve_parent(item, doc.store)
       type_key = parent_type_key(item)
 
       case type_key do
         nil ->
-          # Can't resolve parent yet — defer for retry
-          :pending
+          # Can't resolve parent yet — defer for retry but don't block client
+          :pending_parent
 
         key ->
           type_ref = infer_type_ref(item, doc)

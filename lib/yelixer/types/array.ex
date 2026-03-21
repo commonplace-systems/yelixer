@@ -4,7 +4,7 @@ defmodule Yelixer.Types.Array do
   Each element is stored as a separate Item with {:any, [value]} content.
   """
 
-  alias Yelixer.{Doc, ID, Item, BlockStore, Integrate, StateVector}
+  alias Yelixer.{Doc, ID, Item, BlockStore, DeleteSet, Integrate, StateVector}
 
   @doc "Insert elements at an index."
   def insert(%Doc{} = doc, type_name, index, values) when is_list(values) do
@@ -29,12 +29,15 @@ defmodule Yelixer.Types.Array do
   def delete(%Doc{} = doc, type_name, index, len) when len > 0 do
     items = find_items_in_range(doc.store, type_name, index, len)
 
-    store =
-      Enum.reduce(items, doc.store, fn id, store ->
-        Integrate.mark_deleted(store, id)
+    {store, delete_set} =
+      Enum.reduce(items, {doc.store, doc.delete_set}, fn id, {store, ds} ->
+        item = BlockStore.get(store, id)
+        store = Integrate.mark_deleted(store, id)
+        ds = DeleteSet.insert(ds, id.client, id.clock, item.length)
+        {store, ds}
       end)
 
-    %{doc | store: store}
+    %{doc | store: store, delete_set: delete_set}
   end
 
   @doc "Get all elements as a list."

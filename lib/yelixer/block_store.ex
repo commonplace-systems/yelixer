@@ -36,8 +36,12 @@ defmodule Yelixer.BlockStore do
 
   def insert_at(%__MODULE__{} = store, type_name, index, %Item{} = item) do
     store = push(store, item)
+    insert_into_sequence(store, type_name, index, item.id)
+  end
+
+  def insert_into_sequence(%__MODULE__{} = store, type_name, index, id) do
     seq = Map.get(store.sequences, type_name, [])
-    seq = List.insert_at(seq, index, item.id)
+    seq = List.insert_at(seq, index, id)
     %{store | sequences: Map.put(store.sequences, type_name, seq)}
   end
 

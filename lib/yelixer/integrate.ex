@@ -24,6 +24,16 @@ defmodule Yelixer.Integrate do
     {:ok, store}
   end
 
+  @doc """
+  Find the insertion index for an item without actually inserting it.
+  Used when the item is already in the store but needs to be placed in a sequence.
+  """
+  def find_index(%BlockStore{} = store, %Item{} = item, type_name) do
+    store = maybe_split_at_origin(store, item.origin, type_name)
+    store = maybe_split_at_right_origin(store, item.right_origin, type_name)
+    find_insertion_index(store, item, type_name)
+  end
+
   # Split an item if origin points into its middle (not at its last clock)
   defp maybe_split_at_origin(store, nil, _type_name), do: store
 

@@ -6,7 +6,7 @@ defmodule Yelixer.Types.Text do
   item is split first. This matches yrs behavior for efficiency.
   """
 
-  alias Yelixer.{Doc, ID, Item, BlockStore, Integrate, StateVector}
+  alias Yelixer.{Doc, ID, Item, BlockStore, DeleteSet, Integrate, StateVector}
 
   @doc "Insert text at a character position."
   def insert(%Doc{} = doc, type_name, index, text) when is_binary(text) and byte_size(text) > 0 do
@@ -22,12 +22,15 @@ defmodule Yelixer.Types.Text do
   def delete(%Doc{} = doc, type_name, index, len) when len > 0 do
     {store, ids_to_delete} = find_items_in_range_with_split(doc.store, type_name, index, len)
 
-    store =
-      Enum.reduce(ids_to_delete, store, fn id, store ->
-        Integrate.mark_deleted(store, id)
+    {store, delete_set} =
+      Enum.reduce(ids_to_delete, {store, doc.delete_set}, fn id, {store, ds} ->
+        item = BlockStore.get(store, id)
+        store = Integrate.mark_deleted(store, id)
+        ds = DeleteSet.insert(ds, id.client, id.clock, item.length)
+        {store, ds}
       end)
 
-    %{doc | store: store}
+    %{doc | store: store, delete_set: delete_set}
   end
 
   @doc "Get the text content as a string."
