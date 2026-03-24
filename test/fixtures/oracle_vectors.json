@@ -187,8 +187,7 @@
         2,
         3
       ]
-    },
-    "xfail": "lib0 writeVarInt (sign-bit-in-6th-bit) vs yelixer decode_sint (zigzag) mismatch for integer ContentAny"
+    }
   },
   {
     "name": "mixed_all_types",

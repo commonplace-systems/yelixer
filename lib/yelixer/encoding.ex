@@ -55,6 +55,57 @@ defmodule Yelixer.Encoding do
     end
   end
 
+  # --- lib0 writeVarInt / readVarInt (sign-bit-in-6th-bit format) ---
+  # Used for integer values in lib0 Any encoding (tag 125).
+  # First byte: bit 7 = continue, bit 6 = negative, bits 0-5 = 6 data bits
+  # Subsequent bytes: bit 7 = continue, bits 0-6 = 7 data bits
+
+  defp encode_var_int(n) when n >= 0 do
+    if n > 63 do
+      <<Bitwise.bor(128, Bitwise.band(n, 63))>> <> encode_var_int_rest(Bitwise.bsr(n, 6))
+    else
+      <<Bitwise.band(n, 63)>>
+    end
+  end
+
+  defp encode_var_int(n) when n < 0 do
+    abs_n = -n
+
+    if abs_n > 63 do
+      <<Bitwise.bor(128, Bitwise.bor(64, Bitwise.band(abs_n, 63)))>> <>
+        encode_var_int_rest(Bitwise.bsr(abs_n, 6))
+    else
+      <<Bitwise.bor(64, Bitwise.band(abs_n, 63))>>
+    end
+  end
+
+  defp encode_var_int_rest(n) when n <= 127, do: <<Bitwise.band(n, 127)>>
+
+  defp encode_var_int_rest(n) do
+    <<Bitwise.bor(128, Bitwise.band(n, 127))>> <> encode_var_int_rest(Bitwise.bsr(n, 7))
+  end
+
+  defp decode_var_int(<<byte, rest::binary>>) do
+    num = Bitwise.band(byte, 63)
+    is_negative = Bitwise.band(byte, 64) != 0
+    has_more = Bitwise.band(byte, 128) != 0
+
+    {num, rest} =
+      if has_more, do: decode_var_int_rest(rest, num, 6), else: {num, rest}
+
+    {if(is_negative, do: -num, else: num), rest}
+  end
+
+  defp decode_var_int_rest(<<byte, rest::binary>>, num, shift) do
+    num = num + Bitwise.bsl(Bitwise.band(byte, 127), shift)
+
+    if Bitwise.band(byte, 128) != 0 do
+      decode_var_int_rest(rest, num, shift + 7)
+    else
+      {num, rest}
+    end
+  end
+
   # --- String ---
 
   def encode_string(s) do
@@ -365,13 +416,13 @@ defmodule Yelixer.Encoding do
   # lib0 Any encoding: type byte + value
   # 116 = buffer, 117 = array, 118 = object, 119 = string,
   # 120 = false, 121 = true, 122 = bigint, 123 = float64,
-  # 124 = float32, 125 = integer (zigzag), 126 = null, 127 = undefined
+  # 124 = float32, 125 = integer (lib0 writeVarInt), 126 = null, 127 = undefined
   defp encode_any(nil), do: <<126>>
   defp encode_any(true), do: <<121>>
   defp encode_any(false), do: <<120>>
 
   defp encode_any(n) when is_integer(n) do
-    <<125, encode_sint(n)::binary>>
+    <<125, encode_var_int(n)::binary>>
   end
 
   defp encode_any(f) when is_float(f) do
@@ -396,6 +447,9 @@ defmodule Yelixer.Encoding do
     <<118, encode_uint(map_size(map))::binary, body::binary>>
   end
 
+  @doc "Encode a value using lib0 Any encoding. Returns binary."
+  def encode_any_value(value), do: encode_any(value)
+
   @doc "Decode a lib0 Any value from binary. Returns {value, rest}."
   def decode_any_value(binary), do: decode_any(binary)
 
@@ -408,8 +462,7 @@ defmodule Yelixer.Encoding do
   defp decode_any(<<124, f::float-32, rest::binary>>), do: {round_if_integer(f), rest}
 
   defp decode_any(<<125, rest::binary>>) do
-    {n, rest} = decode_sint(rest)
-    {n, rest}
+    decode_var_int(rest)
   end
 
   defp decode_any(<<122, n::signed-64, rest::binary>>), do: {n, rest}
