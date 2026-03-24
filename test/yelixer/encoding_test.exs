@@ -74,6 +74,38 @@ defmodule Yelixer.EncodingTest do
     end
   end
 
+  describe "boolean Any encoding (lib0 convention: data ? 120 : 121)" do
+    test "true encodes to tag 120" do
+      assert Encoding.encode_any_value(true) == <<120>>
+    end
+
+    test "false encodes to tag 121" do
+      assert Encoding.encode_any_value(false) == <<121>>
+    end
+
+    test "tag 120 decodes to true" do
+      assert Encoding.decode_any_value(<<120>>) == {true, <<>>}
+    end
+
+    test "tag 121 decodes to false" do
+      assert Encoding.decode_any_value(<<121>>) == {false, <<>>}
+    end
+
+    test "boolean roundtrips through encode/decode" do
+      for val <- [true, false] do
+        encoded = Encoding.encode_any_value(val)
+        {decoded, <<>>} = Encoding.decode_any_value(encoded)
+        assert decoded == val, "Failed roundtrip for #{val}"
+      end
+    end
+
+    test "boolean decodes with remaining bytes" do
+      {val, rest} = Encoding.decode_any_value(<<120, 99, 100>>)
+      assert val == true
+      assert rest == <<99, 100>>
+    end
+  end
+
   describe "state vector encoding" do
     test "roundtrips state vector" do
       sv =

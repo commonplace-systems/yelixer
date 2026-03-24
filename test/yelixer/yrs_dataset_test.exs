@@ -145,12 +145,13 @@ defmodule Yelixer.YrsDatasetTest do
 
   # lib0 Any decoding — correct tag mapping:
   # 116=buffer, 117=array, 118=object, 119=string
-  # 120=false, 121=true, 122=bigint, 123=float64
+  # 120=true, 121=false (lib0 convention: data ? 120 : 121)
+  # 122=bigint, 123=float64
   # 124=float32, 125=integer(lib0 writeVarInt), 126=null, 127=undefined
   defp read_any(<<127, rest::binary>>), do: {nil, rest}
   defp read_any(<<126, rest::binary>>), do: {nil, rest}
-  defp read_any(<<121, rest::binary>>), do: {true, rest}
-  defp read_any(<<120, rest::binary>>), do: {false, rest}
+  defp read_any(<<120, rest::binary>>), do: {true, rest}
+  defp read_any(<<121, rest::binary>>), do: {false, rest}
   defp read_any(<<119, rest::binary>>), do: read_string(rest)
 
   defp read_any(<<123, f::float-64, rest::binary>>) do
