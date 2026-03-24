@@ -16,7 +16,7 @@ defmodule Yelixer.InteropTest do
 
   test "decode Yjs state vector" do
     sv_bytes = File.read!("test/fixtures/hello_sv.bin")
-    {sv, ""} = Encoding.decode_state_vector(sv_bytes)
+    {:ok, {sv, ""}} = Encoding.decode_state_vector(sv_bytes)
     assert StateVector.get(sv, 1) == 5
   end
 

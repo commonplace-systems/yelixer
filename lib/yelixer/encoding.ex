@@ -82,8 +82,14 @@ defmodule Yelixer.Encoding do
   end
 
   def decode_state_vector(binary) do
-    {count, rest} = decode_uint(binary)
-    decode_sv_pairs(rest, count, StateVector.new())
+    try do
+      {count, rest} = decode_uint(binary)
+      {sv, rest} = decode_sv_pairs(rest, count, StateVector.new())
+      {:ok, {sv, rest}}
+    rescue
+      e in [MatchError, FunctionClauseError, ArgumentError] ->
+        {:error, {:malformed_state_vector, Exception.message(e)}}
+    end
   end
 
   defp decode_sv_pairs(rest, 0, sv), do: {sv, rest}
@@ -475,26 +481,30 @@ defmodule Yelixer.Encoding do
   # --- Update Decoding ---
 
   def apply_update(%Doc{} = doc, binary) do
-    {items, ds, _rest} = decode_update(binary)
+    case decode_update(binary) do
+      {:ok, {items, ds, _rest}} ->
+        # Filter out items we already have
+        sv = BlockStore.state_vector(doc.store)
 
-    # Filter out items we already have
-    sv = BlockStore.state_vector(doc.store)
+        {doc, sv, pending} = integrate_items(items, doc, sv, [])
 
-    {doc, sv, pending} = integrate_items(items, doc, sv, [])
+        # Retry pending items whose dependencies are now available
+        {doc, _sv} = retry_pending(doc, sv, pending)
 
-    # Retry pending items whose dependencies are now available
-    {doc, _sv} = retry_pending(doc, sv, pending)
+        # Apply delete set — work with ranges, splitting items at boundaries
+        doc =
+          Enum.reduce(Map.to_list(ds.clients), doc, fn {client, ranges}, doc ->
+            Enum.reduce(ranges, doc, fn {start, stop}, doc ->
+              store = apply_delete_range(doc.store, client, start, stop - start)
+              %{doc | store: store}
+            end)
+          end)
 
-    # Apply delete set — work with ranges, splitting items at boundaries
-    doc =
-      Enum.reduce(Map.to_list(ds.clients), doc, fn {client, ranges}, doc ->
-        Enum.reduce(ranges, doc, fn {start, stop}, doc ->
-          store = apply_delete_range(doc.store, client, start, stop - start)
-          %{doc | store: store}
-        end)
-      end)
+        {:ok, doc}
 
-    {:ok, doc}
+      {:error, reason} ->
+        {:error, reason}
+    end
   end
 
   defp apply_delete_range(store, _client, _clock, 0), do: store
@@ -799,10 +809,15 @@ defmodule Yelixer.Encoding do
   end
 
   def decode_update(binary) do
-    {num_clients, rest} = decode_uint(binary)
-    {items, rest} = decode_clients(rest, num_clients, [])
-    {ds, rest} = decode_delete_set(rest)
-    {items, ds, rest}
+    try do
+      {num_clients, rest} = decode_uint(binary)
+      {items, rest} = decode_clients(rest, num_clients, [])
+      {ds, rest} = decode_delete_set(rest)
+      {:ok, {items, ds, rest}}
+    rescue
+      e in [MatchError, FunctionClauseError, ArgumentError] ->
+        {:error, {:malformed_update, Exception.message(e)}}
+    end
   end
 
   defp decode_clients(rest, 0, acc), do: {acc, rest}

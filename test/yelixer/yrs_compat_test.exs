@@ -37,7 +37,7 @@ defmodule Yelixer.YrsCompatTest do
         126, 2, 1, 132, 152, 234, 173, 126, 6, 2, 104, 105, 1, 152, 234, 173, 126, 2, 0, 3, 5,
         2>>
 
-    {items, ds, _} = Encoding.decode_update(update)
+    {:ok, {items, ds, _}} = Encoding.decode_update(update)
 
     # 5 blocks from 1 client
     assert length(items) == 5
@@ -90,13 +90,13 @@ defmodule Yelixer.YrsCompatTest do
     # Two clients: 93760946 with clock 3, 14182974 with clock 2
     payload = <<2, 178, 219, 218, 44, 3, 190, 212, 225, 6, 2>>
 
-    {sv, ""} = Encoding.decode_state_vector(payload)
+    {:ok, {sv, ""}} = Encoding.decode_state_vector(payload)
     assert StateVector.get(sv, 93_760_946) == 3
     assert StateVector.get(sv, 14_182_974) == 2
 
     # Re-encode and verify roundtrip
     re_encoded = Encoding.encode_state_vector(sv)
-    {sv2, ""} = Encoding.decode_state_vector(re_encoded)
+    {:ok, {sv2, ""}} = Encoding.decode_state_vector(re_encoded)
     assert StateVector.get(sv2, 93_760_946) == 3
     assert StateVector.get(sv2, 14_182_974) == 2
   end
@@ -110,7 +110,7 @@ defmodule Yelixer.YrsCompatTest do
 
     client_id = 440_166_001
 
-    {items, ds, _} = Encoding.decode_update(payload)
+    {:ok, {items, ds, _}} = Encoding.decode_update(payload)
 
     assert length(items) == 2
 
@@ -141,7 +141,7 @@ defmodule Yelixer.YrsCompatTest do
 
     client_id = 2_525_665_872
 
-    {items, ds, _} = Encoding.decode_update(payload)
+    {:ok, {items, ds, _}} = Encoding.decode_update(payload)
 
     assert length(items) == 1
 

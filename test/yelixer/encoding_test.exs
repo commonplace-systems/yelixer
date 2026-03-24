@@ -48,7 +48,7 @@ defmodule Yelixer.EncodingTest do
         |> Yelixer.StateVector.set(42, 100)
 
       encoded = Encoding.encode_state_vector(sv)
-      {decoded, ""} = Encoding.decode_state_vector(encoded)
+      {:ok, {decoded, ""}} = Encoding.decode_state_vector(encoded)
       assert Yelixer.StateVector.get(decoded, 1) == 5
       assert Yelixer.StateVector.get(decoded, 42) == 100
     end
@@ -56,7 +56,7 @@ defmodule Yelixer.EncodingTest do
     test "empty state vector roundtrips" do
       sv = Yelixer.StateVector.new()
       encoded = Encoding.encode_state_vector(sv)
-      {decoded, ""} = Encoding.decode_state_vector(encoded)
+      {:ok, {decoded, ""}} = Encoding.decode_state_vector(encoded)
       assert decoded.clocks == %{}
     end
   end

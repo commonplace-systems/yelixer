@@ -35,7 +35,7 @@ defmodule Yelixer.SyncProtocol do
   - `:noop` — nothing to do (empty update)
   """
   def handle_message(%Doc{} = doc, <<@msg_sync_step1, sv_bin::binary>>) do
-    {remote_sv, _} = Encoding.decode_state_vector(sv_bin)
+    {:ok, {remote_sv, _}} = Encoding.decode_state_vector(sv_bin)
     diff = Encoding.encode_diff(doc, remote_sv)
     {:step2, <<@msg_sync_step2, diff::binary>>}
   end
