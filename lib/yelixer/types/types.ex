@@ -3,8 +3,6 @@ defmodule Yelixer.Types do
   Helper functions for resolving nested CRDT type content to JSON-serializable values.
   """
 
-  alias Yelixer.BlockStore
-
   @doc """
   Resolve a content value to its JSON representation.
   Passes through primitives, resolves nested types recursively.
