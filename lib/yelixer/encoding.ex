@@ -552,7 +552,7 @@ defmodule Yelixer.Encoding do
 
     clients =
       Map.update!(store.clients, client, fn blocks ->
-        idx = Enum.find_index(blocks, &(&1.id == item.id))
+        {idx, _} = BlockStore.find_block_index(blocks, item.id.clock)
 
         blocks
         |> List.replace_at(idx, left)
@@ -569,20 +569,18 @@ defmodule Yelixer.Encoding do
       end)
 
     %{store | clients: clients, sequences: sequences}
+    |> BlockStore.invalidate_tuple_cache(client)
   end
 
   defp mark_item_deleted(store, client, item) do
-    item_id = item.id
-
     clients =
       Map.update!(store.clients, client, fn blocks ->
-        Enum.map(blocks, fn
-          %Item{id: ^item_id} -> %{item | deleted: true}
-          other -> other
-        end)
+        {idx, _} = BlockStore.find_block_index(blocks, item.id.clock)
+        List.replace_at(blocks, idx, %{item | deleted: true})
       end)
 
     %{store | clients: clients}
+    |> BlockStore.invalidate_tuple_cache(client)
   end
 
   defp integrate_items(items, doc, sv, pending) do
@@ -717,17 +715,14 @@ defmodule Yelixer.Encoding do
             store
 
           loser ->
-            loser_id = loser.id
-
             clients =
-              Map.update!(store.clients, loser_id.client, fn blocks ->
-                Enum.map(blocks, fn
-                  %Item{id: ^loser_id} = item -> %{item | deleted: true}
-                  other -> other
-                end)
+              Map.update!(store.clients, loser.id.client, fn blocks ->
+                {idx, _} = BlockStore.find_block_index(blocks, loser.id.clock)
+                List.replace_at(blocks, idx, %{loser | deleted: true})
               end)
 
             %{store | clients: clients}
+            |> BlockStore.invalidate_tuple_cache(loser.id.client)
         end
       end)
     end

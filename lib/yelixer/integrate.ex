@@ -88,22 +88,22 @@ defmodule Yelixer.Integrate do
   Mark an item as deleted in the block store.
   """
   def mark_deleted(%BlockStore{} = store, %ID{} = id) do
-    case BlockStore.get(store, id) do
+    blocks = Map.get(store.clients, id.client, [])
+
+    case BlockStore.find_block_index(blocks, id.clock) do
       nil ->
         store
 
-      item ->
+      {idx, item} ->
         deleted_item = %{item | deleted: true}
 
         clients =
           Map.update!(store.clients, id.client, fn blocks ->
-            Enum.map(blocks, fn
-              %Item{id: ^id} -> deleted_item
-              other -> other
-            end)
+            List.replace_at(blocks, idx, deleted_item)
           end)
 
         %{store | clients: clients}
+        |> BlockStore.invalidate_tuple_cache(id.client)
     end
   end
 

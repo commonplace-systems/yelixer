@@ -43,7 +43,7 @@ defmodule Yelixer.Doc do
         {client, Enum.map(blocks, &gc_item/1)}
       end)
 
-    %{doc | store: %{store | clients: clients}}
+    %{doc | store: %{store | clients: clients, client_tuples: %{}}}
   end
 
   defp gc_item(%Item{deleted: true, content: {:gc, _}} = item), do: item
