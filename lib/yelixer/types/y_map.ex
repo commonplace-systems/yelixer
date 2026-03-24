@@ -17,7 +17,8 @@ defmodule Yelixer.Types.YMap do
     clock = StateVector.get(BlockStore.state_vector(doc.store), doc.client_id)
     id = ID.new(doc.client_id, clock)
     item = Item.new(id, nil, nil, {:any, [value]}, {:named, type_name}, key)
-    store = BlockStore.push(doc.store, item)
+    # Integrate via YATA so the item is added to both clients and the sequence
+    {:ok, store} = Integrate.integrate(doc.store, item, type_name)
     %{doc | store: store}
   end
 
@@ -41,24 +42,25 @@ defmodule Yelixer.Types.YMap do
 
   @doc "Get all entries as a map."
   def to_map(%Doc{} = doc, type_name) do
-    doc.store.clients
-    |> Enum.flat_map(fn {_client, items} -> items end)
-    |> Enum.filter(fn %Item{parent: parent, parent_sub: sub, deleted: deleted} ->
-      parent == {:named, type_name} and sub != nil and not deleted
-    end)
+    # Use the YATA sequence for deterministic iteration order.
+    # Rightmost non-deleted item per key wins (consistent with yrs).
+    BlockStore.get_sequence(doc.store, type_name)
+    |> Enum.filter(fn %Item{parent_sub: sub} -> sub != nil end)
     |> Enum.reduce(%{}, fn %Item{parent_sub: key, content: {:any, [value]}}, acc ->
-      # Last one wins (by clock order)
+      # Sequence is in YATA order; later items overwrite earlier ones,
+      # so the rightmost item for each key wins.
       Map.put(acc, key, value)
     end)
   end
 
   @doc "Convert map to JSON-compatible map, resolving nested types."
   def to_json(%Doc{} = doc, type_key) do
+    # Use the YATA sequence for deterministic iteration order.
+    # Rightmost non-deleted item per key wins (consistent with yrs).
     find_all_items_for_type(doc.store, type_key)
-    |> Enum.filter(fn %Item{parent_sub: sub, deleted: deleted} ->
-      sub != nil and not deleted
-    end)
+    |> Enum.filter(fn %Item{parent_sub: sub} -> sub != nil end)
     |> Enum.reduce(%{}, fn %Item{parent_sub: key} = item, acc ->
+      # Sequence order: later items overwrite earlier ones (rightmost wins)
       Map.put(acc, key, item_value_to_json(doc, item))
     end)
   end
@@ -85,12 +87,14 @@ defmodule Yelixer.Types.YMap do
     if seq_items != [] do
       seq_items
     else
-      # Fallback: scan all items for matching parent
+      # Fallback: scan all items for matching parent.
+      # Sort by {client, clock} for deterministic order when no sequence exists.
       parent_match = match_parent(type_key)
 
       store.clients
+      |> Enum.sort_by(fn {client, _items} -> client end)
       |> Enum.flat_map(fn {_client, items} -> items end)
-      |> Enum.filter(fn item -> parent_match.(item.parent) end)
+      |> Enum.filter(fn item -> parent_match.(item.parent) and not item.deleted end)
     end
   end
 
@@ -108,11 +112,10 @@ defmodule Yelixer.Types.YMap do
   end
 
   defp find_current_item(store, type_name, key) do
-    store.clients
-    |> Enum.flat_map(fn {_client, items} -> items end)
-    |> Enum.filter(fn %Item{parent: parent, parent_sub: sub, deleted: deleted} ->
-      parent == {:named, type_name} and sub == key and not deleted
-    end)
+    # Use the YATA sequence for deterministic order.
+    # Rightmost non-deleted item for the given key wins.
+    BlockStore.get_sequence(store, type_name)
+    |> Enum.filter(fn %Item{parent_sub: sub} -> sub == key end)
     |> List.last()
   end
 
