@@ -569,7 +569,7 @@ defmodule Yelixer.Encoding do
       end)
 
     %{store | clients: clients, sequences: sequences}
-    |> BlockStore.invalidate_tuple_cache(client)
+    |> BlockStore.refresh_tuple_cache(client)
   end
 
   defp mark_item_deleted(store, client, item) do
@@ -580,7 +580,7 @@ defmodule Yelixer.Encoding do
       end)
 
     %{store | clients: clients}
-    |> BlockStore.invalidate_tuple_cache(client)
+    |> BlockStore.refresh_tuple_cache(client)
   end
 
   defp integrate_items(items, doc, sv, pending) do
@@ -722,7 +722,7 @@ defmodule Yelixer.Encoding do
               end)
 
             %{store | clients: clients}
-            |> BlockStore.invalidate_tuple_cache(loser.id.client)
+            |> BlockStore.refresh_tuple_cache(loser.id.client)
         end
       end)
     end

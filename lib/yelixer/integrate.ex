@@ -103,7 +103,7 @@ defmodule Yelixer.Integrate do
           end)
 
         %{store | clients: clients}
-        |> BlockStore.invalidate_tuple_cache(id.client)
+        |> BlockStore.refresh_tuple_cache(id.client)
     end
   end
 
