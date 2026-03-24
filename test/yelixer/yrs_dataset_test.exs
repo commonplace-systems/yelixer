@@ -10,7 +10,7 @@ defmodule Yelixer.YrsDatasetTest do
 
   @moduletag :dataset
 
-  @small_dataset_path "y-crdt/assets/bench-input/small-test-dataset.bin"
+  @small_dataset_path Path.expand("../fixtures/small-test-dataset.bin", __DIR__)
 
   test "small dataset: all text outputs match" do
     data = File.read!(@small_dataset_path)
