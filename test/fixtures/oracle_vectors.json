@@ -1,0 +1,315 @@
+[
+  {
+    "name": "text_simple_insert",
+    "update_hex": "01010100040104746578740b68656c6c6f20776f726c6400",
+    "types": {
+      "text": "text"
+    },
+    "expected": {
+      "text": "hello world"
+    }
+  },
+  {
+    "name": "text_insert_delete",
+    "update_hex": "01020100040104746578740568656c6c6f8401040620776f726c640101010506",
+    "types": {
+      "text": "text"
+    },
+    "expected": {
+      "text": "hello"
+    }
+  },
+  {
+    "name": "text_two_client_merge",
+    "update_hex": "02011400040104746578740378797a010a00040104746578740361626300",
+    "types": {
+      "text": "text"
+    },
+    "expected": {
+      "text": "abcxyz"
+    }
+  },
+  {
+    "name": "map_string_values",
+    "update_hex": "010201002801056d796d6170046e616d65017705416c6963652801056d796d617004636974790177064265726c696e00",
+    "types": {
+      "mymap": "map"
+    },
+    "expected": {
+      "mymap": {
+        "name": "Alice",
+        "city": "Berlin"
+      }
+    }
+  },
+  {
+    "name": "map_overwrite",
+    "update_hex": "010201002801056d796d6170036b65790177056669727374a801000177067365636f6e640101010001",
+    "types": {
+      "mymap": "map"
+    },
+    "expected": {
+      "mymap": {
+        "key": "second"
+      }
+    }
+  },
+  {
+    "name": "map_nested_map",
+    "update_hex": "010301002701056d796d6170066e6573746564042800010001610177036f6e6528000100016201770374776f00",
+    "types": {
+      "mymap": "map"
+    },
+    "expected": {
+      "mymap": {
+        "nested": {
+          "attrs": {
+            "a": "one",
+            "b": "two"
+          }
+        }
+      }
+    },
+    "xfail": "Yjs v14 unified YType encodes nested types as typeref 4 (xml_fragment); yelixer sub_type_to_json only handles :text/:array/:map"
+  },
+  {
+    "name": "map_nested_array",
+    "update_hex": "010201002701056d796d6170046c69737404080001000377017877017977017a00",
+    "types": {
+      "mymap": "map"
+    },
+    "expected": {
+      "mymap": {
+        "list": {
+          "children": [
+            "x",
+            "y",
+            "z"
+          ]
+        }
+      }
+    },
+    "xfail": "Yjs v14 unified YType encodes nested types as typeref 4 (xml_fragment); yelixer sub_type_to_json only handles :text/:array/:map"
+  },
+  {
+    "name": "array_push_strings",
+    "update_hex": "010101000801036172720377016177016277016300",
+    "types": {
+      "arr": "array"
+    },
+    "expected": {
+      "arr": [
+        "a",
+        "b",
+        "c"
+      ]
+    }
+  },
+  {
+    "name": "array_insert_at_index",
+    "update_hex": "01030100080103617272017701788801000177017ac8010001010177017900",
+    "types": {
+      "arr": "array"
+    },
+    "expected": {
+      "arr": [
+        "x",
+        "y",
+        "z"
+      ]
+    }
+  },
+  {
+    "name": "mixed_text_and_map",
+    "update_hex": "0102010004010474657874056d697865642801056d796d6170036b657901770576616c756500",
+    "types": {
+      "text": "text",
+      "mymap": "map"
+    },
+    "expected": {
+      "text": "mixed",
+      "mymap": {
+        "key": "value"
+      }
+    }
+  },
+  {
+    "name": "text_three_client_merge",
+    "update_hex": "03011e0004010474657874036363630114000401047465787403626262010a00040104746578740361616100",
+    "types": {
+      "text": "text"
+    },
+    "expected": {
+      "text": "aaabbbccc"
+    }
+  },
+  {
+    "name": "text_delete_middle",
+    "update_hex": "01030100040104746578740261628401010263648401030265660101010202",
+    "types": {
+      "text": "text"
+    },
+    "expected": {
+      "text": "abef"
+    }
+  },
+  {
+    "name": "map_delete_key",
+    "update_hex": "010201002801056d796d6170046b6565700177037965732801056d796d61700672656d6f76650177026e6f0101010101",
+    "types": {
+      "mymap": "map"
+    },
+    "expected": {
+      "mymap": {
+        "keep": "yes"
+      }
+    }
+  },
+  {
+    "name": "text_sequential_inserts",
+    "update_hex": "01010100040104746578740b68656c6c6f20776f726c6400",
+    "types": {
+      "text": "text"
+    },
+    "expected": {
+      "text": "hello world"
+    }
+  },
+  {
+    "name": "array_integer_values",
+    "update_hex": "01010100080103617272037d017d027d0300",
+    "types": {
+      "arr": "array"
+    },
+    "expected": {
+      "arr": [
+        1,
+        2,
+        3
+      ]
+    },
+    "xfail": "lib0 writeVarInt (sign-bit-in-6th-bit) vs yelixer decode_sint (zigzag) mismatch for integer ContentAny"
+  },
+  {
+    "name": "mixed_all_types",
+    "update_hex": "01030100040104746578740568656c6c6f2801056d796d6170016b017701760801036172720277036f6e65770374776f00",
+    "types": {
+      "text": "text",
+      "mymap": "map",
+      "arr": "array"
+    },
+    "expected": {
+      "text": "hello",
+      "mymap": {
+        "k": "v"
+      },
+      "arr": [
+        "one",
+        "two"
+      ]
+    }
+  },
+  {
+    "name": "text_prepend",
+    "update_hex": "010201000401047465787405776f726c644401000668656c6c6f2000",
+    "types": {
+      "text": "text"
+    },
+    "expected": {
+      "text": "hello world"
+    }
+  },
+  {
+    "name": "text_insert_middle",
+    "update_hex": "01030100040104746578740168840100036c6c6fc401000101016500",
+    "types": {
+      "text": "text"
+    },
+    "expected": {
+      "text": "hello"
+    }
+  },
+  {
+    "name": "map_many_keys",
+    "update_hex": "010401002801056d796d61700161017705616c7068612801056d796d61700162017704626574612801056d796d6170016301770567616d6d612801056d796d6170016401770564656c746100",
+    "types": {
+      "mymap": "map"
+    },
+    "expected": {
+      "mymap": {
+        "a": "alpha",
+        "b": "beta",
+        "c": "gamma",
+        "d": "delta"
+      }
+    }
+  },
+  {
+    "name": "map_two_client_conflict",
+    "update_hex": "020114002801056d796d6170036b657901770666726f6d5f62010a002801056d796d6170036b657901770666726f6d5f61010a010001",
+    "types": {
+      "mymap": "map"
+    },
+    "expected": {
+      "mymap": {
+        "key": "from_b"
+      }
+    }
+  },
+  {
+    "name": "text_delete_all",
+    "update_hex": "010101000401047465787404676f6e650101010004",
+    "types": {
+      "text": "text"
+    },
+    "expected": {
+      "text": ""
+    }
+  },
+  {
+    "name": "array_delete_elements",
+    "update_hex": "010301000801036172720177016188010002770162770163880102017701640101010102",
+    "types": {
+      "arr": "array"
+    },
+    "expected": {
+      "arr": [
+        "a",
+        "d"
+      ]
+    }
+  },
+  {
+    "name": "text_merge_then_delete",
+    "update_hex": "020114000401047465787405776f726c64010a00040104746578740568656c6c6f0114010005",
+    "types": {
+      "text": "text"
+    },
+    "expected": {
+      "text": "hello"
+    }
+  },
+  {
+    "name": "text_empty",
+    "update_hex": "0000",
+    "types": {
+      "text": "text"
+    },
+    "expected": {
+      "text": ""
+    }
+  },
+  {
+    "name": "map_with_null_value",
+    "update_hex": "010201002801056d796d61700770726573656e740177037965732801056d796d617005656d707479017e00",
+    "types": {
+      "mymap": "map"
+    },
+    "expected": {
+      "mymap": {
+        "present": "yes",
+        "empty": null
+      }
+    }
+  }
+]
