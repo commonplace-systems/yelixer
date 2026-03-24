@@ -19,28 +19,17 @@ defmodule Yelixer.Types do
 
   @doc """
   Convert a nested sub-type (identified by its parent item ID) to JSON.
-  Looks up the type registered for that item and serializes accordingly.
+  The parent item's ID determines the type key ("__sub:CLIENT:CLOCK"),
+  which is how apply_update registers sub-types during integration.
   """
-  def sub_type_to_json(doc, id) do
-    type_key = find_type_key_for_id(doc, id)
+  def sub_type_to_json(doc, %Yelixer.ID{client: c, clock: k}) do
+    type_key = "__sub:#{c}:#{k}"
 
     case doc.types[type_key] do
       :text -> Yelixer.Types.Text.to_string(doc, type_key)
-      :array -> Yelixer.Types.Array.to_list(doc, type_key)
-      :map -> Yelixer.Types.YMap.to_map(doc, type_key)
+      :array -> Yelixer.Types.Array.to_json(doc, type_key)
+      :map -> Yelixer.Types.YMap.to_json(doc, type_key)
       _ -> nil
     end
-  end
-
-  defp find_type_key_for_id(doc, id) do
-    # Search block store for items whose parent references this ID
-    # and find the corresponding type name
-    Enum.find_value(doc.types, fn {name, _type} ->
-      sequence = BlockStore.get_sequence(doc.store, "type_#{name}")
-
-      if Enum.any?(sequence, fn item -> item.id == id end) do
-        name
-      end
-    end)
   end
 end
