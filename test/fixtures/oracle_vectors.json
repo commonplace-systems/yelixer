@@ -69,8 +69,7 @@
           }
         }
       }
-    },
-    "xfail": "Yjs v14 unified YType encodes nested types as typeref 4 (xml_fragment); yelixer sub_type_to_json only handles :text/:array/:map"
+    }
   },
   {
     "name": "map_nested_array",
@@ -88,8 +87,7 @@
           ]
         }
       }
-    },
-    "xfail": "Yjs v14 unified YType encodes nested types as typeref 4 (xml_fragment); yelixer sub_type_to_json only handles :text/:array/:map"
+    }
   },
   {
     "name": "array_push_strings",
