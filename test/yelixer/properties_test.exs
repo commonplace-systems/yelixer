@@ -34,19 +34,16 @@ defmodule Yelixer.PropertiesTest do
   # Generators
   # ---------------------------------------------------------------------------
 
-  # NOTE: We use non-negative integers only because there is a known
-  # zigzag (signed varint) encoding bug that corrupts negative values
-  # during encode/decode roundtrips. That bug is tracked separately.
   defp map_key, do: string(:alphanumeric, min_length: 1, max_length: 8)
 
   defp map_value,
-    do: one_of([non_negative_integer(), string(:alphanumeric, min_length: 1, max_length: 10)])
+    do: one_of([integer(), string(:alphanumeric, min_length: 1, max_length: 10)])
 
   defp text_content, do: string(:alphanumeric, min_length: 1, max_length: 10)
 
   defp array_element,
     do:
-      one_of([non_negative_integer(), string(:alphanumeric, min_length: 1, max_length: 8)])
+      one_of([integer(), string(:alphanumeric, min_length: 1, max_length: 8)])
 
   defp map_entries do
     list_of(tuple({map_key(), map_value()}), min_length: 1, max_length: 5)

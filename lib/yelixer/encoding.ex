@@ -43,7 +43,7 @@ defmodule Yelixer.Encoding do
   # --- Signed varint (zigzag encoding) ---
 
   def encode_sint(n) when n >= 0, do: encode_uint(Bitwise.bsl(n, 1))
-  def encode_sint(n), do: encode_uint(Bitwise.bor(Bitwise.bsl(-n, 1), 1))
+  def encode_sint(n), do: encode_uint(Bitwise.bxor(Bitwise.bsl(n, 1), -1))
 
   def decode_sint(binary) do
     {n, rest} = decode_uint(binary)

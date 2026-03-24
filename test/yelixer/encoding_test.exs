@@ -30,6 +30,40 @@ defmodule Yelixer.EncodingTest do
     end
   end
 
+  describe "signed varint (zigzag) encoding" do
+    test "encode_sint(-1) produces <<1>>" do
+      assert Encoding.encode_sint(-1) == <<1>>
+    end
+
+    test "encode_sint(-2) produces <<3>>" do
+      assert Encoding.encode_sint(-2) == <<3>>
+    end
+
+    test "zigzag maps 0 -> 0, -1 -> 1, 1 -> 2, -2 -> 3, 2 -> 4" do
+      assert Encoding.encode_sint(0) == Encoding.encode_uint(0)
+      assert Encoding.encode_sint(-1) == Encoding.encode_uint(1)
+      assert Encoding.encode_sint(1) == Encoding.encode_uint(2)
+      assert Encoding.encode_sint(-2) == Encoding.encode_uint(3)
+      assert Encoding.encode_sint(2) == Encoding.encode_uint(4)
+    end
+
+    test "roundtrips negative integers through encode/decode" do
+      for n <- [-1, -2, -127, -128, -255, -256, -16383, -16384, -1_000_000] do
+        encoded = Encoding.encode_sint(n)
+        {decoded, ""} = Encoding.decode_sint(encoded)
+        assert decoded == n, "Failed roundtrip for #{n}"
+      end
+    end
+
+    test "roundtrips positive and zero through encode/decode" do
+      for n <- [0, 1, 127, 128, 255, 256, 16383, 16384, 1_000_000] do
+        encoded = Encoding.encode_sint(n)
+        {decoded, ""} = Encoding.decode_sint(encoded)
+        assert decoded == n, "Failed roundtrip for #{n}"
+      end
+    end
+  end
+
   describe "string encoding" do
     test "roundtrips strings" do
       for s <- ["", "hello", "emoji: 🎉", "multi\nline"] do
