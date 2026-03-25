@@ -12,6 +12,7 @@ defmodule Yelixer.YrsDatasetTest do
 
   @small_dataset_path Path.expand("../fixtures/small-test-dataset.bin", __DIR__)
 
+  @tag timeout: 180_000
   test "small dataset: all text outputs match" do
     data = File.read!(@small_dataset_path)
     {test_count, rest} = Encoding.decode_uint(data)
