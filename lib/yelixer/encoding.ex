@@ -289,11 +289,18 @@ defmodule Yelixer.Encoding do
     origin = remap_gc_origin(item.origin, store)
     right_origin = remap_gc_right_origin(item.right_origin, store)
 
+    # parent_sub is only written in the binary stream when parent is also
+    # written explicitly (no origin and no right_origin). For items with
+    # origin set, parent_sub is recovered during integration by inheriting
+    # from the origin item — see resolve_parent/2 below. This matches the
+    # yjs/yrs wire format.
+    write_parent_sub? = item.parent_sub != nil and origin == nil and right_origin == nil
+
     info =
       content_ref
       |> Bitwise.bor(if origin != nil, do: @has_origin, else: 0)
       |> Bitwise.bor(if right_origin != nil, do: @has_right_origin, else: 0)
-      |> Bitwise.bor(if item.parent_sub != nil, do: @has_parent_sub, else: 0)
+      |> Bitwise.bor(if write_parent_sub?, do: @has_parent_sub, else: 0)
 
     bin = <<info>>
 
@@ -327,9 +334,9 @@ defmodule Yelixer.Encoding do
         bin
       end
 
-    # Write parent_sub
+    # Write parent_sub — only when we also wrote parent explicitly.
     bin =
-      if item.parent_sub != nil do
+      if write_parent_sub? do
         <<bin::binary, encode_string(item.parent_sub)::binary>>
       else
         bin
@@ -832,12 +839,22 @@ defmodule Yelixer.Encoding do
         item
 
       ref_item ->
-        # Inherit parent_sub from origin/right_origin if marked for inheritance
+        # Inherit parent_sub from origin/right_origin:
+        #   - If the item was explicitly marked :inherit (legacy)
+        #   - Or if it has nil parent_sub but its origin's parent_sub is
+        #     set — this is how map conflict items recover their key name
+        #     after decoding, since the wire format only writes parent_sub
+        #     on the root item of each chain.
         item =
-          if item.parent_sub == :inherit do
-            %{item | parent_sub: ref_item.parent_sub}
-          else
-            item
+          cond do
+            item.parent_sub == :inherit ->
+              %{item | parent_sub: ref_item.parent_sub}
+
+            item.parent_sub == nil and ref_item.parent_sub != nil ->
+              %{item | parent_sub: ref_item.parent_sub}
+
+            true ->
+              item
           end
 
         case ref_item.parent do
@@ -951,7 +968,9 @@ defmodule Yelixer.Encoding do
         {{:infer, origin || right_origin}, rest}
       end
 
-    # Read parent_sub — only encoded when parent is explicit (no origin/right_origin)
+    # Read parent_sub — only encoded when parent is explicit (no origin/right_origin).
+    # Items with origin set inherit parent_sub from the origin item during
+    # integration via resolve_parent.
     {parent_sub, rest} =
       if has_parent_sub and origin == nil and right_origin == nil do
         decode_string(rest)
