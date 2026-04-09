@@ -874,7 +874,14 @@ defmodule Yelixer.Encoding do
       {ds, rest} = decode_delete_set(rest)
       {:ok, {items, ds, rest}}
     rescue
-      e in [MatchError, FunctionClauseError, ArgumentError] ->
+      # Decoding malformed bytes can raise a variety of exception types:
+      # pattern-match failures (MatchError), decode_content clauses not
+      # matching (FunctionClauseError), varint/string overflows
+      # (ArgumentError), and embedded JSON content that isn't valid
+      # (Jason.DecodeError). Catch everything and turn it into a
+      # well-typed error tuple so callers downstream of apply_update
+      # — MCP, sync agent — can trust the decoder never raises.
+      e ->
         {:error, {:malformed_update, Exception.message(e)}}
     end
   end
