@@ -68,13 +68,31 @@ defmodule Yelixer.ItemTest do
       assert left.content == {:string, "he"}
       assert left.length == 2
       assert left.origin == nil
-      assert left.right_origin == right.id
+      # yrs behavior: left keeps the original's right_origin. The previous
+      # implementation incorrectly set left.right_origin to right.id, which
+      # broke parent resolution on rehydrate-then-modify cycles (CX-2sv).
+      assert left.right_origin == ID.new(2, 0)
 
       assert right.id == ID.new(1, 2)
       assert right.content == {:string, "llo"}
       assert right.length == 3
       assert right.origin == ID.new(1, 1)
       assert right.right_origin == ID.new(2, 0)
+    end
+
+    test "splits leftmost item (no neighbors) keeps origin and right_origin nil" do
+      # Regression test for CX-2sv: when the item being split was inserted
+      # alone (origin=nil, right_origin=nil), the left half must keep both
+      # nil so that on encode its parent is written explicitly.
+      item = Item.new(ID.new(1, 0), nil, nil, {:string, "hello"}, {:named, "text"}, nil)
+      {left, right} = Item.split(item, 1)
+
+      assert left.origin == nil
+      assert left.right_origin == nil
+
+      assert right.id == ID.new(1, 1)
+      assert right.origin == ID.new(1, 0)
+      assert right.right_origin == nil
     end
 
     test "splits any content at offset" do

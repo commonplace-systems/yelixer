@@ -43,8 +43,17 @@ defmodule Yelixer.Item do
 
   @doc """
   Split an item at a given offset, returning {left, right}.
-  Left keeps the original ID with reduced length.
-  Right gets ID {client, clock + offset} with origin = end of left.
+
+  Left keeps the original ID, origin, and right_origin with reduced length.
+  Right gets ID {client, clock + offset}, origin pointing at the last clock
+  of the left half, and inherits the original's right_origin.
+
+  This matches yrs/yjs split semantics: both halves conceptually occupy the
+  same YATA position as the original item, so they share the original's
+  right_origin. Setting left.right_origin = right.id (the previous buggy
+  behavior) broke the invariant that leftmost sequence items have
+  right_origin=nil, which in turn caused encoded commits of rehydrated-
+  then-modified docs to lose their parent linkage on decode (CX-2sv).
   """
   def split(%__MODULE__{} = item, offset) when offset > 0 and offset < item.length do
     {left_content, right_content} = split_content(item.content, offset)
@@ -53,8 +62,7 @@ defmodule Yelixer.Item do
 
     left = %{item |
       content: left_content,
-      length: content_length(left_content),
-      right_origin: right_id
+      length: content_length(left_content)
     }
 
     right = %__MODULE__{

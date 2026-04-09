@@ -339,18 +339,27 @@ defmodule Yelixer.Encoding do
     <<bin::binary, encode_content(item.content)::binary>>
   end
 
-  # Returns the ID if the referenced item is NOT a GC block, nil otherwise
-  # Remap origin (left ref) through GC/deleted blocks to nearest non-GC predecessor
+  # Remap origin through GC blocks only. Deleted-but-live items (content
+  # still {:string, _} / {:any, _} etc with deleted: true) are left alone —
+  # they're still in the block store with intact position info and their
+  # parent is resolvable at decode time through the YATA chain. Walking
+  # across them during encoding can cross into an unrelated sequence (e.g.
+  # from a "content" text item into a "root" map entry) and corrupt the
+  # decoded parent assignment. (CX-2sv.)
   defp remap_gc_origin(nil, _store), do: nil
 
   defp remap_gc_origin(%ID{} = id, store) do
     case BlockStore.get(store, id) do
-      %Item{deleted: true} ->
-        # Find last non-deleted item before this one from same client
+      %Item{content: {:gc, _}} ->
+        # GC'd items have lost their content — walk back to the nearest
+        # non-GC predecessor from the same client.
         blocks = BlockStore.client_blocks(store, id.client)
 
         blocks
-        |> Enum.filter(fn b -> b.id.clock + b.length - 1 < id.clock and not b.deleted end)
+        |> Enum.filter(fn
+          %Item{content: {:gc, _}} -> false
+          %Item{id: bid, length: len} -> bid.clock + len - 1 < id.clock
+        end)
         |> List.last()
         |> case do
           nil -> nil
@@ -362,12 +371,13 @@ defmodule Yelixer.Encoding do
     end
   end
 
-  # Clear right_origin when it points to a GC/deleted block
+  # Clear right_origin only if it points to a GC block. Deleted-but-live
+  # items stay intact (see remap_gc_origin/2 comment).
   defp remap_gc_right_origin(nil, _store), do: nil
 
   defp remap_gc_right_origin(%ID{} = id, store) do
     case BlockStore.get(store, id) do
-      %Item{deleted: true} -> nil
+      %Item{content: {:gc, _}} -> nil
       _ -> id
     end
   end
