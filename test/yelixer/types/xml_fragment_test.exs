@@ -53,4 +53,77 @@ defmodule Yelixer.Types.XMLFragmentTest do
     assert XMLFragment.to_list(doc, "frag") == []
     assert XMLFragment.child_count(doc, "frag") == 0
   end
+
+  describe "delete_child/4" do
+    test "deletes one child at index 0 (head)" do
+      doc = new_doc()
+      doc = XMLFragment.new_fragment(doc, "frag")
+      doc = XMLFragment.insert_child(doc, "frag", 0, {:element, "a"})
+      doc = XMLFragment.insert_child(doc, "frag", 1, {:element, "b"})
+      doc = XMLFragment.insert_child(doc, "frag", 2, {:element, "c"})
+
+      doc = XMLFragment.delete_child(doc, "frag", 0)
+
+      children = XMLFragment.to_list(doc, "frag")
+      assert length(children) == 2
+      assert [{:element, "b", _}, {:element, "c", _}] = children
+      assert XMLFragment.child_count(doc, "frag") == 2
+    end
+
+    test "deletes one child at middle index" do
+      doc = new_doc()
+      doc = XMLFragment.new_fragment(doc, "frag")
+      doc = XMLFragment.insert_child(doc, "frag", 0, {:element, "a"})
+      doc = XMLFragment.insert_child(doc, "frag", 1, {:element, "b"})
+      doc = XMLFragment.insert_child(doc, "frag", 2, {:element, "c"})
+
+      doc = XMLFragment.delete_child(doc, "frag", 1)
+
+      children = XMLFragment.to_list(doc, "frag")
+      assert length(children) == 2
+      assert [{:element, "a", _}, {:element, "c", _}] = children
+    end
+
+    test "deletes one child at last index" do
+      doc = new_doc()
+      doc = XMLFragment.new_fragment(doc, "frag")
+      doc = XMLFragment.insert_child(doc, "frag", 0, {:element, "a"})
+      doc = XMLFragment.insert_child(doc, "frag", 1, {:element, "b"})
+      doc = XMLFragment.insert_child(doc, "frag", 2, {:element, "c"})
+
+      doc = XMLFragment.delete_child(doc, "frag", 2)
+
+      children = XMLFragment.to_list(doc, "frag")
+      assert length(children) == 2
+      assert [{:element, "a", _}, {:element, "b", _}] = children
+    end
+
+    test "deletes multiple consecutive children with length=2" do
+      doc = new_doc()
+      doc = XMLFragment.new_fragment(doc, "frag")
+      doc = XMLFragment.insert_child(doc, "frag", 0, {:element, "a"})
+      doc = XMLFragment.insert_child(doc, "frag", 1, {:element, "b"})
+      doc = XMLFragment.insert_child(doc, "frag", 2, {:element, "c"})
+      doc = XMLFragment.insert_child(doc, "frag", 3, {:element, "d"})
+
+      doc = XMLFragment.delete_child(doc, "frag", 1, 2)
+
+      children = XMLFragment.to_list(doc, "frag")
+      assert length(children) == 2
+      assert [{:element, "a", _}, {:element, "d", _}] = children
+    end
+
+    test "default length is 1" do
+      doc = new_doc()
+      doc = XMLFragment.new_fragment(doc, "frag")
+      doc = XMLFragment.insert_child(doc, "frag", 0, {:element, "a"})
+      doc = XMLFragment.insert_child(doc, "frag", 1, {:element, "b"})
+
+      doc = XMLFragment.delete_child(doc, "frag", 0)
+
+      children = XMLFragment.to_list(doc, "frag")
+      assert length(children) == 1
+      assert [{:element, "b", _}] = children
+    end
+  end
 end

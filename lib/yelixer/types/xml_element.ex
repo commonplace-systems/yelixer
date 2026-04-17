@@ -93,6 +93,28 @@ defmodule Yelixer.Types.XMLElement do
     doc
   end
 
+  @doc """
+  Delete `length` consecutive children starting at `index`.
+
+  Children are tombstoned in the CRDT (never physically removed). The
+  `children/2`, `child_count/2`, and `to_string/2` helpers skip tombstoned
+  items, so the observable shape matches a plain array deletion.
+  """
+  def delete_child(%Doc{} = doc, type_name, index, length \\ 1) when length > 0 do
+    children_key = children_key(type_name)
+    items = find_child_items_in_range(doc.store, children_key, index, length)
+
+    {store, delete_set} =
+      Enum.reduce(items, {doc.store, doc.delete_set}, fn id, {store, ds} ->
+        item = BlockStore.get(store, id)
+        store = Integrate.mark_deleted(store, id)
+        ds = DeleteSet.insert(ds, id.client, id.clock, item.length)
+        {store, ds}
+      end)
+
+    %{doc | store: store, delete_set: delete_set}
+  end
+
   @doc "Get children as a list of {type, tag_or_name, child_type_name} tuples."
   def children(%Doc{} = doc, type_name) do
     children_key = children_key(type_name)
@@ -227,6 +249,31 @@ defmodule Yelixer.Types.XMLElement do
       parent == {:named, type_name} and sub == key and not deleted
     end)
     |> List.last()
+  end
+
+  defp find_child_items_in_range(store, children_key, index, len) do
+    seq = BlockStore.get_sequence(store, children_key)
+    collect_ids(seq, index, len, 0, [])
+  end
+
+  defp collect_ids(_, _, 0, _, acc), do: Enum.reverse(acc)
+  defp collect_ids([], _, _, _, acc), do: Enum.reverse(acc)
+
+  defp collect_ids([item | rest], index, remaining, pos, acc) do
+    item_end = pos + item.length
+
+    cond do
+      item_end <= index ->
+        collect_ids(rest, index, remaining, item_end, acc)
+
+      pos >= index ->
+        to_take = min(item.length, remaining)
+        collect_ids(rest, index, remaining - to_take, item_end, [item.id | acc])
+
+      true ->
+        to_take = min(item_end - index, remaining)
+        collect_ids(rest, index, remaining - to_take, item_end, [item.id | acc])
+    end
   end
 
   defp delete_existing_attr(doc, type_name, key) do

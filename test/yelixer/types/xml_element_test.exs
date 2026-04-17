@@ -118,4 +118,89 @@ defmodule Yelixer.Types.XMLElementTest do
     doc = XMLElement.delete_attribute(doc, "root", "class")
     assert XMLElement.get_attribute(doc, "root", "class") == nil
   end
+
+  describe "delete_child/4" do
+    test "deletes one child at index 0 (head)" do
+      doc = new_doc()
+      doc = XMLElement.new_element(doc, "root", "div")
+      doc = XMLElement.insert_child(doc, "root", 0, {:element, "a"})
+      doc = XMLElement.insert_child(doc, "root", 1, {:element, "b"})
+      doc = XMLElement.insert_child(doc, "root", 2, {:element, "c"})
+
+      doc = XMLElement.delete_child(doc, "root", 0)
+
+      children = XMLElement.children(doc, "root")
+      assert length(children) == 2
+      assert [{:element, "b", _}, {:element, "c", _}] = children
+      assert XMLElement.child_count(doc, "root") == 2
+    end
+
+    test "deletes one child at middle index" do
+      doc = new_doc()
+      doc = XMLElement.new_element(doc, "root", "div")
+      doc = XMLElement.insert_child(doc, "root", 0, {:element, "a"})
+      doc = XMLElement.insert_child(doc, "root", 1, {:element, "b"})
+      doc = XMLElement.insert_child(doc, "root", 2, {:element, "c"})
+
+      doc = XMLElement.delete_child(doc, "root", 1)
+
+      children = XMLElement.children(doc, "root")
+      assert length(children) == 2
+      assert [{:element, "a", _}, {:element, "c", _}] = children
+    end
+
+    test "deletes one child at last index" do
+      doc = new_doc()
+      doc = XMLElement.new_element(doc, "root", "div")
+      doc = XMLElement.insert_child(doc, "root", 0, {:element, "a"})
+      doc = XMLElement.insert_child(doc, "root", 1, {:element, "b"})
+      doc = XMLElement.insert_child(doc, "root", 2, {:element, "c"})
+
+      doc = XMLElement.delete_child(doc, "root", 2)
+
+      children = XMLElement.children(doc, "root")
+      assert length(children) == 2
+      assert [{:element, "a", _}, {:element, "b", _}] = children
+    end
+
+    test "deletes multiple consecutive children with length=2" do
+      doc = new_doc()
+      doc = XMLElement.new_element(doc, "root", "div")
+      doc = XMLElement.insert_child(doc, "root", 0, {:element, "a"})
+      doc = XMLElement.insert_child(doc, "root", 1, {:element, "b"})
+      doc = XMLElement.insert_child(doc, "root", 2, {:element, "c"})
+      doc = XMLElement.insert_child(doc, "root", 3, {:element, "d"})
+
+      doc = XMLElement.delete_child(doc, "root", 1, 2)
+
+      children = XMLElement.children(doc, "root")
+      assert length(children) == 2
+      assert [{:element, "a", _}, {:element, "d", _}] = children
+    end
+
+    test "default length is 1" do
+      doc = new_doc()
+      doc = XMLElement.new_element(doc, "root", "div")
+      doc = XMLElement.insert_child(doc, "root", 0, {:element, "a"})
+      doc = XMLElement.insert_child(doc, "root", 1, {:element, "b"})
+
+      doc = XMLElement.delete_child(doc, "root", 0)
+
+      children = XMLElement.children(doc, "root")
+      assert length(children) == 1
+      assert [{:element, "b", _}] = children
+    end
+
+    test "to_string reflects deletion" do
+      doc = new_doc()
+      doc = XMLElement.new_element(doc, "root", "div")
+      doc = XMLElement.insert_child(doc, "root", 0, {:element, "a"})
+      doc = XMLElement.insert_child(doc, "root", 1, {:element, "b"})
+      doc = XMLElement.insert_child(doc, "root", 2, {:element, "c"})
+
+      doc = XMLElement.delete_child(doc, "root", 1)
+
+      assert XMLElement.to_string(doc, "root") == "<div><a></a><c></c></div>"
+    end
+  end
 end
