@@ -1,6 +1,6 @@
 defmodule Yelixer.Doc do
   alias Yelixer.{BlockStore, DeleteSet, Item}
-  alias Yelixer.Types.{YMap, Text, Array}
+  alias Yelixer.Types.{YMap, Text, Array, XMLFragment, XMLElement, XMLText}
 
   @type t :: %__MODULE__{
           client_id: non_neg_integer(),
@@ -87,7 +87,22 @@ defmodule Yelixer.Doc do
   # store only primitive values at top-level types.
   defp replay_named_type({"__sub:" <> _ = _name, _ref}, doc, _source), do: doc
 
+  # XML child types are registered under synthetic names
+  # (`parent::child::CLIENT:CLOCK`) by their parent's insert_child and
+  # replayed recursively when we process the top-level parent — skip
+  # them here to avoid double-replay.
   defp replay_named_type({name, ref}, doc, source) do
+    cond do
+      String.contains?(name, "::child::") -> doc
+      # The `::children` sub-sequence belongs to an XML element/fragment;
+      # it isn't a named top-level type (Doc.get_or_create_type is never
+      # called for it), but guard defensively for decoded updates.
+      String.ends_with?(name, "::children") -> doc
+      true -> replay_top_level_type(name, ref, source, doc)
+    end
+  end
+
+  defp replay_top_level_type(name, ref, source, doc) do
     # Updates decoded by `apply_update` do not carry the symbolic type
     # tag — top-level named types come back as `:unknown`. Infer the
     # actual shape from the source's block_store sequence so we can
@@ -98,12 +113,12 @@ defmodule Yelixer.Doc do
       :text -> replay_text(doc, source, name)
       :map -> replay_map(doc, source, name)
       :array -> replay_array(doc, source, name)
+      :xml_fragment -> replay_xml_fragment(doc, source, name, name)
+      {:xml_element, tag} -> replay_xml_element(doc, source, name, name, tag)
+      :xml_text -> replay_xml_text(doc, source, name, name)
       _ ->
-        # XML and any other ref types: register the name so the resulting
-        # doc carries the type registration, but skip content replay.
-        # XML support is currently a stub in commonplace; revisit when
-        # it lands. Filed under generalizing compaction to non-
-        # presence/schema docs.
+        # Unknown/stub ref types: register the name so the resulting doc
+        # carries the type registration, but skip content replay.
         {doc, _} = get_or_create_type(doc, name, effective_ref)
         doc
     end
@@ -128,22 +143,127 @@ defmodule Yelixer.Doc do
     if values == [], do: doc, else: Array.insert(doc, name, 0, values)
   end
 
-  # Infer the YType (text/map/array) for a top-level named type by
-  # inspecting the items in its YATA sequence. This is needed because
-  # `apply_update` cannot recover the symbolic ref from the wire format
-  # for top-level named types — it stores them as `:unknown`.
+  # XML replay: walk the source's observable structure (tombstones are
+  # already dropped by to_list/children) and rebuild it in `doc` under
+  # `target_name`. Children in the source carry source-minted child type
+  # names (`parent::child::CLIENT:CLOCK`) that won't match after re-
+  # insertion in `doc`, so we map each source child to its newly-minted
+  # name in the fresh doc before recursing.
+  defp replay_xml_fragment(doc, source, source_name, target_name) do
+    {doc, _} = get_or_create_type(doc, target_name, :xml_fragment)
+    source_children = XMLFragment.to_list(source, source_name)
+    replay_xml_children_into_fragment(doc, source, target_name, source_children)
+  end
+
+  defp replay_xml_element(doc, source, source_name, target_name, tag) do
+    {doc, _} = get_or_create_type(doc, target_name, {:xml_element, tag})
+    doc = replay_xml_attributes(doc, source, source_name, target_name)
+    source_children = XMLElement.children(source, source_name)
+    replay_xml_children_into_element(doc, source, target_name, source_children)
+  end
+
+  defp replay_xml_text(doc, source, source_name, target_name) do
+    {doc, _} = get_or_create_type(doc, target_name, :xml_text)
+    text = XMLText.to_string(source, source_name)
+    if text == "", do: doc, else: XMLText.insert(doc, target_name, 0, text)
+  end
+
+  defp replay_xml_attributes(doc, source, source_name, target_name) do
+    XMLElement.get_attributes(source, source_name)
+    |> Enum.reduce(doc, fn {key, value}, d ->
+      XMLElement.set_attribute(d, target_name, key, value)
+    end)
+  end
+
+  defp replay_xml_children_into_fragment(doc, source, target_parent, source_children) do
+    source_children
+    |> Enum.with_index()
+    |> Enum.reduce(doc, fn {source_child, idx}, d ->
+      {spec, source_child_name, replay_fn} = xml_child_replay_plan(source_child)
+      d = XMLFragment.insert_child(d, target_parent, idx, spec)
+      target_children = XMLFragment.to_list(d, target_parent)
+      target_child_name = target_child_name_at(target_children, idx)
+      replay_fn.(d, source, source_child_name, target_child_name)
+    end)
+  end
+
+  defp replay_xml_children_into_element(doc, source, target_parent, source_children) do
+    source_children
+    |> Enum.with_index()
+    |> Enum.reduce(doc, fn {source_child, idx}, d ->
+      {spec, source_child_name, replay_fn} = xml_child_replay_plan(source_child)
+      d = XMLElement.insert_child(d, target_parent, idx, spec)
+      target_children = XMLElement.children(d, target_parent)
+      target_child_name = target_child_name_at(target_children, idx)
+      replay_fn.(d, source, source_child_name, target_child_name)
+    end)
+  end
+
+  defp xml_child_replay_plan({:element, tag, source_name}) do
+    replay_fn = fn d, src, s_name, t_name ->
+      replay_xml_element(d, src, s_name, t_name, tag)
+    end
+
+    {{:element, tag}, source_name, replay_fn}
+  end
+
+  defp xml_child_replay_plan({:text, source_name}) do
+    replay_fn = fn d, src, s_name, t_name ->
+      replay_xml_text(d, src, s_name, t_name)
+    end
+
+    {:text, source_name, replay_fn}
+  end
+
+  defp xml_child_replay_plan({:fragment, source_name}) do
+    replay_fn = fn d, src, s_name, t_name ->
+      replay_xml_fragment(d, src, s_name, t_name)
+    end
+
+    {{:fragment}, source_name, replay_fn}
+  end
+
+  defp target_child_name_at(target_children, idx) do
+    case Enum.at(target_children, idx) do
+      {:element, _tag, name} -> name
+      {:text, name} -> name
+      {:fragment, name} -> name
+    end
+  end
+
+  # Infer the YType for a top-level named type by inspecting the items
+  # in its YATA sequence. Needed because `apply_update` cannot recover
+  # the symbolic ref from the wire format for top-level named types —
+  # it stores them as `:unknown`.
   #
-  # - String content → text
-  # - Items with `parent_sub` → map (entries keyed by parent_sub)
-  # - Otherwise (any content with no parent_sub) → array
+  # - String content → :text
+  # - Items with `parent_sub` → :map (entries keyed by parent_sub)
+  # - Items whose content is a nested XML type → :xml_fragment
+  # - Otherwise (any content with no parent_sub) → :array
+  #
+  # Top-level XMLElement / XMLText inference isn't possible from items
+  # alone (the tag isn't carried on the wire for top-level elements; a
+  # top-level xml_text's items look identical to :text). Callers that
+  # need those must pre-register the top-level type on the receiver —
+  # same contract as Y.js `ydoc.get(name, Y.XmlElement)`.
   defp infer_type_from_sequence(%__MODULE__{store: store}, name) do
     items = Yelixer.BlockStore.get_sequence(store, name)
 
     cond do
       Enum.any?(items, &match?(%Item{content: {:string, _}}, &1)) -> :text
       Enum.any?(items, &(&1.parent_sub != nil)) -> :map
+      xml_fragment_like?(items) -> :xml_fragment
       items == [] -> :map
       true -> :array
     end
+  end
+
+  defp xml_fragment_like?(items) do
+    Enum.any?(items, fn
+      %Item{content: {:type, {:xml_element, _}}} -> true
+      %Item{content: {:type, :xml_text}} -> true
+      %Item{content: {:type, :xml_fragment}} -> true
+      _ -> false
+    end)
   end
 end

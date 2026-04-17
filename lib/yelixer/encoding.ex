@@ -420,6 +420,13 @@ defmodule Yelixer.Encoding do
     <<encode_string(key)::binary, encode_string(Jason.encode!(value))::binary>>
   end
 
+  # Yjs V1 wire format for ContentType: a varint type ref, followed by
+  # the tag name string when the type is an XmlElement or XmlHook.
+  # (See yjs `readTypeRef` / `readYXmlElement`.)
+  defp encode_content({:type, {:xml_element, tag}}) do
+    <<encode_uint(type_ref_to_int(:xml_element))::binary, encode_string(tag)::binary>>
+  end
+
   defp encode_content({:type, type_ref}), do: encode_uint(type_ref_to_int(type_ref))
   defp encode_content({:json, values}), do: encode_json_list(values)
 
@@ -728,6 +735,7 @@ defmodule Yelixer.Encoding do
         key ->
           type_ref = infer_type_ref(item, doc)
           {doc, _} = Doc.get_or_create_type(doc, key, type_ref)
+          doc = maybe_register_xml_child_type(doc, item, key)
           {:ok, store} = Integrate.integrate(doc.store, item, key)
           # Map conflict resolution: auto-delete loser when same key has competing items
           store = maybe_resolve_map_conflict(store, item, key)
@@ -807,6 +815,25 @@ defmodule Yelixer.Encoding do
   end
 
   defp infer_type_ref(_, _), do: :unknown
+
+  # When we integrate an XML child item (content `{:type, ref}` whose parent
+  # is a `*::children` sequence), register its synthetic child name
+  # (`parent::child::CLIENT:CLOCK`) in the doc's `types` map. Without this,
+  # top-level XMLElement tags and children would not be recoverable from
+  # the wire (which only carries items, not doc-level type registrations).
+  defp maybe_register_xml_child_type(doc, %Item{content: {:type, ref}, id: id} = _item, key) do
+    case String.split(key, "::children", parts: 2) do
+      [parent_name, ""] ->
+        child_name = "#{parent_name}::child::#{id.client}:#{id.clock}"
+        {doc, _} = Doc.get_or_create_type(doc, child_name, ref)
+        doc
+
+      _ ->
+        doc
+    end
+  end
+
+  defp maybe_register_xml_child_type(doc, _item, _key), do: doc
 
   defp retry_pending(doc, sv, []), do: {doc, sv}
 
@@ -1019,7 +1046,16 @@ defmodule Yelixer.Encoding do
 
   defp decode_content(rest, @content_ref_type) do
     {ref_int, rest} = decode_uint(rest)
-    {{:type, int_to_type_ref(ref_int)}, rest}
+
+    case int_to_type_ref(ref_int) do
+      :xml_element ->
+        # XmlElement carries its tag string immediately after the type ref.
+        {tag, rest} = decode_string(rest)
+        {{:type, {:xml_element, tag}}, rest}
+
+      ref ->
+        {{:type, ref}, rest}
+    end
   end
 
   defp decode_content(rest, @content_ref_json) do
