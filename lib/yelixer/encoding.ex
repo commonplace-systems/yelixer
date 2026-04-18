@@ -987,6 +987,61 @@ defmodule Yelixer.Encoding do
     end
   end
 
+  @doc """
+  Split the clientIDs in a Yjs V1 update binary by role (CX-fbs6).
+
+  Returns `{:ok, %{authorship: MapSet, reference: MapSet}}` where:
+
+  - `:authorship` — clientIDs owning newly-inserted items
+    (`item.id.client` for non-GC structs). These EXTEND the namespace
+    when the commit lands.
+  - `:reference`  — clientIDs appearing as refs only: item `origin`,
+    `right_origin`, `{:id, _}` parent, and delete-set targets. These
+    MUST already resolve in the namespace.
+
+  This is the primitive the Commonplace namespace validator uses to
+  separate the subset-check (references) from namespace extension
+  (authorship). See `Commonplace.Store.Namespace.validate_commit/2`.
+  """
+  @spec update_client_ids_by_role(binary()) ::
+          {:ok, %{authorship: MapSet.t(), reference: MapSet.t()}}
+          | {:error, {:malformed_update, String.t()}}
+  def update_client_ids_by_role(binary) do
+    case decode_update(binary) do
+      {:ok, {items, delete_set, _rest}} ->
+        {authorship, reference} =
+          Enum.reduce(items, {MapSet.new(), MapSet.new()}, fn item, {auth, ref} ->
+            {put_authorship(auth, item), put_refs(ref, item)}
+          end)
+
+        reference =
+          delete_set.clients
+          |> Map.keys()
+          |> Enum.reduce(reference, &MapSet.put(&2, &1))
+
+        {:ok, %{authorship: authorship, reference: reference}}
+
+      {:error, _} = err ->
+        err
+    end
+  end
+
+  defp put_authorship(acc, %Item{content: {:gc, _}}), do: acc
+  defp put_authorship(acc, %Item{id: %ID{client: client}}), do: MapSet.put(acc, client)
+
+  defp put_refs(acc, %Item{} = item) do
+    acc
+    |> put_id_client(item.origin)
+    |> put_id_client(item.right_origin)
+    |> put_parent_client(item.parent)
+  end
+
+  defp put_id_client(acc, nil), do: acc
+  defp put_id_client(acc, %ID{client: client}), do: MapSet.put(acc, client)
+
+  defp put_parent_client(acc, {:id, %ID{client: client}}), do: MapSet.put(acc, client)
+  defp put_parent_client(acc, _), do: acc
+
   defp decode_clients(rest, 0, acc), do: {acc, rest}
 
   defp decode_clients(binary, remaining, acc) do
