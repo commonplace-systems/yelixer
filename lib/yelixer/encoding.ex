@@ -930,6 +930,36 @@ defmodule Yelixer.Encoding do
     end
   end
 
+  @doc """
+  Extract the set of clientIDs referenced by a Yjs V1 update binary
+  without applying it to a doc.
+
+  Scans both the items list and the delete set, because a commit can
+  reference a clientID via either channel (an update that only deletes
+  still carries clientID membership information in its delete set).
+
+  Returns `{:ok, MapSet.t(non_neg_integer())}` or `{:error, reason}`
+  when the binary is malformed.
+  """
+  @spec update_client_ids(binary()) ::
+          {:ok, MapSet.t()} | {:error, {:malformed_update, String.t()}}
+  def update_client_ids(binary) do
+    case decode_update(binary) do
+      {:ok, {items, delete_set, _rest}} ->
+        item_ids = Enum.reduce(items, MapSet.new(), fn it, acc -> MapSet.put(acc, it.id.client) end)
+
+        ds_ids =
+          delete_set.clients
+          |> Map.keys()
+          |> MapSet.new()
+
+        {:ok, MapSet.union(item_ids, ds_ids)}
+
+      {:error, _} = err ->
+        err
+    end
+  end
+
   defp decode_clients(rest, 0, acc), do: {acc, rest}
 
   defp decode_clients(binary, remaining, acc) do
