@@ -2,6 +2,21 @@ defmodule Yelixer.Encoding do
   @moduledoc """
   Binary encoding/decoding for Yjs V1 wire protocol.
   Uses unsigned LEB128 varint encoding.
+
+  ## Byte-determinism guarantee (CX-w62 / Build 6 gate)
+
+  `encode_update/1` is byte-deterministic: two independent peers
+  reconstructing the same logical state (via `apply_update/2` of equal
+  update bytes) produce identical output from `encode_update/1`. The
+  late-edit translator (Build 6.3) and the snapshot op (Build 5, CX-umz)
+  both depend on this property — content-address hashes only agree when
+  re-encoding is canonical.
+
+  Determinism rests on: (1) struct-section clients sorted descending by
+  id; (2) items per client iterated in clock order by the block store;
+  (3) `encode_delete_set/1` sorting clients descending; (4) `apply_update/2`
+  merging received delete sets into `doc.delete_set` so receivers can
+  re-broadcast deletions. See `test/yelixer/encoder_determinism_test.exs`.
   """
 
   alias Yelixer.{StateVector, DeleteSet, ID, Item, BlockStore, Doc, Integrate}
@@ -159,8 +174,14 @@ defmodule Yelixer.Encoding do
   def encode_delete_set(%DeleteSet{clients: clients}) do
     count = map_size(clients)
 
+    # Sort clients descending by id to match `encode_diff`'s struct-section
+    # iteration order (line 230). Without this, `encode_update/1` is not
+    # byte-deterministic across peers whose delete sets contain multiple
+    # clients — Elixir map iteration order is not guaranteed stable.
+    sorted_clients = Enum.sort_by(clients, fn {client, _} -> client end, :desc)
+
     body =
-      Enum.reduce(clients, <<>>, fn {client, ranges}, acc ->
+      Enum.reduce(sorted_clients, <<>>, fn {client, ranges}, acc ->
         num_ranges = length(ranges)
 
         ranges_bin =
@@ -577,6 +598,12 @@ defmodule Yelixer.Encoding do
               %{doc | store: store}
             end)
           end)
+
+        # Merge the decoded delete set into doc.delete_set so the receiver
+        # can re-broadcast deletions via `encode_update/1`. Without this,
+        # round-tripped docs lose their delete set on re-encode, breaking
+        # byte-determinism across peers (CX-w62).
+        doc = %{doc | delete_set: DeleteSet.merge(doc.delete_set, ds)}
 
         {:ok, doc}
 
