@@ -78,8 +78,40 @@ defmodule Yelixer.Doc do
   """
   def snapshot_update(%__MODULE__{} = source) do
     fresh = new(client_id: source.client_id)
-    rebuilt = Enum.reduce(source.types, fresh, &replay_named_type(&1, &2, source))
+
+    # CX-hzdc: replay in source-clock order, not `source.types` map
+    # iteration order. The downstream derivation map (built by
+    # `Commonplace.Store.Snapshotter.pair_ids/2`) pairs source and new
+    # items by position, so source ordering must be preserved in the
+    # rebuilt doc. Without this, envelope-structure docs (root YMap +
+    # named "content") get a DM that pairs `_type` with "content" and
+    # causes spurious `:case_b` in late-edit translation.
+    types_in_source_order = sort_types_by_earliest_item(source)
+    rebuilt = Enum.reduce(types_in_source_order, fresh, &replay_named_type(&1, &2, source))
     Yelixer.Encoding.encode_update(rebuilt)
+  end
+
+  # Order top-level named types by the `{client, clock}` of their
+  # earliest item in `source`. Types with no direct items (possible
+  # when content lives only under sub-types that snapshot_update
+  # doesn't structurally replay yet) sort last under a sentinel so
+  # they don't perturb clocks for types that do carry items.
+  defp sort_types_by_earliest_item(%__MODULE__{types: types} = source) do
+    Enum.sort_by(types, fn {name, _ref} -> earliest_id_for_type(source, name) end)
+  end
+
+  defp earliest_id_for_type(%__MODULE__{store: %BlockStore{clients: clients}}, name) do
+    clients
+    |> Enum.flat_map(fn {_client, items} -> items end)
+    |> Enum.filter(fn
+      %Item{parent: {:named, ^name}} -> true
+      _ -> false
+    end)
+    |> Enum.map(fn %Item{id: id} -> {id.client, id.clock} end)
+    |> case do
+      [] -> {:no_items, name}
+      ids -> Enum.min(ids)
+    end
   end
 
   # Sub-types nested inside maps/arrays (keyed `__sub:CLIENT:CLOCK`) are
