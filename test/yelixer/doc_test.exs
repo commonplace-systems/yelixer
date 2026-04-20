@@ -44,7 +44,7 @@ defmodule Yelixer.DocTest do
 
       assert map_size(BlockStore.state_vector(base.store).clocks) >= 50
 
-      snapshot_bin = Doc.snapshot_update(base)
+      {snapshot_bin, _dm} = Doc.snapshot_update(base)
       {:ok, rebuilt} = Encoding.apply_update(Doc.new(), snapshot_bin)
 
       assert map_size(BlockStore.state_vector(rebuilt.store).clocks) == 1
@@ -56,7 +56,7 @@ defmodule Yelixer.DocTest do
       {doc, _} = Doc.get_or_create_type(doc, "body", :text)
       doc = Text.insert(doc, "body", 0, "hello world")
 
-      snapshot_bin = Doc.snapshot_update(doc)
+      {snapshot_bin, _dm} = Doc.snapshot_update(doc)
       {:ok, rebuilt} = Encoding.apply_update(Doc.new(), snapshot_bin)
 
       assert Text.to_string(rebuilt, "body") == "hello world"
@@ -69,7 +69,7 @@ defmodule Yelixer.DocTest do
       {doc, _} = Doc.get_or_create_type(doc, "items", :array)
       doc = Array.insert(doc, "items", 0, ["a", "b", "c"])
 
-      snapshot_bin = Doc.snapshot_update(doc)
+      {snapshot_bin, _dm} = Doc.snapshot_update(doc)
       {:ok, rebuilt} = Encoding.apply_update(Doc.new(), snapshot_bin)
 
       assert Array.to_list(rebuilt, "items") == ["a", "b", "c"]
@@ -81,7 +81,7 @@ defmodule Yelixer.DocTest do
       {doc, _} = Doc.get_or_create_type(doc, "m", :map)
       doc = YMap.set(doc, "m", "k", "v")
 
-      snapshot_bin = Doc.snapshot_update(doc)
+      {snapshot_bin, _dm} = Doc.snapshot_update(doc)
       {:ok, rebuilt} = Encoding.apply_update(Doc.new(), snapshot_bin)
 
       assert Map.keys(BlockStore.state_vector(rebuilt.store).clocks) == [4242]

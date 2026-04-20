@@ -20,7 +20,7 @@ defmodule Yelixer.SnapshotUpdateXMLTest do
       expected = ~s(<p class="para">hello world</p>)
       assert XMLFragment.to_string(doc, "frag") == expected
 
-      snapshot_bin = Doc.snapshot_update(doc)
+      {snapshot_bin, _dm} = Doc.snapshot_update(doc)
       {:ok, rebuilt} = Encoding.apply_update(Doc.new(), snapshot_bin)
 
       assert XMLFragment.to_string(rebuilt, "frag") == expected
@@ -40,7 +40,7 @@ defmodule Yelixer.SnapshotUpdateXMLTest do
 
       assert XMLFragment.to_string(doc, "frag") == "<a></a><c></c>"
 
-      snapshot_bin = Doc.snapshot_update(doc)
+      {snapshot_bin, _dm} = Doc.snapshot_update(doc)
       {:ok, rebuilt} = Encoding.apply_update(Doc.new(), snapshot_bin)
 
       assert XMLFragment.to_string(rebuilt, "frag") == "<a></a><c></c>"
@@ -63,7 +63,7 @@ defmodule Yelixer.SnapshotUpdateXMLTest do
       expected = ~s(<div id="x">body</div>)
       assert XMLElement.to_string(doc, "root") == expected
 
-      snapshot_bin = Doc.snapshot_update(doc)
+      {snapshot_bin, _dm} = Doc.snapshot_update(doc)
 
       receiver = XMLElement.new_element(Doc.new(), "root", "div")
       {:ok, rebuilt} = Encoding.apply_update(receiver, snapshot_bin)
@@ -76,7 +76,7 @@ defmodule Yelixer.SnapshotUpdateXMLTest do
       {doc, _} = Doc.get_or_create_type(doc, "body", :xml_text)
       doc = XMLText.insert(doc, "body", 0, "inline")
 
-      snapshot_bin = Doc.snapshot_update(doc)
+      {snapshot_bin, _dm} = Doc.snapshot_update(doc)
       {:ok, rebuilt} = Encoding.apply_update(Doc.new(), snapshot_bin)
 
       assert XMLText.to_string(rebuilt, "body") == "inline"
@@ -99,7 +99,7 @@ defmodule Yelixer.SnapshotUpdateXMLTest do
       expected = "<article><h1>Title</h1></article>"
       assert XMLFragment.to_string(doc, "frag") == expected
 
-      snapshot_bin = Doc.snapshot_update(doc)
+      {snapshot_bin, _dm} = Doc.snapshot_update(doc)
       {:ok, rebuilt} = Encoding.apply_update(Doc.new(), snapshot_bin)
 
       assert XMLFragment.to_string(rebuilt, "frag") == expected

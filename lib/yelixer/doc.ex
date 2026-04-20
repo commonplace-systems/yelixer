@@ -80,15 +80,57 @@ defmodule Yelixer.Doc do
     fresh = new(client_id: source.client_id)
 
     # CX-hzdc: replay in source-clock order, not `source.types` map
-    # iteration order. The downstream derivation map (built by
-    # `Commonplace.Store.Snapshotter.pair_ids/2`) pairs source and new
-    # items by position, so source ordering must be preserved in the
-    # rebuilt doc. Without this, envelope-structure docs (root YMap +
-    # named "content") get a DM that pairs `_type` with "content" and
+    # iteration order. The downstream derivation map pairs source and
+    # new items by position, so source ordering must be preserved in
+    # the rebuilt doc. Without this, envelope-structure docs (root YMap
+    # + named "content") get a DM that pairs `_type` with "content" and
     # causes spurious `:case_b` in late-edit translation.
     types_in_source_order = sort_types_by_earliest_item(source)
     rebuilt = Enum.reduce(types_in_source_order, fresh, &replay_named_type(&1, &2, source))
-    Yelixer.Encoding.encode_update(rebuilt)
+    bytes = Yelixer.Encoding.encode_update(rebuilt)
+
+    # CX-umz: the derivation map is computed atomically with the
+    # snapshot bytes so both commit to the same (source, client_id,
+    # iteration order) pair. See also `Commonplace.Store.Snapshotter`
+    # which determinizes source.client_id before calling this.
+    {bytes, build_derivation_map(source, rebuilt)}
+  end
+
+  # Pair each new item id with the source item at the same position in
+  # deterministic iteration order (clients desc by id, items asc by
+  # clock — matches `Yelixer.Encoding.encode_update/1`). If the rebuilt
+  # doc has more items than the source (rare — snapshots consolidate,
+  # not split), tail ids reuse the last source id.
+  defp build_derivation_map(source, rebuilt) do
+    source_ids = collect_item_ids(source)
+    new_ids = collect_item_ids(rebuilt)
+    pair_ids(new_ids, source_ids)
+  end
+
+  defp collect_item_ids(%__MODULE__{store: %BlockStore{clients: clients}}) do
+    clients
+    |> Enum.sort_by(fn {client, _} -> client end, :desc)
+    |> Enum.flat_map(fn {_client, items} ->
+      items
+      |> Enum.sort_by(fn item -> item.id.clock end)
+      |> Enum.map(fn item -> {item.id.client, item.id.clock} end)
+    end)
+  end
+
+  defp pair_ids([], _source_ids), do: %{}
+  defp pair_ids(_new_ids, []), do: %{}
+
+  defp pair_ids(new_ids, source_ids) do
+    last = List.last(source_ids)
+    source_tuple = List.to_tuple(source_ids)
+    source_len = tuple_size(source_tuple)
+
+    new_ids
+    |> Enum.with_index()
+    |> Map.new(fn {new_id, idx} ->
+      src = if idx < source_len, do: elem(source_tuple, idx), else: last
+      {new_id, src}
+    end)
   end
 
   # Order top-level named types by the `{client, clock}` of their
