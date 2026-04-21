@@ -6,10 +6,11 @@ defmodule Yelixer.Doc do
           client_id: non_neg_integer(),
           store: BlockStore.t(),
           delete_set: DeleteSet.t(),
-          types: %{String.t() => atom()}
+          types: %{String.t() => atom()},
+          client_namespaces: %{non_neg_integer() => binary()}
         }
 
-  defstruct [:client_id, :store, :delete_set, :types]
+  defstruct [:client_id, :store, :delete_set, :types, client_namespaces: %{}]
 
   def new(opts \\ []) do
     client_id = Keyword.get(opts, :client_id, :rand.uniform(1_000_000_000))
@@ -18,8 +19,28 @@ defmodule Yelixer.Doc do
       client_id: client_id,
       store: BlockStore.new(),
       delete_set: DeleteSet.new(),
-      types: %{}
+      types: %{},
+      client_namespaces: %{}
     }
+  end
+
+  @doc """
+  CX-4l7u: O(1) check for whether `client_id` has been observed under
+  `namespace_hash` on this doc.
+
+  Populated only by `Yelixer.Encoding.apply_update_in_namespace/3`;
+  updates delivered via the plain `apply_update/2` do NOT touch this
+  index. Callers that want the cache populated must route through the
+  namespace-aware variant.
+
+  First-writer-wins semantics: once a clientID is recorded under one
+  namespace, re-observing the same clientID under a different namespace
+  does NOT overwrite the original mapping. The cache records authorship
+  provenance at first sight.
+  """
+  @spec clientID_in_namespace?(t(), non_neg_integer(), binary()) :: boolean()
+  def clientID_in_namespace?(%__MODULE__{client_namespaces: ns}, client_id, namespace_hash) do
+    Map.get(ns, client_id) == namespace_hash
   end
 
   def has_type?(%__MODULE__{types: types}, name), do: Map.has_key?(types, name)

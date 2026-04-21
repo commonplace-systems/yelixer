@@ -612,6 +612,62 @@ defmodule Yelixer.Encoding do
     end
   end
 
+  @doc """
+  CX-4l7u: namespace-aware apply_update.
+
+  Applies `binary` to `doc` exactly like `apply_update/2`, and also
+  records each NEW clientID introduced by the update against
+  `namespace_hash` in `doc.client_namespaces`. A "new" clientID is
+  one not already present in `client_namespaces` — existing entries
+  are preserved (first-writer-wins, so an earlier namespace's
+  provenance claim on a clientID doesn't get overwritten when the
+  same id shows up in a later, different namespace).
+
+  This is a Doc-level O(1) index for membership queries — see
+  `Yelixer.Doc.clientID_in_namespace?/3`. The commit-chain-walk
+  validator in `Commonplace.Store.Namespace` remains authoritative
+  for commit acceptance; this cache is for read paths that already
+  hold a Doc and want a fast check.
+  """
+  @spec apply_update_in_namespace(Doc.t(), binary(), binary()) ::
+          {:ok, Doc.t()} | {:error, term()}
+  def apply_update_in_namespace(%Doc{} = doc, binary, namespace_hash)
+      when is_binary(namespace_hash) do
+    case decode_update(binary) do
+      {:ok, {items, _ds, _rest}} ->
+        update_client_ids =
+          items
+          |> Enum.map(& &1.id.client)
+          |> MapSet.new()
+
+        case apply_update(doc, binary) do
+          {:ok, applied} ->
+            {:ok, record_client_namespaces(applied, update_client_ids, namespace_hash)}
+
+          {:error, _} = err ->
+            err
+        end
+
+      {:error, reason} ->
+        {:error, reason}
+    end
+  end
+
+  # First-writer-wins: only add a (client_id → namespace) entry if the
+  # client_id isn't already tracked. This preserves the authoritative
+  # provenance of the first namespace that introduced the clientID.
+  defp record_client_namespaces(%Doc{client_namespaces: existing} = doc, new_client_ids, namespace_hash) do
+    updated =
+      Enum.reduce(new_client_ids, existing, fn cid, acc ->
+        case Map.fetch(acc, cid) do
+          {:ok, _} -> acc
+          :error -> Map.put(acc, cid, namespace_hash)
+        end
+      end)
+
+    %{doc | client_namespaces: updated}
+  end
+
   defp apply_delete_range(store, _client, _clock, 0), do: store
 
   defp apply_delete_range(store, client, clock, remaining) do
