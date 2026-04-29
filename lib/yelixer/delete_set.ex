@@ -2,102 +2,97 @@ defmodule Yelixer.DeleteSet do
   @moduledoc """
   Tombstone tracking for a Yjs document.
 
-  ## What problem this solves
+  ## Why deleted items are kept in memory
 
-  In a CRDT like Yjs, deleting an item does not remove it from memory.
-  Every insertion gets a stable ID — a `(client, clock)` pair — and that
-  ID must remain meaningful forever, even after the item is deleted.
+  Every insertion in a Yjs document gets a stable, permanent ID — a
+  `(client, clock)` pair. That ID must remain meaningful even after the
+  item is deleted, because another replica may have positioned content
+  relative to it while offline.
 
-  The reason: another replica may have inserted a neighbor positioned
-  relative to that ID while offline. For example: Alice types "X", Bob
-  — disconnected — types "Y" immediately after X, recording Y's
-  position as "after X's ID." Alice deletes X. When the replicas sync,
-  Bob's anchor still needs something to point at. If X had been removed
-  from memory, Y would have nowhere to land.
+  Concrete example: Alice types "X" (ID `(A, 5)`). Bob, disconnected,
+  types "Y" immediately after X, recording Y's position as "after `(A, 5)`."
+  Alice deletes X. When the replicas sync, Bob's anchor still needs
+  something to point at. If X had been erased entirely, Y would have
+  nowhere to land.
 
-  The solution is to mark deleted items as *tombstones* rather than
-  removing them. The ID space stays intact; rendering skips tombstoned
-  items.
+  The solution is to mark deleted items as *tombstones* — they stay in
+  the ID space but are invisible to the renderer. This module is the index
+  over those tombstones: given a `(client, clock)` pair, is it deleted?
 
-  This module is the index over those tombstones: given a `(client,
-  clock)` pair, is it deleted?
+  ## Why intervals rather than a flat set of IDs
 
-  ## Why intervals instead of a flat set of IDs
+  Yjs clocks are per-client monotonic counters. Typing "abc" produces IDs
+  `(client=42, clock=0)`, `(42, 1)`, `(42, 2)`. A consecutive delete
+  produces three consecutive tombstones.
 
-  Yjs assigns clocks as per-client monotonic counters. When a user types
-  "abc", the three characters get IDs `(client=42, clock=0)`, `(42, 1)`,
-  `(42, 2)`. Deleting them produces three consecutive tombstones.
+  Real edits cluster — words, lines, paragraphs — so runs of consecutive
+  tombstones are the common case. Storing run-length intervals instead of
+  individual IDs compresses these naturally: deleting "abc" costs one
+  `{0, 3}` entry rather than three point entries.
 
-  Real edits cluster: people delete words, lines, paragraphs — rarely
-  every other character. So instead of storing individual point IDs,
-  we store run-length intervals per client. Deleting three consecutive
-  characters costs one `{0, 3}` interval entry, not three.
+  Intervals also make `merge/2` cheap: when two delete sets sync,
+  overlapping intervals collapse into one. The representation gets more
+  compact as replicas converge — exactly the behavior a CRDT needs.
 
-  Intervals also make `merge/2` efficient: when two delete sets sync,
-  overlapping intervals collapse into a single longer one. The structure
-  naturally rewards merges, which is the key CRDT property we want.
+  ## Why tombstones are bucketed by client
 
-  ## Why per-client structure
+  Clock counters are independent per client: `(client=A, clock=5)` and
+  `(client=B, clock=5)` are unrelated IDs that happen to share a number.
+  The structure is `%{client_id => [ranges]}` — each client owns its own
+  sorted interval list. This also matches the wire shape of Yjs sync
+  messages, so encoding and decoding are straightforward.
 
-  Clock counters are independent per client. `(client=A, clock=5)` and
-  `(client=B, clock=5)` are unrelated IDs that share a number. Bucketing
-  intervals by client (`%{client_id => [ranges]}`) keeps each client's
-  tombstones separate, which also matches the shape of Yjs sync messages.
+  ## Interval convention: half-open `[start, stop)`
 
-  ## Interval convention: half-open
-
-  A range `{start, stop}` means the half-open interval `[start, stop)` —
-  `start` is included, `stop` is not. So `insert(ds, c, 5, 3)` records
-  deletions at clocks 5, 6, 7 (stop = 5 + 3 = 8).
+  A tuple `{start, stop}` represents the half-open interval `[start, stop)`:
+  `start` is included, `stop` is not. So `insert(ds, c, 5, 3)` covers
+  clocks 5, 6, 7 — `stop = 5 + 3 = 8`.
 
   Half-open intervals compose cleanly at boundaries: `[0, 3)` and `[3, 6)`
-  touch at clock 3 with no gap and no overlap. Merging them gives `[0, 6)`
-  with no off-by-one arithmetic. The overlap-or-touch test in `add_range/2`
-  is written to capture this.
+  meet at clock 3 with no gap and no overlap, merging to `[0, 6)` with no
+  off-by-one adjustment needed. The overlap-or-touch predicate in
+  `add_range/2` is designed around this property.
   """
 
-  # A single range of consecutive deleted clocks for one client.
-  # See "Interval convention: half-open" in the moduledoc above for
-  # what `{start, stop}` means and why we picked that convention.
+  # A single half-open interval `[start, stop)` of consecutive deleted
+  # clocks for one client. See "Interval convention" in the moduledoc.
   @type range :: {non_neg_integer(), non_neg_integer()}
 
-  # The whole delete set: each client maps to its own sorted,
-  # disjoint list of ranges. `add_range/2` enforces this invariant
-  # on every write.
+  # The delete set: a map from client ID to that client's sorted,
+  # disjoint list of ranges. `add_range/2` enforces the sorted-disjoint
+  # invariant on every write.
   @type t :: %__MODULE__{clients: %{non_neg_integer() => [range()]}}
 
   defstruct clients: %{}
 
   @doc """
-  Returns an empty delete set with no tombstones recorded.
+  Returns an empty delete set with no tombstones.
 
-  This is the identity element for `merge/2` and the starting point
-  when constructing a delete set from scratch — for example when
-  decoding a Yjs update or initializing a fresh document.
+  This is the identity element for `merge/2`. Use it as the starting
+  point when decoding a Yjs update or initializing a fresh document.
   """
   @spec new() :: t()
   def new, do: %__MODULE__{}
 
   @doc """
-  Records that `len` consecutive items belonging to `client`, starting at
-  `clock`, have been deleted.
+  Records that `len` consecutive items from `client`, starting at `clock`,
+  have been deleted.
 
-  This is the primary write path. When a user deletes a 12-character word,
-  one `insert(ds, client, start_clock, 12)` call covers it. The interval
-  `{clock, clock + len}` is folded into the client's existing range list
-  via `add_range/2`, which keeps the list sorted and disjoint.
+  This is the primary write path. A single call covers an entire run —
+  deleting a 12-character word is one `insert(ds, client, start_clock, 12)`.
+  The interval `{clock, clock + len}` is folded into the client's existing
+  range list via `add_range/2`, which maintains the sorted-disjoint
+  invariant.
 
-  Clients are bucketed separately because their clock spaces are
-  independent — there is no cross-client ordering to maintain.
+  Each client's ranges are maintained independently because clock spaces
+  do not overlap across clients.
   """
   @spec insert(t(), non_neg_integer(), non_neg_integer(), non_neg_integer()) :: t()
   def insert(%__MODULE__{clients: clients}, client, clock, len) do
-    # Pull the current list of ranges for this client (defaults to []
-    # if this client has no tombstones yet).
+    # Fetch the current range list; default to [] for a new client.
     ranges = Map.get(clients, client, [])
 
-    # Fold the new range into the list, preserving disjoint+sorted.
-    # See `add_range/2` for the interval bookkeeping.
+    # Fold the new interval in, restoring sorted-disjoint. See `add_range/2`.
     ranges = add_range(ranges, {clock, clock + len})
 
     %__MODULE__{clients: Map.put(clients, client, ranges)}
@@ -106,19 +101,16 @@ defmodule Yelixer.DeleteSet do
   @doc """
   Returns `true` if the item at `(client, clock)` is tombstoned.
 
-  This is the read path called during document rendering. The renderer
-  walks content in order, calls `deleted?` for each item, and skips any
-  item that returns `true` (while keeping its structural slot in the ID
-  space).
+  Called by the renderer for each item: items returning `true` are skipped
+  in the visible output but their IDs remain intact in the document
+  structure.
 
-  Implemented as a linear scan of the client's range list using the
-  half-open membership test (`clock >= start and clock < stop`). This is
-  fast enough for typical human edits, where tombstones cluster into a
-  small number of disjoint runs per client. If profiling ever surfaces this
-  as a hot path under workloads with many disjoint runs per client (large
-  regions deleted in scattered chunks, or long-lived documents with unusual
-  edit shapes), a binary search over the sorted ranges would be a
-  straightforward upgrade.
+  Implemented as a linear scan using the half-open membership test
+  (`clock >= start and clock < stop`). For typical human edits — where
+  tombstones cluster into a small number of disjoint runs — this is fast
+  enough. A binary search over the sorted range list is the natural
+  upgrade if profiling ever identifies this as a bottleneck on documents
+  with many scattered deletions.
   """
   @spec deleted?(t(), non_neg_integer(), non_neg_integer()) :: boolean()
   def deleted?(%__MODULE__{clients: clients}, client, clock) do
@@ -128,39 +120,51 @@ defmodule Yelixer.DeleteSet do
   end
 
   @doc """
-  Combines two delete sets into one whose tombstones are the union of both
-  inputs.
+  Returns a delete set whose tombstones are the union of both inputs.
 
-  The implementation is two layers of natural composition:
+  The merge is two layers of composition:
 
-  - **Outer layer** — `Map.merge/3` walks every client present in either
-    input. If a client appears in only one input, its range list carries
-    over unchanged. If it appears in both, the two lists are merged at the
-    inner layer.
+  - **Outer layer** — `Map.merge/3` visits every client present in either
+    input. Clients that appear in only one side carry over unchanged.
+    Clients present in both are resolved by the inner layer.
 
   - **Inner layer** — each range from `ranges2` is folded into `ranges1`
-    via `add_range/2`, collapsing overlaps as it goes. The fold direction
-    (2 into 1) is arbitrary: `add_range/2` always returns a sorted-disjoint
-    list, so whichever side you start from, the per-client representation
-    converges to the same canonical result — same intervals, same order.
-    Folding in the opposite direction would only reshuffle intermediate
-    allocations, not the final list.
+    via `add_range/2`, collapsing overlaps as it goes. The direction (2
+    into 1) is arbitrary not because of an abstract appeal to set-union
+    commutativity, but because of a concrete mechanism: `add_range/2`
+    ends by sorting the list. Whichever fold direction you pick,
+    intermediate states differ but the final list passes through that
+    same sort step at every insertion, and so both directions land in
+    the same canonical sorted-disjoint shape.
 
-  Algebraically, `merge` is associative, commutative, and idempotent, with
-  `new/0` as identity. Together those four properties mean sync messages
-  carrying delete sets can be processed in any order, replayed, or
-  duplicated, and the result always converges to the same state — which
-  is the convergence guarantee Yjs needs. (Mathematically, this makes
-  `(DeleteSet, merge, new)` a *join-semilattice*, but the four properties
-  above are what does the work; the name is just shorthand.)
+  `merge` is associative, commutative, idempotent, and has `new/0` as its
+  identity. These four properties mean delete sets can be exchanged in any
+  order, replayed, or duplicated without diverging — the convergence
+  guarantee Yjs requires.
+
+  Idempotence is the easiest one to see in action: `merge(A, A) = A`.
+  Why? Every range in A is already in A's sorted-disjoint list. When
+  `merge` folds A's ranges into A again, each range hits `add_range/2`
+  and gets compared against ranges already there. The overlap test
+  finds itself (a range fully contains itself, so `s <= new_end` and
+  `new_start <= e` both hold trivially), the fold-min and fold-max
+  take min/max with self → unchanged, and the result is the same
+  range in the same place. No growth, no duplicates, no change.
+  Associativity and commutativity follow from the same canonical-form
+  argument as the inner layer above; identity is the empty-map
+  property of `Map.merge/3`.
+
+  (Formally, `(DeleteSet, merge, new)` is a *join-semilattice*; the
+  four properties are what that label means in practice.)
   """
   @spec merge(t(), t()) :: t()
   def merge(%__MODULE__{clients: c1}, %__MODULE__{clients: c2}) do
     merged =
       Map.merge(c1, c2, fn _client, ranges1, ranges2 ->
-        # Fold each of `ranges2`'s entries into `ranges1`. Direction
-        # is arbitrary — both sides land in the same canonical sorted-
-        # disjoint shape via `add_range/2`.
+        # Fold ranges2 into ranges1, one interval at a time. Direction
+        # is arbitrary because `add_range/2` ends with a sort — both
+        # fold directions therefore produce the same canonical
+        # sorted-disjoint list.
         Enum.reduce(ranges2, ranges1, fn range, acc -> add_range(acc, range) end)
       end)
 
@@ -169,67 +173,107 @@ defmodule Yelixer.DeleteSet do
 
   # ---- Private interval bookkeeping ----
 
-  # `add_range/2` is the core of this module. Every interval written
-  # to a DeleteSet passes through here, and it is solely responsible
-  # for keeping each client's range list sorted and disjoint.
+  # `add_range/2` is the single write primitive. Every interval — whether
+  # from `insert/4` or `merge/2` — passes through here. It is solely
+  # responsible for keeping the range list sorted and disjoint.
   #
   # Three steps:
   #
   #   1. Partition the existing ranges into those that overlap-or-touch
   #      the new range and those that do not.
-  #   2. Collapse the overlapping group and the new range into a single
-  #      bounding interval (min of starts, max of ends).
+  #   2. Collapse the overlapping group and the new range into one
+  #      bounding interval: min of all starts, max of all ends.
   #   3. Prepend the merged interval to the non-overlapping survivors
   #      and sort.
   #
-  # Why step 2 is safe: the input list is already disjoint, so every
-  # existing range in the overlapping group overlaps the *new* range —
-  # not necessarily each other. The new range acts as a connector:
-  # each overlapping range shares some clocks with it, and through those
-  # shared clocks all members of the group are transitively linked.
-  # Together they form one contiguous span, with no internal gap. A
-  # contiguous span is fully described by its minimum start and maximum
-  # end — which is what the two folds in step 2 recover.
+  # Why step 2 produces a single contiguous span: the existing list is
+  # already disjoint, so every range in the overlapping group touches
+  # the *new* range specifically — not necessarily each other. The new
+  # range is the connector: it shares clocks with each member of the
+  # group, transitively linking them all. Because each member overlaps
+  # the connector, there is no internal gap among them. A gap-free span
+  # is fully described by its minimum start and maximum end, which is
+  # what the two folds compute.
   #
-  # Worked example. Existing ranges `[1, 3)` and `[5, 7)` are disjoint
-  # and don't overlap each other. A new range `[2, 6)` arrives. It
-  # overlaps `[1, 3)` (shared clock 2) and overlaps `[5, 7)` (shared
-  # clock 5). Both existing ranges are therefore in the overlapping
-  # group, even though they had nothing to do with each other before.
-  # The connector argument applies: their union with the new range is
-  # `[1, 7)`, and that's what `min(1, 2, 5) = 1` and `max(3, 6, 7) = 7`
-  # recover.
+  # Worked example.
+  #
+  # Two existing ranges in the list, disjoint from each other:
+  #
+  #   existing A:           [1, 3)
+  #   existing B:                   [5, 7)
+  #
+  # A new range arrives and spans the gap:
+  #
+  #   new:                    [2,    6)
+  #
+  # ASCII view of the clock axis (each cell is one clock):
+  #
+  #     clock:  0  1  2  3  4  5  6  7
+  #     A:         AA AA
+  #     B:                        BB BB
+  #     new:          NN NN NN NN
+  #
+  # The new range shares clocks with A (clock 2 falls in both A's
+  # `[1, 3)` and new's `[2, 6)`) and shares clocks with B (clock 5
+  # falls in both B's `[5, 7)` and new's `[2, 6)`). Both A and B go
+  # into the overlapping group with the new range. Their bounds:
+  #
+  #   starts of group: A.start = 1, new.start = 2, B.start = 5
+  #   ends of group:   A.end   = 3, new.end   = 6, B.end   = 7
+  #
+  # Step 2 takes `min(1, 2, 5) = 1` and `max(3, 6, 7) = 7`, producing
+  # the merged interval `[1, 7)`. The non-overlapping survivors (none,
+  # in this example) get prepended in step 3 and the list is re-sorted.
   defp add_range(ranges, {new_start, new_end}) do
-    # Step 1: split into overlapping and non-overlapping ranges.
+    # Step 1: separate ranges that overlap-or-touch the new interval
+    # from those that don't.
     #
-    # Do the ranges overlap or touch? Half-open ranges `[s, e)` and
-    # `[new_start, new_end)` overlap or touch when `s <= new_end and
-    # new_start <= e`. The `<=` (rather than `<`) is what catches the
-    # touch case — adjacent intervals like `[0, 3)` and `[3, 6)` share
-    # the boundary clock 3 in the predicate (3 <= 3) and merge into
-    # `[0, 6)` rather than staying separate.
+    # Two half-open intervals `[s, e)` and `[new_start, new_end)` overlap
+    # or touch when `s <= new_end AND new_start <= e`. Both conjuncts are
+    # load-bearing — each one rules out a different way the existing
+    # range could sit clear of the new range. Walk the four cases for
+    # an existing `[s, e)` against new `[2, 6)`:
+    #
+    #   case A — existing entirely to the left, e.g. `[0, 1)`:
+    #     `s = 0 <= 6` ✓  but  `new_start = 2 <= e = 1` ✗  → disjoint.
+    #     The second conjunct is what catches this; the first alone
+    #     would have classified it as overlapping.
+    #
+    #   case B — existing entirely to the right, e.g. `[7, 9)`:
+    #     `s = 7 <= 6` ✗  → disjoint.
+    #     The first conjunct catches this; the second alone would have
+    #     said yes (`2 <= 9`).
+    #
+    #   case C — genuine overlap, e.g. `[3, 5)`:
+    #     `s = 3 <= 6` ✓  and  `new_start = 2 <= e = 5` ✓ → overlap.
+    #     Both conjuncts hold, as expected.
+    #
+    #   case D — adjacent, e.g. `[6, 8)`:
+    #     `s = 6 <= 6` ✓  and  `new_start = 2 <= e = 8` ✓ → touch.
+    #     Using `<=` (not `<`) is what makes case D pass: equality at
+    #     the boundary is allowed. Without it, adjacent half-open
+    #     intervals like `[0, 3)` and `[3, 6)` would stay separate
+    #     instead of merging into `[0, 6)`.
+    #
+    # In short: each `<=` rules out one direction of "clearly outside,"
+    # and equality at the boundary is the touch case we actively want.
     {overlapping, rest} =
       Enum.split_with(ranges, fn {s, e} ->
         s <= new_end and new_start <= e
       end)
 
-    # Step 2: fold the overlapping group into the new range.
-    #
-    # The accumulator starts at the new range's own bounds. If
-    # `overlapping` is empty (first deletion in this region), the
-    # result is just the new range. Otherwise, fold-min over starts
-    # and fold-max over ends gives the bounding interval of the union.
+    # Step 2: compute the bounding interval of the overlapping group plus
+    # the new range. The accumulator seeds at the new range's own bounds,
+    # so an empty overlapping group returns the new range unchanged.
     merged_start = Enum.reduce(overlapping, new_start, fn {s, _}, acc -> min(s, acc) end)
     merged_end = Enum.reduce(overlapping, new_end, fn {_, e}, acc -> max(e, acc) end)
 
-    # Step 3: prepend the merged interval and sort.
+    # Step 3: insert the merged interval and re-sort.
     #
-    # Tuple natural order sorts by `{start, _}` ascending, which
-    # restores the sorted invariant. Cost is O(n log n) per insertion —
-    # acceptable for typical edit patterns. If a single client ever
-    # accumulates a very large number of disjoint runs, inserting the
-    # merged range at the correct position (instead of re-sorting the
-    # whole list) would be the natural optimization.
+    # Tuple natural order sorts `{start, _}` ascending, restoring the
+    # sorted invariant. O(n log n) per insertion — fine for typical edit
+    # patterns. Inserting at the correct position rather than re-sorting
+    # would be the upgrade if a client ever accumulates many disjoint runs.
     [{merged_start, merged_end} | rest]
     |> Enum.sort()
   end
