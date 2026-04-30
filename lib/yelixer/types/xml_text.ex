@@ -1,33 +1,34 @@
 defmodule Yelixer.Types.XMLText do
   @moduledoc """
-  Collaborative text node within an XML tree — a `Yelixer.Types.Text`
-  twin specialised to live as a child of an `XMLElement` or
-  `XMLFragment`.
+  Collaborative XML text node — `Yelixer.Types.Text` adapted to live
+  inside an XML tree.
 
-  Mechanically identical to `Yelixer.Types.Text`: same character-
-  offset → YATA-anchor translation, same run-length `:string` content
-  blocks, same split-on-write behaviour. The distinction is *where*
-  it lives in the document tree — an `XMLText` instance is registered
-  under a synthetic name minted by its parent's `insert_child/4`
-  (`"<parent>::child::<C>:<K>"`, see `Yelixer.Types.XMLFragment`) so
-  the wider XML rendering can find it.
+  Mechanically identical to `Yelixer.Types.Text`: character-offset →
+  YATA-anchor translation, run-length `:string` content blocks,
+  split-on-write (this ensures character-offset inserts map correctly
+  to block boundaries — a multi-character run gets partitioned at the
+  insertion point so the new Item can anchor against real boundaries).
+  The only distinction is placement: an `XMLText` instance is
+  registered under a synthetic name minted by its parent's
+  `insert_child/4` — `"<parent>::child::<C>:<K>"` (see
+  `Yelixer.Types.XMLFragment`) — so the XML rendering layer can resolve
+  it by id.
 
-  Public surface (matches Text exactly):
+  Public surface (identical to `Text`):
 
     - `insert/4` — splice a string at a character offset.
     - `delete/4` — tombstone a character range.
     - `to_string/2` — render the live characters.
-    - `length/2` — codepoint count of the live text.
+    - `length/2` — live codepoint count.
 
-  See `Yelixer.Types.Text`'s moduledoc for the conceptual treatment
-  — run-length encoding, the offset → anchor bridge, half-open
-  semantics, codepoint vs grapheme handling, tombstone filtering.
-  Everything in that doc applies here verbatim.
+  See `Yelixer.Types.Text` for the full conceptual treatment: run-length
+  encoding, offset-to-anchor bridging, half-open range semantics,
+  tombstone filtering, codepoint vs. grapheme handling.
   """
 
   alias Yelixer.{Doc, ID, Item, BlockStore, DeleteSet, Integrate, StateVector}
 
-  @doc "Insert text at a character position."
+  @doc "Splice `text` into the sequence at character offset `index`."
   def insert(%Doc{} = doc, type_name, index, text) when is_binary(text) and byte_size(text) > 0 do
     {store, origin, right_origin} = find_origins_with_split(doc.store, type_name, index)
     clock = StateVector.get(BlockStore.state_vector(store), doc.client_id)
@@ -37,7 +38,7 @@ defmodule Yelixer.Types.XMLText do
     %{doc | store: store}
   end
 
-  @doc "Delete `len` characters starting at `index`."
+  @doc "Tombstone `len` characters starting at `index`."
   def delete(%Doc{} = doc, type_name, index, len) when len > 0 do
     {store, ids_to_delete} = find_items_in_range_with_split(doc.store, type_name, index, len)
 
@@ -52,7 +53,7 @@ defmodule Yelixer.Types.XMLText do
     %{doc | store: store, delete_set: delete_set}
   end
 
-  @doc "Get the text content as a string."
+  @doc "Render the live characters as a string."
   def to_string(%Doc{} = doc, type_name) do
     doc.store
     |> BlockStore.get_sequence(type_name)
@@ -63,14 +64,14 @@ defmodule Yelixer.Types.XMLText do
     |> Enum.join()
   end
 
-  @doc "Get the character length of the text."
+  @doc "Live codepoint count (tombstones excluded)."
   def length(%Doc{} = doc, type_name) do
     doc.store
     |> BlockStore.get_sequence(type_name)
     |> Enum.reduce(0, fn %Item{length: len}, acc -> acc + len end)
   end
 
-  # --- Private helpers (same mechanics as Text) ---
+  # --- Private helpers ---
 
   defp find_origins_with_split(store, type_name, index) do
     seq = BlockStore.get_sequence(store, type_name)

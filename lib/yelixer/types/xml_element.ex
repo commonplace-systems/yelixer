@@ -1,64 +1,55 @@
 defmodule Yelixer.Types.XMLElement do
   @moduledoc """
-  Collaborative XML element — tag-bearing node with attributes and
-  ordered children.
+  Collaborative XML element — tag-bearing node with attributes and children.
 
-  An `XMLElement` extends `Yelixer.Types.XMLFragment` with two pieces
-  XMLFragment doesn't have:
+  `XMLElement` adds two things to `Yelixer.Types.XMLFragment`:
 
-    - **A tag name** ("div", "p", "span", etc.) carried as the
-      element's *type ref* in the doc registry — the registration
-      stores `{:xml_element, tag}` rather than `:xml_fragment`. So
-      the tag isn't a separate field on any Item; it's metadata on
-      the type itself.
-    - **Attributes** — string-keyed values stored as Items with the
-      attribute name in `parent_sub`, same encoding as
-      `Yelixer.Types.YMap`. Live on the element's *named sequence*
-      directly.
+    - **A tag name** ("div", "p", "span", …) encoded as the element's
+      *type ref* in `Yelixer.Doc`: `{:xml_element, tag}` instead of
+      `:xml_fragment`. The tag lives on the type registration, not on
+      any Item.
+    - **Attributes** — string-keyed values stored as Items keyed by
+      `parent_sub` (the attribute name), sharing the encoding used by
+      `Yelixer.Types.YMap`. Attributes are unordered string→value
+      pairs; see `YMap` for the full mechanics (rightmost-wins LWW,
+      tombstone semantics on overwrite, sub-type values). Attribute
+      Items parent directly to the element's named sequence.
 
-  Children continue to use a separate `"<type_name>::children"`
-  sequence (same shape as `XMLFragment`'s) so they don't mix with
-  the attribute Items. The two namespaces share the same parent
-  type but live in different YATA orderings.
+  Children use the same `"<type_name>::children"` derived sequence as
+  `XMLFragment` — separate from attribute Items, so the two don't
+  interleave in the YATA ordering.
 
   Public surface:
 
-    - `new_element/3` — register an element under `type_name` with
-      its tag.
+    - `new_element/3` — register an element under `type_name` with its tag.
     - `tag_name/2` — read the tag from the type registry.
     - `set_attribute/4`, `get_attribute/3`, `get_attributes/2`,
-      `delete_attribute/3` — YMap-style attribute ops.
-    - `insert_child/4`, `delete_child/4`, `children/2`,
-      `child_count/2` — Array/Fragment-style child-sequence ops.
-    - `to_string/2` — recursive render including the wrapping
-      `<tag attrs>...</tag>`.
+      `delete_attribute/3` — attribute CRUD.
+    - `insert_child/4`, `delete_child/4`, `children/2`, `child_count/2`
+      — child-sequence ops (same shape as `XMLFragment`).
+    - `to_string/2` — recursive render: `<tag attrs>children</tag>`.
 
-  ## Read carefully alongside
+  ## Layering references
 
-  Concepts here build directly on three sister modules; this file
-  doesn't restate them:
+  This module doesn't restate concepts covered in:
 
-    - `Yelixer.Types.XMLFragment` for the children-sequence shape,
-      synthetic child naming (`"<parent>::child::<C>:<K>"`), and
-      the layering of XML on top of YATA.
-    - `Yelixer.Types.YMap` for the `parent_sub` key encoding
-      attributes share.
-    - `Yelixer.Item`, `Yelixer.BlockStore`, `Yelixer.Integrate` for
-      the underlying YATA + storage machinery.
+    - `Yelixer.Types.XMLFragment` — children-sequence shape, synthetic
+      child names (`"<parent>::child::<C>:<K>"`), XML-on-YATA layering.
+    - `Yelixer.Types.YMap` — `parent_sub` key encoding that attributes
+      share.
+    - `Yelixer.Item`, `Yelixer.BlockStore`, `Yelixer.Integrate` —
+      YATA mechanics and storage.
   """
 
   alias Yelixer.{Doc, ID, Item, BlockStore, DeleteSet, Integrate, StateVector}
 
-  @doc """
-  Create a new XML element with the given tag name.
-  Registers the element type in the doc.
-  """
+  @doc "Register a new XML element under `type_name` with the given tag."
   def new_element(%Doc{} = doc, type_name, tag) when is_binary(tag) do
     {doc, _} = Doc.get_or_create_type(doc, type_name, {:xml_element, tag})
     doc
   end
 
-  @doc "Get the tag name of an XML element."
+  @doc "Read the element's tag from the type registry."
   def tag_name(%Doc{} = doc, type_name) do
     case doc.types[type_name] do
       {:xml_element, tag} -> tag
@@ -66,9 +57,8 @@ defmodule Yelixer.Types.XMLElement do
     end
   end
 
-  @doc "Set an attribute on the element."
+  @doc "Set an attribute, replacing any existing value for `key`."
   def set_attribute(%Doc{} = doc, type_name, key, value) do
-    # Mark any existing item for this attribute key as deleted
     doc = delete_existing_attr(doc, type_name, key)
 
     clock = StateVector.get(BlockStore.state_vector(doc.store), doc.client_id)
@@ -78,7 +68,7 @@ defmodule Yelixer.Types.XMLElement do
     %{doc | store: store}
   end
 
-  @doc "Get the value of an attribute, or nil if not set."
+  @doc "Get the current value of `key`, or `nil` if absent."
   def get_attribute(%Doc{} = doc, type_name, key) do
     case find_current_attr(doc.store, type_name, key) do
       nil -> nil
@@ -86,7 +76,7 @@ defmodule Yelixer.Types.XMLElement do
     end
   end
 
-  @doc "Get all attributes as a map."
+  @doc "Return all live attributes as a `%{key => value}` map."
   def get_attributes(%Doc{} = doc, type_name) do
     doc.store.clients
     |> Enum.flat_map(fn {_client, items} -> items end)
@@ -98,21 +88,20 @@ defmodule Yelixer.Types.XMLElement do
     end)
   end
 
-  @doc "Delete an attribute."
+  @doc "Tombstone the current Item for `key` (no-op if absent)."
   def delete_attribute(%Doc{} = doc, type_name, key) do
     delete_existing_attr(doc, type_name, key)
   end
 
   @doc """
-  Insert a child node at the given index.
+  Splice a child node into the children sequence at `index`.
 
-  Child spec can be:
-  - `{:element, tag}` — inserts a new XMLElement child
-  - `:text` — inserts a new XMLText child
-  - `{:fragment}` — inserts a new XMLFragment child
+  `child_spec`:
+  - `{:element, tag}` — new `XMLElement` with the given tag
+  - `:text` — new `XMLText` node
+  - `{:fragment}` — new `XMLFragment` node
   """
   def insert_child(%Doc{} = doc, type_name, index, child_spec) do
-    # The children sequence uses a separate key to avoid mixing with attributes
     children_key = children_key(type_name)
     {child_type_ref, doc, child_name} = register_child(doc, type_name, child_spec)
 
@@ -122,7 +111,6 @@ defmodule Yelixer.Types.XMLElement do
     item = Item.new(id, origin, right_origin, {:type, child_type_ref}, {:named, children_key}, nil)
     {:ok, store} = Integrate.integrate(doc.store, item, children_key)
 
-    # Register the child type with its name keyed to the item's id
     doc = %{doc | store: store}
     {doc, _} = Doc.get_or_create_type(doc, child_name, child_type_ref)
     doc
@@ -150,7 +138,7 @@ defmodule Yelixer.Types.XMLElement do
     %{doc | store: store, delete_set: delete_set}
   end
 
-  @doc "Get children as a list of {type, tag_or_name, child_type_name} tuples."
+  @doc "Return live children as `{kind, tag_or_name, child_type_name}` tuples."
   def children(%Doc{} = doc, type_name) do
     children_key = children_key(type_name)
 
@@ -167,7 +155,7 @@ defmodule Yelixer.Types.XMLElement do
     end)
   end
 
-  @doc "Get the number of children."
+  @doc "Live child count (tombstones excluded)."
   def child_count(%Doc{} = doc, type_name) do
     children_key = children_key(type_name)
 
@@ -176,7 +164,7 @@ defmodule Yelixer.Types.XMLElement do
     |> Enum.count()
   end
 
-  @doc "Render the element as an XML/HTML string."
+  @doc "Render the element as `<tag attrs>children</tag>`."
   def to_string(%Doc{} = doc, type_name) do
     tag = tag_name(doc, type_name)
     attrs = get_attributes(doc, type_name)
@@ -213,7 +201,6 @@ defmodule Yelixer.Types.XMLElement do
   end
 
   defp register_child(doc, parent_name, {:element, tag}) do
-    # Pre-allocate the child name based on the next clock
     clock = StateVector.get(BlockStore.state_vector(doc.store), doc.client_id)
     child_name = child_name_from_id(parent_name, ID.new(doc.client_id, clock))
     type_ref = {:xml_element, tag}
