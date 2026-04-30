@@ -1,22 +1,101 @@
 defmodule Yelixer.Encoding do
   @moduledoc """
-  Binary encoding/decoding for Yjs V1 wire protocol.
-  Uses unsigned LEB128 varint encoding.
+  Binary serialization for the Yjs V1 wire protocol — the byte-level
+  bridge between in-memory CRDT state and the network/disk.
+
+  Three jobs: encode a doc to a binary update message, decode that
+  message and integrate it into a doc, encode/decode the smaller
+  state-vector and delete-set summaries that drive sync handshakes.
+  Everything else here (varint codecs, string framing, the lib0 "Any"
+  encoding) is plumbing in service of those three.
+
+  ## Wire-format primitives
+
+  All numeric fields are varints. Three encodings live in this module
+  because Yjs uses three different conventions in different places:
+
+    - **Unsigned LEB128** (`encode_uint`/`decode_uint`) — the standard
+      Yjs varint. Each byte carries a 7-bit chunk + a continuation
+      bit. Used for clocks, lengths, counts, client IDs.
+    - **Zigzag signed** (`encode_sint`/`decode_sint`) — wraps signed
+      integers into an unsigned varint by interleaving positive and
+      negative values (`-1 → 1, -2 → 3, …`). Reserved for fields that
+      legitimately go negative.
+    - **lib0 writeVarInt** (`encode_var_int`/`decode_var_int`) — a
+      different shape entirely. The first byte carries a sign bit at
+      position 6 and 6 data bits; subsequent bytes are 7 data bits +
+      continuation. Used only inside lib0 "Any" encoding for integer
+      values (tag 125). Kept distinct from `decode_sint` even though
+      both handle signed numbers, because the byte layouts differ.
+
+  Strings are UTF-8 length-prefixed: `encode_string`/`decode_string`
+  emit `<varint byte_len, bytes::binary>`.
+
+  ## Major encoded shapes
+
+  Each maps back to a sister module (see `Yelixer.ID`, `Yelixer.Item`,
+  `Yelixer.DeleteSet`, `Yelixer.StateVector`, `Yelixer.BlockStore`):
+
+    - **State vector** (`encode_state_vector`/`decode_state_vector`).
+      A length-prefixed sequence of `(client, clock)` pairs. The
+      smallest possible representation of "what I have," used as the
+      first move in a sync handshake.
+    - **Delete set** (`encode_delete_set`/`decode_delete_set`).
+      Per-client run-length intervals. Sorted clients descending — a
+      determinism requirement, see below.
+    - **Update message** (`encode_update`/`encode_diff` paired with
+      `apply_update`). The full payload: a struct section (new items
+      grouped by client, each with origin/right_origin anchors and
+      content) followed by a delete set. `encode_update/1` ships the
+      whole doc; `encode_diff/2` ships only what's missing relative
+      to a remote state vector. `apply_update/2` reverses them: parse
+      items, integrate into the doc's BlockStore in YATA order, then
+      apply the delete set.
+    - **lib0 Any** (`encode_any_value`/`decode_any_value`). JSON-shaped
+      primitives (numbers, booleans, strings, lists, maps) with a
+      one-byte type tag per value. Used inside `:any` and `:format`
+      content variants and for embed payloads.
+
+  ## Round-trip property
+
+  `decode(encode(x)) == x` for all four shapes — state vectors, delete
+  sets, items in an update, and Any values. The property tests in
+  `test/yelixer/encoding_*_test.exs` exercise this with random inputs;
+  the 5320-entry yrs oracle suite checks byte-for-byte parity against
+  the Rust port.
 
   ## Byte-determinism guarantee (CX-w62 / Build 6 gate)
 
-  `encode_update/1` is byte-deterministic: two independent peers
-  reconstructing the same logical state (via `apply_update/2` of equal
-  update bytes) produce identical output from `encode_update/1`. The
-  late-edit translator (Build 6.3) and the snapshot op (Build 5, CX-umz)
-  both depend on this property — content-address hashes only agree when
-  re-encoding is canonical.
+  `encode_update/1` is **byte-deterministic**: two independent peers
+  that reconstruct the same logical state via `apply_update/2` produce
+  identical output from `encode_update/1`. Content-addressed storage
+  (the snapshot op in CX-umz; the late-edit translator in Build 6.3)
+  relies on this — hashes only agree when re-encoding is canonical.
 
-  Determinism rests on: (1) struct-section clients sorted descending by
-  id; (2) items per client iterated in clock order by the block store;
-  (3) `encode_delete_set/1` sorting clients descending; (4) `apply_update/2`
-  merging received delete sets into `doc.delete_set` so receivers can
-  re-broadcast deletions. See `test/yelixer/encoder_determinism_test.exs`.
+  Four invariants together produce determinism:
+
+    1. The struct section sorts clients descending by client_id.
+    2. Items within a client are iterated in clock order by the block
+       store (which already maintains them sorted).
+    3. `encode_delete_set/1` sorts clients descending — without this
+       the wire bytes would depend on Elixir's map-iteration order,
+       which is unspecified.
+    4. `apply_update/2` merges received delete sets into
+       `doc.delete_set` so receivers retain the deletions and can
+       re-broadcast them losslessly.
+
+  See `test/yelixer/encoder_determinism_test.exs` for the
+  cross-instance equality checks.
+
+  ## What this module is not
+
+  - Not a transport — `Yelixer.SyncProtocol` packages encoded payloads
+    into protocol messages; this module produces the bytes inside.
+  - Not a doc store — the `Yelixer.Doc` and `Yelixer.BlockStore`
+    modules own the in-memory state. Encoding only reads/writes it.
+  - Not the integrator — `apply_update/2` parses then hands items to
+    `Yelixer.Integrate` for YATA placement. Anchor resolution and
+    GC-block remapping live there, not here.
   """
 
   alias Yelixer.{StateVector, DeleteSet, ID, Item, BlockStore, Doc, Integrate}
@@ -38,13 +117,30 @@ defmodule Yelixer.Encoding do
   @has_parent_sub 32
 
   # --- Varint (unsigned LEB128) ---
+  #
+  # The default integer encoding throughout Yjs's wire format. Each
+  # byte carries a continuation bit (high bit) and 7 data bits. The
+  # encoder emits little-endian groups; the decoder accumulates 7-bit
+  # chunks at increasing left-shifts until it sees a byte with the
+  # continuation bit clear. Single-byte fast path for n < 128 keeps
+  # the common case (small clocks, lengths) cheap.
 
+  @doc """
+  Encodes a non-negative integer as an unsigned LEB128 varint.
+
+  One byte per 7 bits of data; the high bit signals continuation.
+  Output is between 1 and ~10 bytes for any 64-bit integer.
+  """
   def encode_uint(n) when n < 128, do: <<n>>
 
   def encode_uint(n) do
     <<1::1, Bitwise.band(n, 0x7F)::7, encode_uint(Bitwise.bsr(n, 7))::binary>>
   end
 
+  @doc """
+  Decodes an unsigned LEB128 varint from the front of `binary`.
+  Returns `{value, rest}` where `rest` is the unconsumed remainder.
+  """
   def decode_uint(binary), do: decode_uint(binary, 0, 0)
 
   defp decode_uint(<<0::1, value::7, rest::binary>>, acc, shift) do
@@ -56,10 +152,19 @@ defmodule Yelixer.Encoding do
   end
 
   # --- Signed varint (zigzag encoding) ---
+  #
+  # Maps signed integers onto unsigned ones by interleaving:
+  #   0 → 0, -1 → 1, 1 → 2, -2 → 3, 2 → 4, …
+  # This keeps small-magnitude negative numbers small after varint
+  # encoding (a naive sign-extended representation would blow them
+  # up to ten bytes). Used wherever Yjs's wire format expects a
+  # signed value but ZIGZAG (not lib0 writeVarInt) is the convention.
 
+  @doc "Encodes a signed integer using zigzag + LEB128 varint."
   def encode_sint(n) when n >= 0, do: encode_uint(Bitwise.bsl(n, 1))
   def encode_sint(n), do: encode_uint(Bitwise.bxor(Bitwise.bsl(n, 1), -1))
 
+  @doc "Decodes a zigzag-encoded signed varint. Returns `{value, rest}`."
   def decode_sint(binary) do
     {n, rest} = decode_uint(binary)
 
@@ -123,11 +228,17 @@ defmodule Yelixer.Encoding do
 
   # --- String ---
 
+  @doc """
+  Encodes a string as `<varint byte_len, bytes::binary>`. UTF-8 is
+  preserved untouched in the bytes; the prefix is the UTF-8 byte
+  count (not the codepoint count).
+  """
   def encode_string(s) do
     bytes = :erlang.iolist_to_binary(s)
     <<encode_uint(byte_size(bytes))::binary, bytes::binary>>
   end
 
+  @doc "Decodes a length-prefixed UTF-8 string. Returns `{string, rest}`."
   def decode_string(binary) do
     {len, rest} = decode_uint(binary)
     <<s::binary-size(len), rest2::binary>> = rest
@@ -135,7 +246,20 @@ defmodule Yelixer.Encoding do
   end
 
   # --- State Vector ---
+  #
+  # Wire format: `varint count` then `count` pairs of
+  # `varint client_id, varint clock`. Order is unspecified at the
+  # wire level (decoders rebuild a Map), so determinism isn't needed
+  # here — unlike the delete set, which IS order-sensitive on the
+  # wire because it ends up in a hashed update payload.
 
+  @doc """
+  Encodes a `Yelixer.StateVector` to its wire format.
+
+  The wire format is `<varint num_clients, repeated (varint client,
+  varint clock)>`. The state vector is the smallest possible "what
+  I have" summary; sync handshakes ship it first.
+  """
   def encode_state_vector(%StateVector{clocks: clocks}) do
     count = map_size(clocks)
 
@@ -147,6 +271,17 @@ defmodule Yelixer.Encoding do
     <<encode_uint(count)::binary, pairs::binary>>
   end
 
+  @doc """
+  Decodes a state vector from `binary`. Returns `{:ok, {sv, rest}}`
+  on success, `{:error, {:malformed_state_vector, msg}}` on a
+  truncated or otherwise invalid payload.
+
+  This is one of two functions in this module that wraps decoding in
+  a try/rescue (the other is `decode_update`). Most decoders crash on
+  malformed input under the assumption that the caller has already
+  framed the bytes correctly; state vectors arrive directly off the
+  wire from a peer, so we soften the failure mode.
+  """
   def decode_state_vector(binary) do
     try do
       {count, rest} = decode_uint(binary)
@@ -170,7 +305,21 @@ defmodule Yelixer.Encoding do
   # Format: varint num_clients, then per client:
   #   varint client_id, varint num_ranges, then per range:
   #     varint clock, varint length
+  #
+  # Mirrors the in-memory `Yelixer.DeleteSet` shape exactly — per-
+  # client list of intervals — but with each range encoded as
+  # `(start, length)` rather than `(start, stop)` because lengths
+  # tend to be small varints while stops can be large.
 
+  @doc """
+  Encodes a `Yelixer.DeleteSet` to its wire format.
+
+  Sorts clients **descending** by client_id before emitting — this is
+  load-bearing for byte-determinism. Without the sort, two peers with
+  the same logical delete set could produce different bytes because
+  Elixir's map iteration order isn't guaranteed stable. See the
+  determinism section in the moduledoc.
+  """
   def encode_delete_set(%DeleteSet{clients: clients}) do
     count = map_size(clients)
 
@@ -196,6 +345,13 @@ defmodule Yelixer.Encoding do
     <<encode_uint(count)::binary, body::binary>>
   end
 
+  @doc """
+  Decodes a delete set from `binary`. Returns `{ds, rest}`.
+
+  Each range arrives as `(clock, length)` and goes through
+  `DeleteSet.insert/4`, which preserves the sorted-disjoint
+  invariant (overlapping ranges merge automatically).
+  """
   def decode_delete_set(binary) do
     {count, rest} = decode_uint(binary)
     decode_ds_clients(rest, count, DeleteSet.new())
@@ -235,10 +391,36 @@ defmodule Yelixer.Encoding do
   #       content data
   #   delete_set
 
+  @doc """
+  Encodes the entire doc as a Yjs V1 update message.
+
+  Equivalent to `encode_diff(doc, StateVector.new())` — diff against
+  an empty remote, which yields every item in the store. Used when
+  initializing a new peer with the full document, or when content-
+  addressing a snapshot (CX-umz / Build 5 — re-encode + hash).
+  """
   def encode_update(%Doc{} = doc) do
     encode_diff(doc, StateVector.new())
   end
 
+  @doc """
+  Encodes only the items the remote is missing — the items reachable
+  past `remote_sv`'s clocks — followed by the doc's full delete set.
+
+  This is what powers a sync round: after a peer sends its state
+  vector, the responder calls `encode_diff(doc, peer_sv)` and ships
+  the result. Three subtleties:
+
+    1. **Per-client iteration sorted descending** — determinism rule
+       (1) from the moduledoc. Without it the bytes would depend on
+       map order.
+    2. **Items split at the remote_clock boundary** — when an existing
+       block straddles the cutoff (clock < remote_clock < clock + len),
+       only its tail is encoded via `Item.split/2`.
+    3. **Tombstoned items emit `:deleted` content** — the wire form
+       drops the original payload but preserves the ID-space slot,
+       same shape as the in-memory `:deleted` content variant.
+  """
   def encode_diff(%Doc{store: store, delete_set: ds}, %StateVector{} = remote_sv) do
     local_sv = BlockStore.state_vector(store)
 
@@ -458,11 +640,26 @@ defmodule Yelixer.Encoding do
     <<encode_uint(len)::binary, body::binary>>
   end
 
-  # lib0 Any encoding: type byte + value
-  # 116 = buffer, 117 = array, 118 = object, 119 = string,
-  # 120 = true, 121 = false (lib0 convention: data ? 120 : 121),
-  # 122 = bigint, 123 = float64,
-  # 124 = float32, 125 = integer (lib0 writeVarInt), 126 = null, 127 = undefined
+  # --- lib0 Any encoding ---
+  #
+  # Used inside `:any` content variants and for embed/format payloads
+  # — JSON-shaped data that needs a structured binary form rather
+  # than going through Jason. Each value is prefixed with a one-byte
+  # type tag:
+  #
+  #   116 = buffer       117 = array         118 = object
+  #   119 = string       120 = true          121 = false
+  #   122 = bigint       123 = float64       124 = float32
+  #   125 = integer (encoded with lib0 writeVarInt — sign-bit-in-byte-6
+  #                  format, NOT zigzag; see the `encode_var_int` helpers)
+  #   126 = null         127 = undefined
+  #
+  # The lib0 / yrs binary contract picks the tag that round-trips
+  # cleanly back to the originating language's value system. We're
+  # primarily a consumer here — Elixir doesn't distinguish float32
+  # from float64 natively, so encode emits float64 (123) for all
+  # floats; decode tolerates incoming float32 (124) and folds it into
+  # an Elixir float.
   defp encode_any(nil), do: <<126>>
   defp encode_any(true), do: <<120>>
   defp encode_any(false), do: <<121>>
@@ -578,7 +775,43 @@ defmodule Yelixer.Encoding do
   defp int_to_type_ref(_), do: :unknown
 
   # --- Update Decoding ---
+  #
+  # The decode path is more involved than encoding. Items arrive
+  # without their parent_sub when they have an origin (Yjs convention
+  # — see encode_item); during integration the parent_sub is recovered
+  # by walking the origin chain. Items can also fail to integrate
+  # if their origin/right_origin haven't been seen yet — those go
+  # into a pending list and get retried after the rest of the batch
+  # lands.
 
+  @doc """
+  Decodes a binary update produced by `encode_update`/`encode_diff`,
+  integrates the items into `doc`, and applies the delete set.
+
+  Returns `{:ok, doc}` on success, `{:error, reason}` on a malformed
+  payload. Successful application is observable via:
+
+    - new items reachable through `Yelixer.BlockStore.get/2`
+    - tombstones reachable through `doc.delete_set`
+    - the doc's state vector advancing for each contributing client
+
+  ## Two-phase integration
+
+  1. **First pass**: each item is integrated in arrival order. Items
+     whose origin or right_origin haven't been seen yet are pushed
+     to a pending list rather than failing the whole apply.
+  2. **Retry pending**: after the first pass exhausts the input, any
+     pending items get retried — by then their dependencies may have
+     landed elsewhere in the same batch.
+
+  ## Delete-set merging (CX-w62)
+
+  The decoded delete set is merged into `doc.delete_set` rather than
+  overwritten. Receivers retain knowledge of incoming deletions and
+  re-emit them via the next `encode_update/1` — without this, a
+  round-tripped doc would lose tombstones, breaking byte-determinism
+  and causing peers to "re-revive" deleted items on subsequent syncs.
+  """
   def apply_update(%Doc{} = doc, binary) do
     case decode_update(binary) do
       {:ok, {items, ds, _rest}} ->
