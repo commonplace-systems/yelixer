@@ -1,91 +1,92 @@
 defmodule Yelixer.Doc do
   @moduledoc """
-  The top-level container for a Yjs document.
+  Top-level container for a Yjs document replica.
 
-  A `Doc` ties together everything needed to be a working CRDT
-  replica: a unique replica identity (`client_id`), the items that
-  make up the document (`store`), a tombstone index (`delete_set`),
-  and a registry of named top-level types (`types`). Plus a small
-  provenance cache (`client_namespaces`) used by the namespace-aware
-  `apply_update` path. Operations on the doc — local edits, remote
-  updates, encoding, GC — read and write these fields through the
-  modules that own each concern.
+  A `Doc` holds the four fields that define a replica's complete
+  state: `client_id` (this replica's integer identity), `store` (the
+  YATA block store — see `Yelixer.BlockStore`), `delete_set` (the
+  tombstone index — see `Yelixer.DeleteSet`), and `types` (a registry
+  of named top-level types). A fifth field, `client_namespaces`, is a
+  provenance cache used by the namespace-aware `apply_update` path.
+  All operations — edits, remote updates, encoding, GC — reach these
+  fields through the modules that own each concern; `Doc` itself is
+  passive.
 
   ## Lifecycle
 
-  - **`new/1`** — start fresh. A random `client_id` is minted unless
-    one is passed in. The store, delete set, and types registry start
-    empty.
-  - **Local edits** — happen through the type-side facades, not on
-    `Doc` directly. `Yelixer.Types.Text.insert(doc, name, index, text)`,
+  - **`new/1`** — allocate a fresh replica. A random `client_id` is
+    chosen unless one is supplied. Store, delete set, and type
+    registry all start empty.
+  - **Local edits** — go through the type facades, not `Doc`
+    directly. `Yelixer.Types.Text.insert(doc, name, index, text)`,
     `YMap.set(doc, name, key, value)`, etc. Each call returns an
     updated `%Doc{}`.
-  - **Receive a remote update** — `Yelixer.Encoding.apply_update(doc,
-    binary)` decodes the bytes, integrates each Item via
-    `Yelixer.Integrate.integrate/3`, applies the delete set, and
-    merges it into `doc.delete_set` so the receiver retains
-    tombstones for re-broadcast.
-  - **Encode the doc** — `Yelixer.Encoding.encode_update(doc)` for
-    the full state, `encode_diff(doc, remote_sv)` for the slice a
-    peer is missing.
-  - **Maintenance** — `gc/1` rewrites tombstoned items as `:gc`
-    blocks so they don't continue to carry their original content;
-    `snapshot_update/1` emits a self-contained encoding of the doc's
-    *observable* state under a single client_id, used by the
-    compaction primitive (CX-u7p) to consolidate long-lived docs
-    that have accumulated thousands of distinct authors.
+  - **Remote update** — `Yelixer.Encoding.apply_update(doc, binary)`
+    decodes the wire bytes, integrates each item via
+    `Yelixer.Integrate.integrate/3`, applies deletions, and merges
+    tombstones into `doc.delete_set` so the receiver can re-broadcast
+    them.
+  - **Encoding** — `Yelixer.Encoding.encode_update(doc)` for the full
+    state; `encode_diff(doc, remote_sv)` for the slice a peer is
+    missing.
+  - **Maintenance** — `gc/1` strips content from tombstoned items
+    (see GC section below); `snapshot_update/1` rebuilds the doc's
+    observable state under a single `client_id`, used by the
+    compaction primitive (CX-u7p) to shrink long-lived docs that have
+    accumulated many authors.
 
   ## Named-type roots
 
-  `types :: %{name => type_ref}` is the entry table for top-level
-  CRDT types. Every Item lives under a parent — either a top-level
-  named type (`{:named, name}`) or a sub-type identified by another
-  Item's id (`{:id, parent_id}`). Top-level types are addressable by
-  string name from outside the doc; sub-types are reachable only by
-  walking from a top-level root.
+  `types :: %{name => type_ref}` is the lookup table for top-level
+  CRDT types. A *named-type root* is a string-addressed entry point
+  into the document tree. Every `Item` carries a `parent` field
+  pointing either to a root (`{:named, name}`) or to another item's
+  id (`{:id, parent_id}`); roots are reachable by name from outside
+  the doc, while nested items are reachable only by walking from a
+  root.
 
-  `get_or_create_type/3` is the registration entry point. Calling it
-  with a fresh name registers the symbolic type ref (`:text`, `:map`,
-  `:array`, `:xml_fragment`, `{:xml_element, tag}`, `:xml_text`) and
-  returns it; calling it again with the same name returns whatever
-  was registered first. Type-side facades (`Text`, `YMap`, `Array`,
-  the XML modules) call `get_or_create_type/3` on every operation so
-  callers can address types by name without explicit registration.
+  `get_or_create_type/3` is the registration entry point. It binds a
+  string name to a *type ref* — one of `:text`, `:map`, `:array`,
+  `:xml_fragment`, `{:xml_element, tag}`, or `:xml_text` — and
+  returns the binding. First-caller-wins: a second call with the same
+  name and a different ref is a no-op; the original ref is returned.
+  Type facades (`Text`, `YMap`, `Array`, the XML modules) call
+  `get_or_create_type/3` on every operation, so callers can address
+  types by name without registering them explicitly.
 
   ## Client-id assignment
 
-  `client_id` is a per-doc-instance integer. Two requirements:
+  `client_id` is an integer assigned once per `Doc` instance. Two
+  invariants must hold:
 
-    - **Unique per running replica.** Two replicas of the same logical
-      document must not share a client_id, or their independent
-      clocks would collide as IDs.
-    - **Stable across the doc's lifetime.** Once chosen, the same
-      client_id is used for every local edit. Restarting the
-      application means a fresh client_id (a new replica from the
-      doc's perspective), unless the caller specifically passes the
+    - **Unique per live replica.** Two replicas of the same logical
+      document must not share a `client_id`; their independent
+      per-client clocks would produce colliding item IDs.
+    - **Stable across the doc's lifetime.** Every local edit uses the
+      same `client_id`. A process restart means a fresh `client_id`
+      — a new replica identity — unless the caller passes the
       previous value into `new/1`.
 
-  The default is `:rand.uniform(1_000_000_000)` — enough range that
-  collisions between live peers are vanishingly rare. Callers that
-  need stable identity across restarts (workspace nodes, presence
-  docs) override via `new(client_id: persistent_id)`.
+  The default, `:rand.uniform(1_000_000_000)`, makes collisions
+  between live peers vanishingly rare. Callers that need persistence
+  across restarts (workspace nodes, presence docs) supply a stored id
+  via `new(client_id: persistent_id)`.
 
   ## What this module is NOT
 
-  Doc is a passive struct — most of the heavy lifting happens in
-  modules that take it as an argument:
+  `Doc` is a passive struct. The work lives in the modules that
+  accept it as an argument:
 
-    - **Local mutations** live on the type modules
-      (`Yelixer.Types.Text`, `YMap`, `Array`, `XMLFragment`,
-      `XMLElement`, `XMLText`). Doc carries the state; the type
-      modules know how to read and update it.
-    - **Bytes ↔ items** is `Yelixer.Encoding`'s job; `apply_update`
-      is the only path that mutates a Doc with remote-originated
-      content.
-    - **YATA insertion** is `Yelixer.Integrate`. Doc holds the
-      sequences but never decides where items land in them.
-    - **Block storage** is `Yelixer.BlockStore`, owned by `doc.store`.
-    - **Tombstone tracking** is `Yelixer.DeleteSet`, owned by
+    - **Local mutations** — type modules (`Yelixer.Types.Text`,
+      `YMap`, `Array`, `XMLFragment`, `XMLElement`, `XMLText`). They
+      read and write `doc.store`; `Doc` just carries it.
+    - **Wire encoding/decoding** — `Yelixer.Encoding`. `apply_update`
+      is the only path that introduces remote-originated content into
+      a `Doc`.
+    - **YATA insertion placement** — `Yelixer.Integrate`. `Doc` holds
+      the sequences; it never decides where items land.
+    - **Block storage** — `Yelixer.BlockStore`, at `doc.store`.
+    - **Tombstone tracking** — `Yelixer.DeleteSet`, at
       `doc.delete_set`.
   """
 
@@ -103,15 +104,15 @@ defmodule Yelixer.Doc do
   defstruct [:client_id, :store, :delete_set, :types, client_namespaces: %{}]
 
   @doc """
-  Creates a fresh document.
+  Allocates a fresh document replica.
 
-  Accepts an optional `:client_id` — useful when a workspace node or
-  presence doc needs identity stability across restarts. Without it,
-  a random integer is minted; collisions between live peers are
-  vanishingly rare at this range.
+  Pass `client_id: integer` to fix the replica's identity — useful
+  when a workspace node or presence doc must survive restarts. Without
+  it, a random integer is chosen; collisions between live peers are
+  vanishingly rare at that range.
 
-  Empty store, empty delete set, no registered types. Type-side
-  facades will register types lazily on first use.
+  Store, delete set, and type registry all start empty. Type facades
+  register types lazily on first use.
   """
   def new(opts \\ []) do
     client_id = Keyword.get(opts, :client_id, :rand.uniform(1_000_000_000))
@@ -126,18 +127,32 @@ defmodule Yelixer.Doc do
   end
 
   @doc """
-  CX-4l7u: O(1) check for whether `client_id` has been observed under
+  CX-4l7u: O(1) test whether `client_id` was first observed under
   `namespace_hash` on this doc.
 
-  Populated only by `Yelixer.Encoding.apply_update_in_namespace/3`;
-  updates delivered via the plain `apply_update/2` do NOT touch this
-  index. Callers that want the cache populated must route through the
-  namespace-aware variant.
+  ## Why this exists
 
-  First-writer-wins semantics: once a clientID is recorded under one
-  namespace, re-observing the same clientID under a different namespace
-  does NOT overwrite the original mapping. The cache records authorship
-  provenance at first sight.
+  Yjs `client_id`s are integers chosen at random. With many replicas,
+  the same integer can plausibly be reused by an unrelated replica
+  later. For systems that need to track *who* introduced an item
+  (presence docs receiving heartbeats from one logical client via
+  multiple physical servers; schema docs whose authorship matters
+  for routing), we want a stable answer to "which namespace first
+  produced this client_id?"
+
+  `client_namespaces` is that index. Populated by
+  `Yelixer.Encoding.apply_update_in_namespace/3` (plain
+  `apply_update/2` does not touch it), it records the namespace that
+  first introduced each `client_id` and never overwrites that record.
+  First-writer-wins: if `client_id = 42` arrives under namespace A,
+  then a later update from namespace B carries the same `client_id`,
+  the original A binding stays intact. Authorship provenance can't
+  be retroactively rewritten by a peer downstream.
+
+  This function is the read side: given a `client_id` and a
+  candidate namespace, was that the namespace it was first seen
+  under? Used by routing code that wants to forward only
+  namespace-authentic items.
   """
   @spec clientID_in_namespace?(t(), non_neg_integer(), binary()) :: boolean()
   def clientID_in_namespace?(%__MODULE__{client_namespaces: ns}, client_id, namespace_hash) do
@@ -148,14 +163,13 @@ defmodule Yelixer.Doc do
   def has_type?(%__MODULE__{types: types}, name), do: Map.has_key?(types, name)
 
   @doc """
-  Looks up or registers the named top-level type. Returns
-  `{doc, type_ref}` — the (possibly updated) doc plus the symbolic
-  type reference now bound to that name.
+  Looks up or registers a named top-level type. Returns
+  `{doc, type_ref}`.
 
-  First-call-wins: registering a different `type_ref` against an
-  already-present name is a no-op and the original ref is returned.
-  Type-side facades call this on every operation, so most callers
-  never invoke it directly.
+  If `name` is already registered, the original type ref is returned
+  unchanged and `doc` is not modified. Registering a different
+  `type_ref` against an existing name is a no-op. Type facades call
+  this on every operation, so most callers never need it directly.
   """
   def get_or_create_type(%__MODULE__{types: types} = doc, name, type_ref) do
     if Map.has_key?(types, name) do
@@ -167,21 +181,38 @@ defmodule Yelixer.Doc do
   end
 
   @doc """
-  Garbage-collects deleted items by rewriting their content as `:gc`
-  blocks of the appropriate length.
+  Strips content from tombstoned items by rewriting them as `:gc`
+  blocks of the same length.
 
-  Why two stages (`:deleted` then `:gc`)? An item flagged `deleted`
-  still carries its original content for short windows where the
-  deletion might race with anchors landing from the network — we
-  preserve the data until any incoming anchors have had a chance to
-  resolve. Once we run GC, that grace period is over and we drop
-  the content payload, leaving only the length so the ID slot is
-  preserved (anchors can still reference it).
+  ## Why two stages
 
-  Anchors pointing through GC'd blocks are remapped to their nearest
-  non-GC neighbours by `Yelixer.Encoding.encode_item/2` at encode
-  time — `gc/1` itself doesn't touch them. The tuple cache is
-  invalidated wholesale to force a rebuild on next read.
+  Naively, "delete an item" should mean "drop its content
+  immediately." But concurrent edits from the network may already be
+  *in flight* with anchors pointing at the item we're deleting —
+  e.g. a peer typed "Y" right after an item that has just been
+  deleted locally, and the integrate step needs to find the deleted
+  item's id to resolve "after which block?" Dropping content the
+  instant the local delete fires would orphan those anchors.
+
+  So Yjs does it in two stages:
+
+    1. **Flag** — `deleted: true` on the item; content untouched.
+      During this *grace period* the item still occupies its slot
+      and incoming anchors can resolve normally.
+    2. **GC** — once we judge the grace period over, `gc/1` rewrites
+      the content as `{:gc, length}`. Memory drops to the bare
+      length marker; the id slot is preserved so any *future*
+      anchors that still reference this block can find it.
+
+  ## What this function does
+
+  Walks every item, leaves non-tombstoned ones alone, rewrites
+  `deleted: true` items to `content: {:gc, item.length}` (no-op if
+  already a `:gc` block). Anchors that point *through* a GC'd block
+  are remapped to the nearest live neighbour by
+  `Yelixer.Encoding.encode_item/2` at encode time — `gc/1` itself
+  doesn't touch anchors. The block-tuple cache (`client_tuples`) is
+  cleared wholesale so it rebuilds on the next read.
   """
   def gc(%__MODULE__{store: store} = doc) do
     clients =
@@ -198,52 +229,92 @@ defmodule Yelixer.Doc do
 
   # ---- Snapshot / compaction ----
   #
-  # `snapshot_update/1` and the replay machinery below it implement
-  # the compaction primitive (CX-u7p). The motivation is that
-  # long-lived docs (presence docs, schema docs, etc.) accumulate
-  # client_ids over time as fresh replicas come and go. Each
-  # client_id contributes a per-client clock entry to the state
-  # vector and a bucket of items in the block store. After thousands
-  # of authors, the encoded update payload is O(clients) in both
-  # size and apply time.
+  # `snapshot_update/1` and the replay helpers below implement the
+  # compaction primitive (CX-u7p). Long-lived docs (presence docs,
+  # schema docs) accumulate `client_id`s as replicas come and go.
+  # Each `client_id` adds a clock entry to the state vector and an
+  # item bucket to the block store; after thousands of authors the
+  # encoded update payload is O(clients) in both size and apply time.
   #
-  # The compaction trick: rebuild the doc from its *observable*
-  # content under a single stable client_id. The new doc has the
-  # same rendered output, but its state vector is size 1 and its
-  # block store is one bucket. Applying the resulting update on top
-  # of a receiver that already has the old doc is idempotent in Yjs,
-  # so peers that haven't migrated yet still converge correctly.
+  # The compaction approach: rebuild the doc's *observable* content
+  # into a fresh replica under a single stable `client_id`. The
+  # rebuilt doc produces the same rendered output, but with a
+  # state-vector of size 1 and a single block-store bucket. Applying
+  # the resulting update over a receiver that already has the source
+  # doc is idempotent in Yjs, so peers that have not yet migrated
+  # still converge correctly.
   #
-  # The replay machinery walks the source doc's registered top-level
-  # named types and rewrites their content into the fresh doc using
-  # the public type APIs. Each top-level type has a dedicated
-  # replay_* helper; XML's recursive structure needs the deepest
-  # one.
+  # The replay machinery walks each registered named-type root in the
+  # source doc and rewrites its content into the fresh doc via the
+  # public type APIs. Each top-level type has a dedicated `replay_*`
+  # helper; XML's recursive structure is handled by the deepest ones.
 
   @doc """
-  Build a fresh self-contained Yjs binary update encoding the source doc's
-  current materialized observable state, with a single client_id in the
-  state vector.
+  Builds a self-contained Yjs V1 binary update that encodes the source
+  doc's current observable state under a single `client_id`.
 
-  Used by the compaction primitive (CX-u7p): when a long-lived doc has
-  accumulated thousands of distinct client_ids in its state vector (e.g.
-  presence docs minted a fresh client_id each heartbeat), the resulting
-  update payload becomes O(clients) in both size and apply time. This
-  helper rebuilds the doc from observable state under one stable
-  client_id, so applying the returned update to a fresh `Doc.new()`
-  produces equivalent observable content with a state vector of size 1.
+  Used by the compaction primitive (CX-u7p). When a long-lived doc has
+  accumulated thousands of distinct `client_id`s (e.g. a presence doc
+  that mints a fresh id each heartbeat), the encoded update grows
+  O(clients) in size and apply time. This function replays the
+  observable content into a fresh replica so the returned binary
+  produces equivalent output with a state vector of size 1.
 
-  Internally: walks the source doc's registered named top-level types
-  and replays the materialized content into a new doc using the public
-  type APIs (YMap/Text/Array). The returned binary is a Yjs V1 update;
-  applying it on top of a receiver that already has the source doc is
-  idempotent in Yjs — so storing it as a chained commit and replicating
-  to peers is safe even if some readers have not yet learned to
-  short-circuit on snapshot commits.
+  Walks the source doc's registered named-type roots and replays each
+  into a new doc via the public type APIs (`YMap`, `Text`, `Array`,
+  XML). Returns `{bytes, derivation_map}`. Applying the returned
+  bytes on top of a receiver that already has the source doc is
+  idempotent, so chaining the snapshot as a commit and replicating
+  to peers is safe even before all readers learn to short-circuit on
+  snapshot commits.
 
-  Sub-types nested inside maps/arrays (keyed `__sub:CLIENT:CLOCK`) are
-  not yet replayed structurally; current callers (presence, schema)
-  store only primitive values.
+  ## The derivation map
+
+  Compaction renames every item: the rebuilt doc uses fresh
+  `(client_id, clock)` ids drawn from the new replica's clock space,
+  not the source's. That breaks any reference held *outside* the doc
+  that names a source item by id — late edits arriving from peers
+  who haven't seen the snapshot yet, archival commits that quoted a
+  pre-compaction id, etc.
+
+  The derivation map is `%{new_id => source_id}`: for every item in
+  the rebuilt doc, the id of the source item it was rebuilt from.
+  Late-edit translation uses it to rewrite incoming anchors —
+  "this peer's edit references source id X; in the post-compaction
+  address space that's id Y" — so post-snapshot peers can integrate
+  pre-snapshot edits without the anchor pointing into emptiness.
+
+  Computed atomically with the bytes (CX-umz) so both commit to the
+  same `(source, client_id, iteration order)` triple. See
+  `Commonplace.Store.Snapshotter` for the calling convention that
+  determinizes `source.client_id` before invoking this.
+
+  ## Sub-types and the `__sub:CLIENT:CLOCK` naming
+
+  Nested CRDT types — a `YArray` value inside a `YMap` entry, an
+  `XmlElement` child inside a fragment — don't have user-facing
+  string names. They're addressed by their parent item's id. To
+  surface them in the type registry without exposing their internal
+  ids to top-level naming, the type modules synthesize string names
+  of the shape `"__sub:CLIENT:CLOCK"` from the parent item's id.
+
+  The naming convention buys two things:
+
+    - **Collision avoidance.** Real top-level types are user-named
+      strings; the `__sub:` prefix carves out a reserved
+      sub-namespace that user names cannot collide with.
+    - **Reconstructibility.** A debugger or tool inspecting the
+      `types` map can recover the parent item's id by parsing the
+      name, without needing a separate parent-pointer index.
+
+  Sub-types nested inside maps and arrays are not yet replayed
+  structurally by `snapshot_update/1` — `replay_named_type/3`
+  short-circuits on the `__sub:` prefix. Current callers (presence
+  docs, schema docs) store only primitive values at top-level
+  registered types, so the gap doesn't bite them. XML sub-types
+  *are* replayed structurally (the deeper `replay_xml_*` helpers
+  handle them) because XML's tree shape is the whole point of the
+  type.
   """
   def snapshot_update(%__MODULE__{} = source) do
     fresh = new(client_id: source.client_id)
@@ -265,11 +336,11 @@ defmodule Yelixer.Doc do
     {bytes, build_derivation_map(source, rebuilt)}
   end
 
-  # Pair each new item id with the source item at the same position in
-  # deterministic iteration order (clients desc by id, items asc by
-  # clock — matches `Yelixer.Encoding.encode_update/1`). If the rebuilt
-  # doc has more items than the source (rare — snapshots consolidate,
-  # not split), tail ids reuse the last source id.
+  # Pairs each new item id with the source item at the same position in
+  # deterministic iteration order (clients descending by id, items
+  # ascending by clock — matches `Yelixer.Encoding.encode_update/1`).
+  # If the rebuilt doc has more items than the source (rare; snapshots
+  # consolidate, not split) the tail entries reuse the last source id.
   defp build_derivation_map(source, rebuilt) do
     source_ids = collect_item_ids(source)
     new_ids = collect_item_ids(rebuilt)
@@ -302,11 +373,11 @@ defmodule Yelixer.Doc do
     end)
   end
 
-  # Order top-level named types by the `{client, clock}` of their
-  # earliest item in `source`. Types with no direct items (possible
-  # when content lives only under sub-types that snapshot_update
-  # doesn't structurally replay yet) sort last under a sentinel so
-  # they don't perturb clocks for types that do carry items.
+  # Orders named-type roots by the `{client, clock}` of their earliest
+  # item in `source`. Roots with no direct items — possible when
+  # content lives only under sub-types that `snapshot_update` does not
+  # yet replay structurally — sort last under a sentinel so they do not
+  # perturb the clock ordering of roots that do carry items.
   defp sort_types_by_earliest_item(%__MODULE__{types: types} = source) do
     Enum.sort_by(types, fn {name, _ref} -> earliest_id_for_type(source, name) end)
   end
@@ -325,15 +396,15 @@ defmodule Yelixer.Doc do
     end
   end
 
-  # Sub-types nested inside maps/arrays (keyed `__sub:CLIENT:CLOCK`) are
-  # not yet replayed structurally; current callers (presence, schema)
-  # store only primitive values at top-level types.
+  # Sub-types nested inside maps/arrays use synthetic names keyed
+  # `__sub:CLIENT:CLOCK`. They are not yet replayed structurally;
+  # current callers (presence, schema) store only primitive values.
   defp replay_named_type({"__sub:" <> _ = _name, _ref}, doc, _source), do: doc
 
-  # XML child types are registered under synthetic names
-  # (`parent::child::CLIENT:CLOCK`) by their parent's insert_child and
-  # replayed recursively when we process the top-level parent — skip
-  # them here to avoid double-replay.
+  # XML child types are registered under synthetic names of the form
+  # `parent::child::CLIENT:CLOCK` when their parent calls
+  # `insert_child`. They are replayed recursively when the top-level
+  # parent is processed — skip them here to avoid double-replay.
   defp replay_named_type({name, ref}, doc, source) do
     cond do
       String.contains?(name, "::child::") -> doc
@@ -346,10 +417,10 @@ defmodule Yelixer.Doc do
   end
 
   defp replay_top_level_type(name, ref, source, doc) do
-    # Updates decoded by `apply_update` do not carry the symbolic type
-    # tag — top-level named types come back as `:unknown`. Infer the
-    # actual shape from the source's block_store sequence so we can
-    # call the right type API to read and replay content.
+    # `apply_update` cannot recover the symbolic type ref from the wire
+    # format, so decoded top-level types arrive as `:unknown`. Infer
+    # the actual shape from the source's block-store sequence so we
+    # can dispatch to the correct type API for reading and replay.
     effective_ref = if ref == :unknown, do: infer_type_from_sequence(source, name), else: ref
 
     case effective_ref do
@@ -387,11 +458,11 @@ defmodule Yelixer.Doc do
   end
 
   # XML replay: walk the source's observable structure (tombstones are
-  # already dropped by to_list/children) and rebuild it in `doc` under
-  # `target_name`. Children in the source carry source-minted child type
-  # names (`parent::child::CLIENT:CLOCK`) that won't match after re-
-  # insertion in `doc`, so we map each source child to its newly-minted
-  # name in the fresh doc before recursing.
+  # already filtered by `to_list`/`children`) and rebuild it in `doc`
+  # under `target_name`. Source children carry source-minted names
+  # (`parent::child::CLIENT:CLOCK`) that will not match after
+  # re-insertion; each source child is mapped to its freshly minted
+  # name in `doc` before recursing.
   defp replay_xml_fragment(doc, source, source_name, target_name) do
     {doc, _} = get_or_create_type(doc, target_name, :xml_fragment)
     source_children = XMLFragment.to_list(source, source_name)
@@ -474,21 +545,22 @@ defmodule Yelixer.Doc do
     end
   end
 
-  # Infer the YType for a top-level named type by inspecting the items
-  # in its YATA sequence. Needed because `apply_update` cannot recover
-  # the symbolic ref from the wire format for top-level named types —
-  # it stores them as `:unknown`.
+  # Infers the type ref for a named-type root by inspecting its YATA
+  # sequence. Required because `apply_update` stores decoded top-level
+  # types as `:unknown`.
   #
-  # - String content → :text
-  # - Items with `parent_sub` → :map (entries keyed by parent_sub)
-  # - Items whose content is a nested XML type → :xml_fragment
-  # - Otherwise (any content with no parent_sub) → :array
+  # Heuristics, in order:
+  #   - Any item with string content    → :text
+  #   - Any item with a `parent_sub`    → :map  (entries keyed by parent_sub)
+  #   - Any item with a nested XML type → :xml_fragment
+  #   - Empty sequence                  → :map  (safe default)
+  #   - Otherwise                       → :array
   #
-  # Top-level XMLElement / XMLText inference isn't possible from items
-  # alone (the tag isn't carried on the wire for top-level elements; a
-  # top-level xml_text's items look identical to :text). Callers that
-  # need those must pre-register the top-level type on the receiver —
-  # same contract as Y.js `ydoc.get(name, Y.XmlElement)`.
+  # Top-level `XMLElement` and `XMLText` cannot be inferred: the
+  # element tag is not carried on the wire, and a top-level xml_text
+  # sequence is indistinguishable from `:text`. Callers that use those
+  # types must pre-register them on the receiver — the same contract
+  # as Y.js `ydoc.get(name, Y.XmlElement)`.
   defp infer_type_from_sequence(%__MODULE__{store: store}, name) do
     items = Yelixer.BlockStore.get_sequence(store, name)
 
