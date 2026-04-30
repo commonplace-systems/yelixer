@@ -1,10 +1,96 @@
 defmodule Yelixer.Types.XMLFragment do
   @moduledoc """
-  Collaborative XML fragment type built on the YATA CRDT.
+  Collaborative XML fragment type — tagless container of XML nodes.
 
-  A fragment is a container for multiple XML nodes without a tag of its own.
-  It acts like a document fragment — useful for grouping nodes that don't
-  need a wrapper element.
+  An `XMLFragment` is the simplest member of Yelixer's XML family
+  (`XMLFragment`, `Yelixer.Types.XMLElement`, `Yelixer.Types.XMLText`).
+  It groups an ordered list of children — elements, texts, or nested
+  fragments — without having a tag of its own. Use it as the
+  document root when you don't want a wrapping element, or as a
+  passive grouping container inside another XML node.
+
+  Public surface:
+
+    - `new_fragment/2` — register an empty fragment under `type_name`.
+    - `insert_child/4` — splice a new child node at an index.
+    - `delete_child/4` — tombstone a contiguous range of children.
+    - `to_list/2` — render children as `{kind, ...}` tuples.
+    - `child_count/2` — live child count.
+    - `to_string/2` — recursively render the fragment as text (no
+      wrapper tag).
+
+  ## XML on top of YATA
+
+  XML in Yelixer is not a separate CRDT — it's a layering on the
+  same `Yelixer.BlockStore` machinery that powers the rest of the
+  type system:
+
+    - **Children** are an ordered sequence, exactly like
+      `Yelixer.Types.Array`. The fragment owns one YATA sequence
+      under a derived name (`"<type_name>::children"`); each child
+      is one Item with `content: {:type, type_ref}` parented at
+      that named sequence.
+    - **Each child sub-type** (an `XMLElement`, `XMLText`, or nested
+      `XMLFragment`) is itself a registered type in `Yelixer.Doc`.
+      Its name is synthesized from the parent fragment's name plus
+      the child item's id: `"<parent>::child::<client>:<clock>"`.
+      This is one of two synthetic-naming schemes Doc handles —
+      see `Yelixer.Doc`'s "Sub-types and the `__sub:CLIENT:CLOCK`
+      naming" section for the other.
+    - **Attributes** don't apply at the fragment level; only
+      `XMLElement` carries them.
+
+  The synthetic names are how a child sub-type's items reach back
+  to their parent. When a peer applies an update that creates an
+  XML child, both the parent's children-sequence Item and the
+  child's own type registration land in the doc; the
+  `parent::child::C:K` name binds them.
+
+  ## Children are by-position, not by-key
+
+  Anchor conventions follow `Yelixer.Types.Array`: `origin` is the
+  last clock of the left neighbour, `right_origin` is the first
+  clock of the right neighbour. Concurrent inserts at the same
+  child index are ordered deterministically by
+  `Yelixer.Integrate`'s two-set conflict scan plus client-ID
+  tiebreak. No `parent_sub` is used — children are positional,
+  not keyed.
+
+  ## Tombstones and rendering
+
+  `delete_child/4` follows the standard tombstone pattern: collect
+  the IDs in `[index, index + length)`, mark each `deleted: true`
+  via `Yelixer.Integrate.mark_deleted/2`, and record the interval
+  in `doc.delete_set`. `BlockStore.get_sequence/2` filters
+  tombstones from all read paths, so `to_list/2`, `child_count/2`,
+  and `to_string/2` never see them.
+
+  `to_string/2` recursively dispatches to the appropriate type
+  module per child kind (`XMLElement.to_string`, `XMLText.to_string`,
+  or back to itself). The result is the live serialized text — no
+  outer tag because fragments don't have one.
+
+  ## Naming conventions, summarized
+
+  Two synthetic names are minted by this module:
+
+    - `"<type_name>::children"` — the named sequence holding the
+      children Items (parent reference of every child Item).
+    - `"<parent>::child::<client>:<clock>"` — the registered name
+      of each child sub-type. The trailing `<client>:<clock>` is
+      the child Item's id; this is how `Yelixer.Doc.snapshot_update/1`
+      and `Yelixer.Encoding.apply_update_in_namespace/3` recognize
+      and skip child-type registrations during type iteration.
+
+  ## What this module is NOT
+
+  - Not the wire format: encoding lives in `Yelixer.Encoding`.
+  - Not the YATA placement algorithm: that's `Yelixer.Integrate`.
+  - Not the storage: blocks live in `Yelixer.BlockStore`.
+  - Not the document container: see `Yelixer.Doc`.
+  - Not for tag-bearing elements: see `Yelixer.Types.XMLElement`.
+  - Not for character-stream text: see `Yelixer.Types.XMLText` (the
+    XML-context analogue of `Yelixer.Types.Text`).
   """
 
   alias Yelixer.{Doc, ID, Item, BlockStore, DeleteSet, Integrate, StateVector}

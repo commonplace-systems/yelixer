@@ -1,9 +1,28 @@
 defmodule Yelixer.Types.XMLText do
   @moduledoc """
-  Collaborative XML text type built on the YATA CRDT.
+  Collaborative text node within an XML tree — a `Yelixer.Types.Text`
+  twin specialised to live as a child of an `XMLElement` or
+  `XMLFragment`.
 
-  Like YText but within an XML context. Uses the same insertion/deletion
-  mechanics as Text, with content stored as {:string, text} items.
+  Mechanically identical to `Yelixer.Types.Text`: same character-
+  offset → YATA-anchor translation, same run-length `:string` content
+  blocks, same split-on-write behaviour. The distinction is *where*
+  it lives in the document tree — an `XMLText` instance is registered
+  under a synthetic name minted by its parent's `insert_child/4`
+  (`"<parent>::child::<C>:<K>"`, see `Yelixer.Types.XMLFragment`) so
+  the wider XML rendering can find it.
+
+  Public surface (matches Text exactly):
+
+    - `insert/4` — splice a string at a character offset.
+    - `delete/4` — tombstone a character range.
+    - `to_string/2` — render the live characters.
+    - `length/2` — codepoint count of the live text.
+
+  See `Yelixer.Types.Text`'s moduledoc for the conceptual treatment
+  — run-length encoding, the offset → anchor bridge, half-open
+  semantics, codepoint vs grapheme handling, tombstone filtering.
+  Everything in that doc applies here verbatim.
   """
 
   alias Yelixer.{Doc, ID, Item, BlockStore, DeleteSet, Integrate, StateVector}

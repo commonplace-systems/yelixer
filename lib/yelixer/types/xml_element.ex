@@ -1,15 +1,50 @@
 defmodule Yelixer.Types.XMLElement do
   @moduledoc """
-  Collaborative XML element type built on the YATA CRDT.
+  Collaborative XML element — tag-bearing node with attributes and
+  ordered children.
 
-  An XML element has:
-  - A tag name (e.g., "div", "p", "span")
-  - Attributes (key-value pairs, stored as YMap-like entries with parent_sub)
-  - Children (ordered sequence of XMLElement, XMLText, or XMLFragment nodes)
+  An `XMLElement` extends `Yelixer.Types.XMLFragment` with two pieces
+  XMLFragment doesn't have:
 
-  The element's tag name is stored in the doc's types registry.
-  Attributes use parent_sub keying (same pattern as YMap).
-  Children use the YATA-ordered sequence (same pattern as Array).
+    - **A tag name** ("div", "p", "span", etc.) carried as the
+      element's *type ref* in the doc registry — the registration
+      stores `{:xml_element, tag}` rather than `:xml_fragment`. So
+      the tag isn't a separate field on any Item; it's metadata on
+      the type itself.
+    - **Attributes** — string-keyed values stored as Items with the
+      attribute name in `parent_sub`, same encoding as
+      `Yelixer.Types.YMap`. Live on the element's *named sequence*
+      directly.
+
+  Children continue to use a separate `"<type_name>::children"`
+  sequence (same shape as `XMLFragment`'s) so they don't mix with
+  the attribute Items. The two namespaces share the same parent
+  type but live in different YATA orderings.
+
+  Public surface:
+
+    - `new_element/3` — register an element under `type_name` with
+      its tag.
+    - `tag_name/2` — read the tag from the type registry.
+    - `set_attribute/4`, `get_attribute/3`, `get_attributes/2`,
+      `delete_attribute/3` — YMap-style attribute ops.
+    - `insert_child/4`, `delete_child/4`, `children/2`,
+      `child_count/2` — Array/Fragment-style child-sequence ops.
+    - `to_string/2` — recursive render including the wrapping
+      `<tag attrs>...</tag>`.
+
+  ## Read carefully alongside
+
+  Concepts here build directly on three sister modules; this file
+  doesn't restate them:
+
+    - `Yelixer.Types.XMLFragment` for the children-sequence shape,
+      synthetic child naming (`"<parent>::child::<C>:<K>"`), and
+      the layering of XML on top of YATA.
+    - `Yelixer.Types.YMap` for the `parent_sub` key encoding
+      attributes share.
+    - `Yelixer.Item`, `Yelixer.BlockStore`, `Yelixer.Integrate` for
+      the underlying YATA + storage machinery.
   """
 
   alias Yelixer.{Doc, ID, Item, BlockStore, DeleteSet, Integrate, StateVector}
