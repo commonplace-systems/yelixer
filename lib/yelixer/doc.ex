@@ -1,4 +1,94 @@
 defmodule Yelixer.Doc do
+  @moduledoc """
+  The top-level container for a Yjs document.
+
+  A `Doc` ties together everything needed to be a working CRDT
+  replica: a unique replica identity (`client_id`), the items that
+  make up the document (`store`), a tombstone index (`delete_set`),
+  and a registry of named top-level types (`types`). Plus a small
+  provenance cache (`client_namespaces`) used by the namespace-aware
+  `apply_update` path. Operations on the doc — local edits, remote
+  updates, encoding, GC — read and write these fields through the
+  modules that own each concern.
+
+  ## Lifecycle
+
+  - **`new/1`** — start fresh. A random `client_id` is minted unless
+    one is passed in. The store, delete set, and types registry start
+    empty.
+  - **Local edits** — happen through the type-side facades, not on
+    `Doc` directly. `Yelixer.Types.Text.insert(doc, name, index, text)`,
+    `YMap.set(doc, name, key, value)`, etc. Each call returns an
+    updated `%Doc{}`.
+  - **Receive a remote update** — `Yelixer.Encoding.apply_update(doc,
+    binary)` decodes the bytes, integrates each Item via
+    `Yelixer.Integrate.integrate/3`, applies the delete set, and
+    merges it into `doc.delete_set` so the receiver retains
+    tombstones for re-broadcast.
+  - **Encode the doc** — `Yelixer.Encoding.encode_update(doc)` for
+    the full state, `encode_diff(doc, remote_sv)` for the slice a
+    peer is missing.
+  - **Maintenance** — `gc/1` rewrites tombstoned items as `:gc`
+    blocks so they don't continue to carry their original content;
+    `snapshot_update/1` emits a self-contained encoding of the doc's
+    *observable* state under a single client_id, used by the
+    compaction primitive (CX-u7p) to consolidate long-lived docs
+    that have accumulated thousands of distinct authors.
+
+  ## Named-type roots
+
+  `types :: %{name => type_ref}` is the entry table for top-level
+  CRDT types. Every Item lives under a parent — either a top-level
+  named type (`{:named, name}`) or a sub-type identified by another
+  Item's id (`{:id, parent_id}`). Top-level types are addressable by
+  string name from outside the doc; sub-types are reachable only by
+  walking from a top-level root.
+
+  `get_or_create_type/3` is the registration entry point. Calling it
+  with a fresh name registers the symbolic type ref (`:text`, `:map`,
+  `:array`, `:xml_fragment`, `{:xml_element, tag}`, `:xml_text`) and
+  returns it; calling it again with the same name returns whatever
+  was registered first. Type-side facades (`Text`, `YMap`, `Array`,
+  the XML modules) call `get_or_create_type/3` on every operation so
+  callers can address types by name without explicit registration.
+
+  ## Client-id assignment
+
+  `client_id` is a per-doc-instance integer. Two requirements:
+
+    - **Unique per running replica.** Two replicas of the same logical
+      document must not share a client_id, or their independent
+      clocks would collide as IDs.
+    - **Stable across the doc's lifetime.** Once chosen, the same
+      client_id is used for every local edit. Restarting the
+      application means a fresh client_id (a new replica from the
+      doc's perspective), unless the caller specifically passes the
+      previous value into `new/1`.
+
+  The default is `:rand.uniform(1_000_000_000)` — enough range that
+  collisions between live peers are vanishingly rare. Callers that
+  need stable identity across restarts (workspace nodes, presence
+  docs) override via `new(client_id: persistent_id)`.
+
+  ## What this module is NOT
+
+  Doc is a passive struct — most of the heavy lifting happens in
+  modules that take it as an argument:
+
+    - **Local mutations** live on the type modules
+      (`Yelixer.Types.Text`, `YMap`, `Array`, `XMLFragment`,
+      `XMLElement`, `XMLText`). Doc carries the state; the type
+      modules know how to read and update it.
+    - **Bytes ↔ items** is `Yelixer.Encoding`'s job; `apply_update`
+      is the only path that mutates a Doc with remote-originated
+      content.
+    - **YATA insertion** is `Yelixer.Integrate`. Doc holds the
+      sequences but never decides where items land in them.
+    - **Block storage** is `Yelixer.BlockStore`, owned by `doc.store`.
+    - **Tombstone tracking** is `Yelixer.DeleteSet`, owned by
+      `doc.delete_set`.
+  """
+
   alias Yelixer.{BlockStore, DeleteSet, Item}
   alias Yelixer.Types.{YMap, Text, Array, XMLFragment, XMLElement, XMLText}
 
@@ -12,6 +102,17 @@ defmodule Yelixer.Doc do
 
   defstruct [:client_id, :store, :delete_set, :types, client_namespaces: %{}]
 
+  @doc """
+  Creates a fresh document.
+
+  Accepts an optional `:client_id` — useful when a workspace node or
+  presence doc needs identity stability across restarts. Without it,
+  a random integer is minted; collisions between live peers are
+  vanishingly rare at this range.
+
+  Empty store, empty delete set, no registered types. Type-side
+  facades will register types lazily on first use.
+  """
   def new(opts \\ []) do
     client_id = Keyword.get(opts, :client_id, :rand.uniform(1_000_000_000))
 
@@ -43,8 +144,19 @@ defmodule Yelixer.Doc do
     Map.get(ns, client_id) == namespace_hash
   end
 
+  @doc "Returns `true` if `name` is registered as a top-level type."
   def has_type?(%__MODULE__{types: types}, name), do: Map.has_key?(types, name)
 
+  @doc """
+  Looks up or registers the named top-level type. Returns
+  `{doc, type_ref}` — the (possibly updated) doc plus the symbolic
+  type reference now bound to that name.
+
+  First-call-wins: registering a different `type_ref` against an
+  already-present name is a no-op and the original ref is returned.
+  Type-side facades call this on every operation, so most callers
+  never invoke it directly.
+  """
   def get_or_create_type(%__MODULE__{types: types} = doc, name, type_ref) do
     if Map.has_key?(types, name) do
       {doc, Map.get(types, name)}
@@ -55,9 +167,21 @@ defmodule Yelixer.Doc do
   end
 
   @doc """
-  Garbage collect deleted items, replacing them with lightweight GC blocks.
-  Remaps origin/right_origin references through GC blocks to nearest
-  non-GC neighbors so ordering is preserved when re-encoding.
+  Garbage-collects deleted items by rewriting their content as `:gc`
+  blocks of the appropriate length.
+
+  Why two stages (`:deleted` then `:gc`)? An item flagged `deleted`
+  still carries its original content for short windows where the
+  deletion might race with anchors landing from the network — we
+  preserve the data until any incoming anchors have had a chance to
+  resolve. Once we run GC, that grace period is over and we drop
+  the content payload, leaving only the length so the ID slot is
+  preserved (anchors can still reference it).
+
+  Anchors pointing through GC'd blocks are remapped to their nearest
+  non-GC neighbours by `Yelixer.Encoding.encode_item/2` at encode
+  time — `gc/1` itself doesn't touch them. The tuple cache is
+  invalidated wholesale to force a rebuild on next read.
   """
   def gc(%__MODULE__{store: store} = doc) do
     clients =
@@ -71,6 +195,30 @@ defmodule Yelixer.Doc do
   defp gc_item(%Item{deleted: true, content: {:gc, _}} = item), do: item
   defp gc_item(%Item{deleted: true} = item), do: %{item | content: {:gc, item.length}}
   defp gc_item(item), do: item
+
+  # ---- Snapshot / compaction ----
+  #
+  # `snapshot_update/1` and the replay machinery below it implement
+  # the compaction primitive (CX-u7p). The motivation is that
+  # long-lived docs (presence docs, schema docs, etc.) accumulate
+  # client_ids over time as fresh replicas come and go. Each
+  # client_id contributes a per-client clock entry to the state
+  # vector and a bucket of items in the block store. After thousands
+  # of authors, the encoded update payload is O(clients) in both
+  # size and apply time.
+  #
+  # The compaction trick: rebuild the doc from its *observable*
+  # content under a single stable client_id. The new doc has the
+  # same rendered output, but its state vector is size 1 and its
+  # block store is one bucket. Applying the resulting update on top
+  # of a receiver that already has the old doc is idempotent in Yjs,
+  # so peers that haven't migrated yet still converge correctly.
+  #
+  # The replay machinery walks the source doc's registered top-level
+  # named types and rewrites their content into the fresh doc using
+  # the public type APIs. Each top-level type has a dedicated
+  # replay_* helper; XML's recursive structure needs the deepest
+  # one.
 
   @doc """
   Build a fresh self-contained Yjs binary update encoding the source doc's
