@@ -17,9 +17,8 @@ defmodule Yelixer.StateVector do
   high-water-mark is the whole story; no hole-tracking is needed.
 
   This density invariant means a per-client set of observed clocks
-  always collapses to its supremum (maximum). The state vector is
-  therefore a plain `%{client => max_clock}` map rather than a map of
-  sets.
+  always collapses to its supremum. The state vector is therefore a
+  plain `%{client => max_clock}` map rather than a map of sets.
 
   Contrast `Yelixer.DeleteSet`, which *does* need hole-tracking:
 
@@ -47,16 +46,16 @@ defmodule Yelixer.StateVector do
   - Not a clock generator — new clocks are minted by the document at
     integration time.
   - Not a tombstone index — see `Yelixer.DeleteSet`.
-  - Not a CRDT itself. The document is the CRDT; state vectors are
-    summaries of CRDT state. However, `advance/3` plays the same
-    `merge` role on a max-lattice: any observation is safe to apply,
-    and commutativity + idempotence ensure convergence.
+  - Not a CRDT itself. StateVector tracks knowledge *about* the
+    document, not the document itself — it's metadata, not content.
+  - Even so, `advance/3` is idempotent and commutative (like a CRDT
+    merge), ensuring two replicas that gossip their state vectors
+    converge to the same clock values even when messages arrive out
+    of order.
   """
 
-  # The state vector struct. `clocks` maps each client ID (a non-neg
-  # integer) to that client's current high-water-mark clock (also a
-  # non-neg integer). A client absent from the map is implicitly at
-  # clock 0 — see `get/2`.
+  # `clocks` stores per-client high-water-marks; clients not in the
+  # map are implicitly at clock 0 (see `get/2`).
   @type t :: %__MODULE__{clocks: %{non_neg_integer() => non_neg_integer()}}
   defstruct clocks: %{}
 
@@ -109,15 +108,14 @@ defmodule Yelixer.StateVector do
     - **Idempotent**: applying the same observation twice is a no-op.
       Duplicate delivery cannot corrupt state.
 
-  Associativity holds as well, but commutativity and idempotence are
+  Associativity holds too, but commutativity and idempotence are
   what make sync robust to network reality. Same convergence story
   as `DeleteSet.merge/2`.
   """
   @spec advance(t(), non_neg_integer(), non_neg_integer()) :: t()
   def advance(%__MODULE__{} = sv, client, clock) do
-    # Only write when the new clock is strictly larger. Equal or
-    # smaller clocks (duplicates, late arrivals) leave the state
-    # vector untouched — that's what makes this monotonic.
+    # Strict `>` only — preserves the monotonic invariant under
+    # reordered or duplicate observations.
     if clock > get(sv, client), do: set(sv, client, clock), else: sv
   end
 
@@ -128,7 +126,7 @@ defmodule Yelixer.StateVector do
   Call as `diff(remote, local)`. The result is a
   `%{client => local_clock}` map. Each entry means: "remote has more
   items from this client; local's knowledge ends at `local_clock`, so
-  remote should stream everything from there onward."
+  remote should stream everything from there."
 
   ## Walk-through
 
@@ -146,11 +144,15 @@ defmodule Yelixer.StateVector do
 
   ## Why iterate remote's clients, not local's
 
-  Only clients present in remote's map can be shipped by remote.
-  Clients known only to local are irrelevant here — the other side of
-  the exchange picks them up. Sync is symmetric: each side calls
-  `diff(peer_sv, own_sv)` and ships what the peer is missing.
-  Together the two half-runs bring both replicas to the same state.
+  Sync is symmetric: each side calls `diff(peer_sv, own_sv)` and ships
+  what the peer is missing. Each call therefore only needs to answer
+  one direction — "what should *this* side ship to the peer?" — and
+  trust the other side to handle the reverse direction independently.
+
+  From there the iteration choice falls out: only clients present in
+  remote's map can possibly be shipped by remote. A client known only
+  to local has no remote items to request; the peer's matching call
+  on the other side picks it up.
 
   ## Why the value is local's clock, not remote's
 
@@ -161,8 +163,7 @@ defmodule Yelixer.StateVector do
   @spec diff(t(), t()) :: %{non_neg_integer() => non_neg_integer()}
   def diff(%__MODULE__{clocks: remote}, %__MODULE__{clocks: local}) do
     Enum.reduce(remote, %{}, fn {client, remote_clock}, acc ->
-      # Default to 0: local has never seen this client, so it needs
-      # everything starting from clock 0.
+      # Default to 0: local has never seen this client.
       local_clock = Map.get(local, client, 0)
 
       if remote_clock > local_clock do
