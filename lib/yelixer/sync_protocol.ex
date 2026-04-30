@@ -2,110 +2,118 @@ defmodule Yelixer.SyncProtocol do
   @moduledoc """
   Two-message sync protocol that converges any pair of Yjs replicas.
 
-  This module is the wire-protocol home of every other piece of
-  yelixer. The data-structure layer (`Yelixer.Item`, `Yelixer.ID`,
-  `Yelixer.BlockStore`, `Yelixer.DeleteSet`, `Yelixer.StateVector`),
-  the integration layer (`Yelixer.Integrate`), the type facades
-  (`Yelixer.Types.Text`, `Array`, `YMap`, `XMLFragment`,
-  `XMLElement`, `XMLText`), the document container (`Yelixer.Doc`),
-  and the binary serialization (`Yelixer.Encoding`) all converge on
-  one purpose: making two replicas agree on what's in the document.
-  `SyncProtocol` is where they finally close the loop.
+  Every other module in this library builds toward one outcome: two
+  replicas that agree on what's in the document. `Yelixer.ID` and
+  `Yelixer.Item` model the atoms; `Yelixer.BlockStore` stores them;
+  `Yelixer.StateVector` and `Yelixer.DeleteSet` summarize what a
+  replica has seen and what it has deleted; `Yelixer.Integrate`
+  merges concurrent edits without conflicts; `Yelixer.Encoding`
+  serializes all of it to bytes; `Yelixer.Doc` holds the live state;
+  and the type facades (`Text`, `Array`, `YMap`, `XmlFragment`,
+  `XmlElement`, `XmlText`) expose it to callers. `SyncProtocol` is
+  where these pieces close the loop — the byte-level exchange that
+  leaves two replicas in identical state.
 
-  ## What sync is
+  ## What sync does
 
-  Sync is the algorithm that brings two replicas of the same logical
-  document — call them A and B — to byte-identical state. It must
-  work over a noisy channel, after arbitrary periods of disconnection,
-  and without a central authority. The protocol is designed for the
-  worst case (A and B have been editing independently for a while)
-  but degenerates gracefully to the cheap case (one replica is fully
-  up-to-date with the other).
+  Sync brings two replicas of the same logical document — call them A
+  and B — to identical state. It must work after arbitrary periods of
+  disconnection, with no central authority. The protocol handles the
+  worst case (both sides edited independently) and degenerates cheaply
+  when one side is already current.
 
   ## Two messages, one round-trip
 
-  Sync runs as a single request/response exchange:
+  Sync is a single request/response exchange:
 
       A ── step1 (sv_A) ────────► B
       A ◄────────── step2 (diff) ── B
 
-  - **Step 1** carries A's state vector — the "what I have" summary
-    described in `Yelixer.StateVector`. It's tiny: one varint pair
-    per client A has seen, no item content, no tombstones.
-  - **Step 2** carries the diff B owes A — the items A is missing
-    plus B's full delete set. Computed via
-    `Yelixer.Encoding.encode_diff/2` against the state vector A
-    just sent.
+  - **Step 1** carries A's *state vector* — a compact `%{client =>
+    max_clock}` map (`Yelixer.StateVector`) that says exactly which
+    items A has integrated, without sending any item content. One
+    varint pair per client; no tombstones.
+  - **Step 2** carries the *diff* B owes A: every item A is missing
+    from B's store, plus B's full delete set, packed by
+    `Yelixer.Encoding.encode_diff/2` using the state vector A sent.
 
-  After A applies the step 2 payload via `Yelixer.Encoding.apply_update/2`,
-  A's state matches B's *for the things B knew about*. Anything A
-  knew that B didn't is symmetric: B initiates its own round in the
-  reverse direction.
+  After A applies the step 2 payload via
+  `Yelixer.Encoding.apply_update/2`, A's state matches B's for
+  everything B knew. Items only A had are covered by the symmetric
+  half: B fires its own step 1 while answering A's, so a single
+  concurrent round-trip pair fully converges both replicas.
 
-  ## Why two halves are required
+  ## Why both halves are required
 
-  `Yelixer.StateVector.diff/2` only returns the catch-up A needs from
-  B — it iterates B's clients, not A's. Items that exist only in A's
-  store appear nowhere in `diff(B, A)`. So a single round closes one
-  direction; full convergence needs both replicas to play the role
-  of "asker" once. The protocol is intentionally symmetric:
-  `encode_step1` + `handle_message` work the same on either side.
-  In practice, peers run both halves concurrently (each side fires
-  its own step 1 while answering the other's), so a single
-  round-trip pair converges them.
+  `Yelixer.StateVector.diff/2` iterates the *remote* side's clients,
+  not the local side's. Items that exist only in A's store are
+  invisible to `diff(sv_B, sv_A)` because the algorithm iterates B's
+  clients, not A's — A's exclusive clients never appear in B's map,
+  so B's diff cannot mention items it doesn't have records for. A
+  must send its own step 1 to get B to emit them. One direction of
+  the exchange closes one half of the gap; the reverse direction
+  closes the other. The protocol is deliberately symmetric:
+  `encode_step1/1` and `handle_message/2` work identically on either
+  side.
 
-  This symmetry is the same shape we documented in
-  `Yelixer.StateVector.diff/2`'s "Why iterate remote's clients" and
-  "Sync is symmetric" sections — those are the data-structure
-  rationale; this module is its concrete byte-level realization.
+  This is the byte-level realization of the asymmetry documented in
+  `Yelixer.StateVector.diff/2` — "Why iterate remote's clients" and
+  "Sync is symmetric" explain the data-structure rationale; this
+  module is where that rationale becomes wire bytes.
 
   ## Convergence guarantee
 
-  After one round (step 1 + step 2 in each direction) the two
+  After one full round (each side sends step 1, receives step 2) both
   replicas agree on:
 
-    - **Items**: the union of all items either side has seen.
-      `apply_update/2` integrates each incoming item via
-      `Yelixer.Integrate.integrate/3`, which is deterministic
-      under YATA — so both sides land identical sequences.
-    - **Tombstones**: the union of both delete sets.
-      `apply_update/2` merges the incoming set into
-      `doc.delete_set` (CX-w62), so re-encodes preserve the
-      deletions.
+    - **Items** — the union of all items either side had.
+      `apply_update/2` feeds each incoming item through
+      `Yelixer.Integrate.integrate/3`, which resolves concurrent
+      inserts deterministically under YATA, leaving both sides in
+      identical sequence order.
+    - **Tombstones** — the union of both delete sets.
+      `apply_update/2` merges the incoming `Yelixer.DeleteSet` into
+      `doc.delete_set`, so every deletion each side made is reflected
+      on both.
 
-  The result is byte-identical: re-encoding via
-  `Yelixer.Encoding.encode_update/1` on either replica produces the
-  same bytes (the byte-determinism guarantee documented in
-  `Yelixer.Encoding`'s moduledoc). That equality is what
-  content-addressed storage downstream relies on.
+  The result is *byte-deterministic*: calling
+  `Yelixer.Encoding.encode_update/1` on either replica afterward
+  produces the same bytes, because `Encoding` sorts clients
+  consistently and `Integrate` resolves ties by a fixed rule. That
+  byte-equality is what content-addressed storage downstream depends
+  on (documented in `Yelixer.Encoding`'s moduledoc).
 
   ## Wire format
 
-  Each message is a single byte tag followed by an opaque payload:
+  Each message is a one-byte tag followed by an opaque payload:
 
       step1: <<0, state_vector_bin::binary>>
       step2: <<1, update_bin::binary>>
 
-  `state_vector_bin` is whatever `Yelixer.Encoding.encode_state_vector/1`
-  produces; `update_bin` is whatever
-  `Yelixer.Encoding.encode_diff/2` produces. Tagging is one byte
-  rather than a varint because there are only two message types and
-  no expectation of growth — the Yjs protocol freezes this choice.
+  `state_vector_bin` is the output of
+  `Yelixer.Encoding.encode_state_vector/1`; `update_bin` is the
+  output of `Yelixer.Encoding.encode_diff/2`. The tag is one byte
+  rather than a varint — there are exactly two message types and the
+  Yjs wire spec freezes this choice, so no length savings are needed.
 
-  ## What this module is NOT
+  ## What this module is not
 
-  - Not a transport — bytes go in via `handle_message/2`, bytes come
-    out from `encode_step1/1` and `handle_message/2`'s return tuple.
-    Whether they travel over WebSocket, MQTT, Phoenix Channels, raw
-    TCP, or `IO.binwrite/2` is the caller's concern.
-  - Not session management — there's no peer identity, retries,
-    duplicate suppression, or backpressure. The protocol is
-    idempotent (replaying step 2 produces the same final state via
-    `apply_update/2`'s integration semantics), so callers can layer
-    those concerns above this module's surface.
-  - Not awareness or presence — Yjs has separate awareness
-    protocols for cursor positions, selection, and ephemeral state.
-    This file is content-only.
+  - **Not a transport.** Bytes arrive via `handle_message/2` and
+    leave via the return values of `encode_step1/1` and
+    `handle_message/2`. WebSocket, Phoenix Channels, MQTT, raw TCP —
+    all the caller's concern.
+  - **Not session management.** No peer identity, retries, duplicate
+    suppression, or backpressure. The protocol is idempotent because
+    `Yelixer.Integrate.integrate/3` deterministically places
+    concurrent inserts (re-applying the same item finds the same
+    YATA position) and tombstoned items stay tombstoned (the
+    `:deleted` flag and `doc.delete_set` interval are both
+    idempotent under repeated application) — so replaying a step 2
+    produces the same final state. Callers layer reliability above
+    this surface.
+  - **Not awareness or presence.** Yjs has separate protocols for
+    cursor positions, selections, and ephemeral state. This module is
+    content-only.
   """
 
   alias Yelixer.{Doc, Encoding, BlockStore}
@@ -117,16 +125,16 @@ defmodule Yelixer.SyncProtocol do
   @msg_sync_step2 1
 
   @doc """
-  Builds a Step 1 message — this replica's state vector wrapped with
-  the sync-step-1 tag byte.
+  Builds a step 1 message: this replica's state vector, tagged for
+  the wire.
 
-  Cheap to construct: `BlockStore.state_vector/1` walks the per-client
-  buckets to derive the high-water-marks, then
+  Construction is cheap: `BlockStore.state_vector/1` reads per-client
+  high-water-marks from the store, then
   `Encoding.encode_state_vector/1` emits one `(client, clock)` varint
-  pair per client. The payload is a compact summary of "what I
-  have" — no item content, no tombstones. Send this when you want
-  the other side to send you a catch-up; receivers respond with the
-  step 2 produced by `handle_message/2`.
+  pair per client. The result is a compact "what I have" declaration —
+  no item content, no tombstones. Send this to ask the other side for
+  its catch-up diff; the receiver replies with the step 2 returned by
+  `handle_message/2`.
   """
   def encode_step1(%Doc{} = doc) do
     sv = BlockStore.state_vector(doc.store)
@@ -135,24 +143,23 @@ defmodule Yelixer.SyncProtocol do
   end
 
   @doc """
-  Dispatches an incoming sync message to the right handler.
+  Dispatches an incoming sync message and returns the appropriate
+  response or updated doc.
 
-  Two arms by tag byte:
+  Two arms, matched by tag byte:
 
-  - `<<0, sv_bin::binary>>` (step 1) — the peer is asking for a
-    catch-up. Decode their state vector, compute the items they
-    don't have via `Encoding.encode_diff/2`, wrap the result in a
-    step-2 frame, and return `{:step2, response}` for the caller to
-    send back.
+  - `<<0, sv_bin::binary>>` (step 1) — the peer is requesting a
+    catch-up. Decode its state vector, compute the items it lacks via
+    `Encoding.encode_diff/2`, and return `{:step2, response}` for
+    the caller to send back.
   - `<<1, update_bin::binary>>` (step 2) — the peer is answering an
-    earlier step 1. Apply the update via `Encoding.apply_update/2`
-    (which integrates new items, merges the delete set, and runs
-    pending-retry for items missing dependencies) and return
-    `{:update, doc}`.
+    earlier step 1 we sent. Apply the update via
+    `Encoding.apply_update/2` — which integrates new items via YATA,
+    merges the incoming delete set, and retries items that were
+    blocked on missing dependencies — then return `{:update, doc}`.
 
-  An empty step-2 update is a meaningful "we have nothing for you"
-  signal and still results in `{:update, doc}` — the doc is just
-  unchanged.
+  An empty step-2 payload ("we have nothing for you") is valid and
+  returns `{:update, doc}` with the doc unchanged.
   """
   def handle_message(%Doc{} = doc, <<@msg_sync_step1, sv_bin::binary>>) do
     {:ok, {remote_sv, _}} = Encoding.decode_state_vector(sv_bin)
