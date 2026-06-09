@@ -81,9 +81,6 @@ defmodule Yelixer.DeleteSet do
   a 12-character word is one `insert(ds, client, start_clock, 12)`. The
   interval `{clock, clock + len}` is folded into the client's existing range
   list via `add_range/2`, which maintains the sorted-disjoint invariant.
-
-  Each client's ranges are maintained independently because clock spaces do
-  not overlap across clients.
   """
   @spec insert(t(), non_neg_integer(), non_neg_integer(), non_neg_integer()) :: t()
   def insert(%__MODULE__{clients: clients}, client, clock, len) do
@@ -128,11 +125,9 @@ defmodule Yelixer.DeleteSet do
 
   - **Inner layer** — each range from `ranges2` is folded into `ranges1`
     via `add_range/2`, collapsing overlaps as it goes. The fold direction
-    (2 into 1) is arbitrary — not because of an abstract appeal to set-union
-    commutativity, but for a concrete reason: `add_range/2` ends by sorting
-    the list. Both fold directions produce different intermediate states, but
-    each insertion passes through the same sort step, so both directions land
-    in the same canonical sorted-disjoint shape.
+    (2 into 1) is arbitrary: `add_range/2` sorts after every insertion, so
+    both directions pass through the same sort step and land in the same
+    canonical sorted-disjoint shape.
 
   `merge` is associative, commutative, idempotent, and has `new/0` as its
   identity. These four properties together mean delete sets can be exchanged
@@ -216,39 +211,32 @@ defmodule Yelixer.DeleteSet do
     #
     # Two half-open intervals `[s, e)` and `[new_start, new_end)` overlap or
     # touch when `s <= new_end AND new_start <= e`. Both conjuncts are
-    # load-bearing — each rules out a different way an existing range can sit
-    # entirely clear of the new one. Four cases for an existing `[s, e)`
-    # against new `[2, 6)`:
+    # load-bearing — each rules out a different direction of "clearly outside."
+    # Four cases against new `[2, 6)`:
     #
     #   case A — existing entirely to the left, e.g. `[0, 1)`:
     #     `s=0 <= 6` ✓  but  `new_start=2 <= e=1` ✗  → disjoint.
-    #     The second conjunct catches this; the first alone would pass it.
+    #     Only the second conjunct catches this.
     #
     #   case B — existing entirely to the right, e.g. `[7, 9)`:
     #     `s=7 <= 6` ✗  → disjoint.
-    #     The first conjunct catches this; the second alone would pass it
-    #     (`2 <= 9`).
+    #     Only the first conjunct catches this (`2 <= 9` would pass alone).
     #
     #   case C — genuine overlap, e.g. `[3, 5)`:
     #     `s=3 <= 6` ✓  and  `new_start=2 <= e=5` ✓  → overlap.
     #
     #   case D — adjacent (touching boundary), e.g. `[6, 8)`:
     #     `s=6 <= 6` ✓  and  `new_start=2 <= e=8` ✓  → touch.
-    #     The `<=` (not `<`) is what makes this pass: equality at the
-    #     boundary is the touch case we want. Without it, `[0, 3)` and
-    #     `[3, 6)` would stay separate instead of merging into `[0, 6)`.
-    #
-    # Each `<=` blocks one direction of "clearly outside"; together they
-    # admit exactly overlap and touch.
+    #     The `<=` (not `<`) makes this pass. Without it, `[0, 3)` and
+    #     `[3, 6)` would stay separate instead of merging to `[0, 6)`.
     {overlapping, rest} =
       Enum.split_with(ranges, fn {s, e} ->
         s <= new_end and new_start <= e
       end)
 
-    # Step 2: compute the bounding interval of the overlapping group
-    # plus the new range. Seeds: both folds start at the new range's
-    # own bounds, so when the overlapping group is empty the seed is
-    # the answer and the new range passes through unchanged.
+    # Step 2: compute the bounding interval of the overlapping group plus
+    # the new range. Seeded at the new range's own bounds, so an empty
+    # overlapping group leaves the new range unchanged.
     merged_start = Enum.reduce(overlapping, new_start, fn {s, _}, acc -> min(s, acc) end)
     merged_end = Enum.reduce(overlapping, new_end, fn {_, e}, acc -> max(e, acc) end)
 

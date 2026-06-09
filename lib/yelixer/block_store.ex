@@ -1,58 +1,49 @@
 defmodule Yelixer.BlockStore do
   @moduledoc """
-  The data structure that physically holds Items and answers lookups.
+  Physical storage for Items, with dual indexes keyed by identity and position.
 
-  A `BlockStore` is the union of two indexes over the same underlying
-  Items, one keyed by **identity**, one keyed by **position**:
+  Two indexes over the same Items:
 
-    - `clients :: %{client_id => [Item.t()]}` — every Item the store
-      knows about, grouped by its client. Within a bucket, blocks are
-      sorted by clock and (because clocks are dense per
-      `Yelixer.ID`'s contract) they form a single contiguous run with
-      no gaps and no overlap. This is the index that answers "give me
-      Item with ID `(A, 5)`."
+    - `clients :: %{client_id => [Item.t()]}` — all Items grouped by
+      client. Within a bucket, blocks are sorted by clock and, because
+      clocks are dense per `Yelixer.ID`'s contract, form one
+      contiguous run with no gaps or overlap. This is the identity
+      index: "give me the Item with ID `(A, 5)`."
     - `sequences :: %{type_name => [ID.t()]}` — for each top-level
       named CRDT type (a `YArray` named "list", a `YText` named
-      "body", etc.), the rendered order of items as a list of IDs.
-      This is the index that answers "what's the third element of
-      `list`?"
+      "body", etc.), the document-order list of IDs. This is the
+      position index: "what is the third element of `list`?"
 
-  The duality is the whole point. Items physically live in `clients`;
-  the document's visible *order* lives in `sequences`. Walking a
-  sequence — IDs through `get/2` — gives you the rendered list.
+  Items physically live in `clients`; document order lives in
+  `sequences`. Walking a sequence — resolving IDs through `get/2` —
+  yields the rendered list.
 
   ## Why per-client buckets
 
-  Clocks are dense per client (see `Yelixer.ID` and
-  `Yelixer.StateVector`). A client's blocks form one sorted run by
-  construction, so identity lookup reduces to "find the block
-  covering this clock," which is a binary search on a sorted list.
-
-  Cross-client lookup is just two map indirections (client →
-  bucket → block).
+  Dense clocks (see `Yelixer.ID` and `Yelixer.StateVector`) mean a
+  client's blocks form one sorted run by construction. Identity lookup
+  reduces to a binary search within that run. Cross-client lookup adds
+  only a map indirection (client → bucket → block).
 
   ## The tuple cache
 
-  Binary search needs O(1) random access; Erlang lists give you O(n).
-  The store keeps a parallel `client_tuples` cache where each client's
-  list is mirrored as a tuple (`{}` element access via `:erlang.elem`
-  is O(1)). The cache is built lazily (`get_tuple/2`) and invalidated
-  whenever a mutation reshapes a client's list mid-stream — `push/2`
-  can extend it cheaply with `:erlang.append_element/2`, but
-  `split_block/3` (which mutates the middle) drops the cached tuple
-  and lets the next read rebuild it.
+  Binary search needs O(1) random access; Erlang lists are O(n).
+  `client_tuples` mirrors each client's block list as a tuple
+  (`:erlang.elem` is O(1)). The cache is built lazily (`get_tuple/2`).
+  `push/2` extends it cheaply with `:erlang.append_element/2` — the
+  only O(1) Erlang tuple mutation. `split_block/3`, which inserts into
+  the middle of a list, drops the cached tuple and lets the next read
+  rebuild it.
 
-  Lists stay the source of truth; tuples are a read-side optimization.
+  Lists are the source of truth; tuples are a read-side optimization.
 
   ## Block ranges and clock membership
 
   A block at `id = (client, clock)` with `length = n` covers clocks
-  `[clock, clock + n)` — half-open, matching the convention in
-  `Yelixer.DeleteSet`. The binary search expresses this as inclusive
-  bounds (`block_end = clock + length - 1`, `clock <= block_end`)
-  because comparing a clock against an inclusive endpoint with `<=`
-  is one fewer arithmetic op than against a half-open endpoint with
-  `<`. Same membership; alternate spelling.
+  `[clock, clock + n)` — half-open, matching `Yelixer.DeleteSet`.
+  The binary search uses inclusive bounds (`block_end = clock + length - 1`,
+  `clock <= block_end`) — same membership, one fewer arithmetic op
+  than the half-open form.
 
   ## Invariants
 
@@ -60,22 +51,20 @@ defmodule Yelixer.BlockStore do
 
     1. Each `clients[c]` list is sorted by `id.clock`.
     2. The list is contiguous — no clock gaps within a client.
-    3. Blocks within a client never overlap. `split_block/3`
-       partitions cleanly using `Item.split/2`.
-    4. The `client_tuples` cache, when present for a client, mirrors
-       that client's list element-for-element.
-    5. Each `sequences[type_name]` is a list of IDs, every one of
-       which appears in some `clients[c]`. Sequences may contain IDs
-       of tombstoned blocks; rendering filters them in `get_sequence/2`.
+    3. Blocks never overlap; `split_block/3` partitions via `Item.split/2`.
+    4. `client_tuples[c]`, when present, mirrors `clients[c]` element-for-element.
+    5. Every ID in `sequences[type_name]` resolves to a block in some
+       `clients[c]`. Sequences may include tombstoned IDs; `get_sequence/2`
+       filters them on read.
 
   ## What this module is not
 
-  - Not the integrator. `Yelixer.Integrate` decides *where* a new
-    Item belongs in YATA order; this module just stores the result.
-  - Not the renderer. `get_sequence/2` is a low-level walk; the
-    rich-text / DOM-level rendering lives further up the stack.
-  - Not the encoder. `Yelixer.Encoding` serializes a BlockStore's
-    contents to the Yjs binary update format.
+  - Not the integrator — `Yelixer.Integrate` decides YATA insertion
+    order; this module stores the result.
+  - Not the renderer — `get_sequence/2` is a low-level walk; rich-text
+    and DOM rendering live further up the stack.
+  - Not the encoder — `Yelixer.Encoding` serializes a BlockStore to
+    the Yjs binary update format.
   """
 
   alias Yelixer.{ID, Item, StateVector}
@@ -91,15 +80,12 @@ defmodule Yelixer.BlockStore do
   def new, do: %__MODULE__{}
 
   @doc """
-  Appends `item` to its client's bucket and extends the tuple cache
-  in place.
+  Appends `item` to its client's bucket and extends the tuple cache in place.
 
-  Append-only is the typical write path: integration produces items
-  in clock order for any one client, so the new item's clock is
-  always strictly greater than every existing block in the bucket.
-  Because of that monotonicity, the tuple cache can be extended with
-  `:erlang.append_element/2` (O(1) on the right end) rather than
-  rebuilt — the only cheap mutation an Erlang tuple supports.
+  Integration produces Items in clock order per client, so the new
+  item's clock always exceeds every existing block in the bucket. That
+  monotonicity lets the tuple cache grow with `:erlang.append_element/2`
+  (O(1) on the right) rather than a full rebuild.
   """
   def push(%__MODULE__{clients: clients, client_tuples: ct} = store, %Item{} = item) do
     client = item.id.client
@@ -119,14 +105,13 @@ defmodule Yelixer.BlockStore do
   end
 
   @doc """
-  Identity lookup: returns the Item whose ID is `(client, clock)`,
-  or `nil` if no block in that client's bucket covers that clock.
+  Identity lookup: returns the Item covering `(client, clock)`, or
+  `nil` if no block in the client's bucket spans that clock.
 
-  The clock may not be a block's `id.clock` exactly — it may fall
-  inside a multi-clock run-length block. The binary search returns
-  the *containing* block in either case. If the caller specifically
-  needs `id.clock == clock` (e.g. so they can split off the boundary
-  before anchoring), they should call `split_block/3` first.
+  The clock need not be a block boundary — it may fall inside a
+  multi-clock run-length block, and the containing block is returned.
+  Callers that need `id.clock == clock` exactly (e.g. to anchor at
+  an interior boundary) should call `split_block/3` first.
   """
   def get(%__MODULE__{} = store, %ID{client: client, clock: clock}) do
     case get_tuple(store, client) do
@@ -143,11 +128,10 @@ defmodule Yelixer.BlockStore do
   @doc """
   Derives a `Yelixer.StateVector` from the current store contents.
 
-  For each client, take the last block, compute `id.clock + length` —
-  that's the next-unused clock for the client, which by
-  `StateVector`'s contract is the high-water-mark recorded for that
-  client. Clients absent from `clients` produce no entry; `get/2` on
-  the resulting state vector still defaults to 0.
+  For each client, the high-water mark is `last_block.id.clock + length`
+  — the next unused clock, per `StateVector`'s contract. Clients absent
+  from `clients` produce no entry; the state vector defaults to 0 for
+  unknown clients.
   """
   def state_vector(%__MODULE__{clients: clients}) do
     Enum.reduce(clients, StateVector.new(), fn {client, blocks}, sv ->
@@ -159,9 +143,9 @@ defmodule Yelixer.BlockStore do
   end
 
   @doc """
-  Stores `item` and inserts its ID into `type_name`'s sequence at
-  `index`. The compound write that integration uses for "this new
-  item belongs at position N of this named type."
+  Stores `item` and inserts its ID at `index` in `type_name`'s
+  sequence — the compound write integration uses when placing a new
+  item at a known position within a named type.
   """
   def insert_at(%__MODULE__{} = store, type_name, index, %Item{} = item) do
     store = push(store, item)
@@ -169,9 +153,9 @@ defmodule Yelixer.BlockStore do
   end
 
   @doc """
-  Inserts an existing block's ID into a sequence — used when a split
-  introduces a new block whose left half was already in the sequence,
-  or when reordering moves an existing item's slot.
+  Inserts an existing block's ID into a sequence at `index`. Used when
+  a split introduces a new right-half block, or when reordering moves
+  an existing item's slot.
   """
   def insert_into_sequence(%__MODULE__{} = store, type_name, index, id) do
     seq = Map.get(store.sequences, type_name, [])
@@ -180,28 +164,23 @@ defmodule Yelixer.BlockStore do
   end
 
   @doc """
-  Splits the block containing `clock` (within `client`'s bucket) so
-  that the boundary clock starts a fresh block. Returns
-  `{store, right_half_or_nil}`.
+  Ensures `clock` is a block boundary within `client`'s bucket, then
+  returns `{store, right_block_or_nil}`.
 
   Three outcomes:
 
-    1. The client has no blocks → return the store unchanged with
-       `nil` as the right half.
-    2. The clock already lies on a block boundary
-       (`item.id.clock == clock`) → no split needed, return the
-       existing block as the "right half."
-    3. The clock falls in the interior of a block → call
-       `Item.split/2`, splice `[left, right]` in place of the
-       original in the client's list, invalidate the tuple cache (the
-       middle of the list changed; an O(1) tuple update isn't
-       available), and update the sequence to insert `right.id` after
-       `item.id` if that sequence carries the item.
+    1. Client has no blocks → `{store, nil}`.
+    2. `clock` is already a boundary (`item.id.clock == clock`) →
+       `{store, item}`, no mutation.
+    3. `clock` falls inside a block → `Item.split/2` partitions it into
+       `[left, right]` in place; the tuple cache for that client is
+       dropped (middle-of-list insert; no O(1) update path); and
+       `right.id` is spliced into the sequence after `item.id` if the
+       item appears there.
 
-  Splits are the prerequisite for anchoring a new YATA edit at an
-  interior clock — the `origin` / `right_origin` references in
-  `Yelixer.Item` only address whole blocks, so the boundary has to
-  exist as a block boundary before it can be referenced.
+  `origin` / `right_origin` in `Yelixer.Item` reference whole-block
+  boundaries, so a split is the prerequisite for anchoring a new YATA
+  insertion at an interior clock.
   """
   def split_block(%__MODULE__{} = store, %ID{client: client, clock: clock}, type_name) do
     case get_tuple(store, client) do
@@ -228,8 +207,7 @@ defmodule Yelixer.BlockStore do
                 |> List.insert_at(idx + 1, right)
               end)
 
-            # Tuple cache no longer mirrors the list — drop it; the
-            # next read rebuilds via `get_tuple/2`.
+            # Cache no longer mirrors the list; drop it for lazy rebuild.
             ct = Map.delete(store.client_tuples, client)
 
             sequences =
@@ -253,12 +231,10 @@ defmodule Yelixer.BlockStore do
   end
 
   @doc """
-  Renders a sequence as a list of live (non-tombstoned) Items in
-  document order.
+  Returns all live (non-tombstoned) Items for `type_name` in document order.
 
-  Walks the type's stored ID list, looks each ID up in the per-client
-  index, drops anything that's missing or tombstoned. The output is
-  the user-visible content of the named type.
+  Resolves each ID in the sequence via the per-client index, then
+  drops missing and tombstoned entries.
   """
   def get_sequence(%__MODULE__{} = store, type_name) do
     store.sequences
@@ -268,9 +244,9 @@ defmodule Yelixer.BlockStore do
     |> Enum.reject(& &1.deleted)
   end
 
-  # Public binary-search hook for callers that hold a `[Item.t()]`
-  # directly (e.g. during integration, before the result lands in a
-  # store). Materializes a one-shot tuple and runs the standard search.
+  # Public binary-search hook for callers that hold a `[Item.t()]` list
+  # directly (e.g. during integration, before results land in a store).
+  # Materializes a one-shot tuple and delegates to the standard search.
   @doc false
   def find_block_index(blocks, clock) when is_list(blocks) do
     tuple = List.to_tuple(blocks)
@@ -279,7 +255,7 @@ defmodule Yelixer.BlockStore do
 
   # --- Internal helpers ---
 
-  # Get-or-lazily-build the tuple cache for a client.
+  # Returns the cached tuple for `client`, building it lazily if absent.
   defp get_tuple(%__MODULE__{client_tuples: ct, clients: clients}, client) do
     case Map.get(ct, client) do
       nil ->
@@ -294,10 +270,9 @@ defmodule Yelixer.BlockStore do
     end
   end
 
-  # Rebuilds the tuple cache entry for `client` from its current
-  # `clients[client]` list. Called by external mutators that bypass
-  # `push/2` / `split_block/3` and reshape the bucket directly — they
-  # are responsible for asking the cache to refresh afterward.
+  # Rebuilds the tuple cache for `client` from `clients[client]`.
+  # External mutators that reshape a bucket directly (bypassing
+  # `push/2` / `split_block/3`) must call this afterward.
   @doc false
   def refresh_tuple_cache(%__MODULE__{clients: clients, client_tuples: ct} = store, client) do
     case Map.get(clients, client) do
@@ -309,19 +284,17 @@ defmodule Yelixer.BlockStore do
     end
   end
 
-  # Drops the tuple cache entry for `client`. Cheaper than
-  # `refresh_tuple_cache/2` when an external mutator knows the next
-  # reader will trigger a lazy rebuild via `get_tuple/2` anyway.
+  # Drops the tuple cache for `client`. Cheaper than
+  # `refresh_tuple_cache/2` when the next read will trigger a lazy
+  # rebuild via `get_tuple/2` anyway.
   @doc false
   def invalidate_tuple_cache(%__MODULE__{client_tuples: ct} = store, client) do
     %{store | client_tuples: Map.delete(ct, client)}
   end
 
-  # Binary-search the clock-sorted tuple of blocks for the one whose
-  # range covers `clock`. Each block at id.clock with length n covers
-  # clocks `[id.clock, id.clock + n)`; the comparison uses inclusive
-  # bounds (`block_end = id.clock + length - 1`) — same membership,
-  # one less subtraction in the hot path.
+  # Binary-search the clock-sorted tuple for the block covering `clock`.
+  # Uses inclusive bounds (`block_end = id.clock + length - 1`) —
+  # same membership as the half-open range, one fewer subtraction.
 
   defp bsearch_item(tuple, clock) do
     size = tuple_size(tuple)

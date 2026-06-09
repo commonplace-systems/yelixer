@@ -3,10 +3,10 @@ defmodule Yelixer do
   Pure-Elixir port of the [Yjs](https://yjs.dev) CRDT library,
   wire-compatible with Y.js V1 binary updates and the `yrs` Rust port.
 
-  This module is intentionally thin: no state, no API. It exists as
-  the ExDoc entry point and the architectural overview. All real work
-  happens in the modules below, organized as a layer cake — lower
-  layers know nothing about higher ones; higher layers compose them.
+  Intentionally thin: no state, no API. It exists as the ExDoc entry
+  point and the architectural overview. All real work happens in the
+  modules below, organized as a layer cake — lower layers know nothing
+  about higher ones; higher layers compose them.
 
   ## Layer cake
 
@@ -55,22 +55,20 @@ defmodule Yelixer do
 
   ## Why layered this way
 
-  Lower layers are reusable primitives; higher layers are facades that
-  compose them. Each layer can be replaced or studied without
-  disturbing the others — `Encoding` is the only place that knows the
-  Yjs wire format, `Integrate` is the only place that knows YATA, the
-  type facades are the only places that translate user-shaped APIs
-  into Item creation, and so on. The discipline pays off both in
-  understanding (one concept per file) and in change cost (a wire-
-  format tweak doesn't ripple into the type facades).
+  Lower layers are reusable primitives; higher layers compose them.
+  Each layer can be replaced or studied independently — `Encoding` is
+  the only place that knows the wire format, `Integrate` the only place
+  that knows YATA, the type facades the only places that translate
+  user-shaped APIs into Item creation. One concept per file; a
+  wire-format change doesn't ripple into the type facades.
 
   ## Scope boundaries
 
-  Set expectations up front, before the per-module deep dives:
+  Before the per-module deep dives:
 
   - **Not a transport.** `SyncProtocol` produces and consumes bytes;
-    the caller decides how those bytes travel (WebSocket, HTTP,
-    Phoenix Channels, etc.).
+    the caller decides how they travel (WebSocket, HTTP, Phoenix
+    Channels, etc.).
   - **Not a persistence layer.** `Doc` lives in memory; durability is
     the caller's concern. `Commonplace.CommitStore` is the answer in
     this codebase.
@@ -95,11 +93,10 @@ defmodule Yelixer do
     5. `Yelixer.BlockStore` — storage: per-client buckets for item
        lookup, named sequences for ordered traversal, binary-search
        positioning, run-length splitting.
-    6. `Yelixer.Doc` — the top-level container. A passive struct
-       in the sense that it has no actor or in-place mutation —
-       behavior lives in `Integrate`, the type facades, and
-       `Encoding`. Operations take a `%Doc{}` and return a new
-       `%Doc{}` with the change applied.
+    6. `Yelixer.Doc` — the top-level immutable container. No actor,
+       no in-place mutation — behavior lives in `Integrate`, the type
+       facades, and `Encoding`. Operations take a `%Doc{}` and return
+       a new `%Doc{}` with the change applied.
     7. `Yelixer.Integrate` — YATA placement: given an Item and its
        anchors, determine where it belongs in its parent sequence.
     8. `Yelixer.Encoding` — V1 wire format: bytes ↔ items, including
@@ -206,7 +203,7 @@ defmodule Yelixer do
 
   ## Cross-cutting patterns
 
-  Several conventions recur across modules. Recognizing them up front
+  Several conventions recur across modules. Recognizing them here
   avoids re-deriving them file by file.
 
   ### Half-open intervals
@@ -222,38 +219,35 @@ defmodule Yelixer do
   Half-open intervals compose cleanly: `[0, 3)` and `[3, 6)` meet at
   clock 3 with no gap and no overlap, merging to `[0, 6)` with no
   off-by-one arithmetic. *Why this matters*: clock arithmetic
-  happens in `Item.split/2`, `BlockStore.split_block/3`,
-  `DeleteSet.add_range/2`, and the integration retry loop. Picking a
-  consistent convention up front eliminates a whole class of
-  off-by-one bugs that would otherwise multiply across those sites.
+  recurs in `Item.split/2`, `BlockStore.split_block/3`,
+  `DeleteSet.add_range/2`, and the integration retry loop. A single
+  consistent convention eliminates an entire class of off-by-one bugs
+  across all four sites.
 
   ### Monotonic max as the join
 
   `StateVector.advance(sv, c, k) = max(current(sv, c), k)`.
-  Applying this repeatedly — in any order, any number of times — always
-  yields the same result. This is a semilattice join (the
-  least-upper-bound of a partially-ordered set where "higher clock =
-  more recent"). Every other module's convergence story is built on
-  it. *Why this matters*: networks reorder, duplicate, and replay
-  messages. If `advance` were anything other than monotonic-max, two
-  replicas applying the same set of observations in different orders
-  could end up with different state vectors — and the sync protocol
-  would then ship the wrong diffs. The CRDT's correctness ultimately
-  reduces to this one operation being a join.
+  Applied in any order, any number of times, it always yields the same
+  result — a semilattice join (least-upper-bound of "higher clock =
+  more recent"). Every module's convergence story rests on it.
+  *Why this matters*: networks reorder, duplicate, and replay messages.
+  If `advance` were anything but monotonic-max, two replicas applying
+  the same observations in different orders could diverge on their
+  state vectors — and the sync protocol would ship wrong diffs. The
+  CRDT's correctness ultimately reduces to this one operation.
 
   ### YATA two-anchor placement
 
   Every Item records `origin` (left neighbour at authoring time) and
   `right_origin` (right neighbour at authoring time). When concurrent
-  inserts share the same `origin`, `Integrate` resolves the tie using
-  the right anchor plus client-ID as a stable tiebreaker. The same
-  anchors drive the encoding's "remap through GC blocks" path on
-  the wire. *Why this matters*: with only `origin`, two peers
-  inserting "after item X" simultaneously have no way to agree on
-  which goes first — they'd diverge. The right anchor plus the
-  client-ID tiebreak gives every replica a deterministic answer
-  without coordination. That's what makes Yjs *concurrent*-edit
-  safe rather than just merge-on-conflict.
+  inserts share the same `origin`, `Integrate` breaks the tie with the
+  right anchor plus client-ID. The same anchors drive the encoding's
+  "remap through GC blocks" path on the wire. *Why this matters*:
+  with only `origin`, two peers inserting "after item X" concurrently
+  have no way to agree on order — they'd diverge. The right anchor
+  plus client-ID tiebreak gives every replica a deterministic answer
+  without coordination. That's what makes Yjs concurrent-edit-safe
+  rather than merely merge-on-conflict.
 
   ### Synthetic naming for sub-types
 
@@ -271,12 +265,12 @@ defmodule Yelixer do
   Both schemes are recognized by `Doc.snapshot_update/1`'s replay
   machinery, which skips them during top-level type iteration.
   *Why this matters*: nested CRDTs need stable, collision-free
-  registration names that any replica can derive from the parent's
-  ID alone (no shared registry, no coordination). The
-  `(client, clock)` pair is already globally unique, so prefixing
-  it with a reserved sentinel — `__sub:` or `<parent>::child::` —
-  yields a name guaranteed not to collide with user-chosen
-  top-level type names. Reads simply reverse the construction.
+  registration names derivable from the parent's ID alone — no shared
+  registry, no coordination. The `(client, clock)` pair is already
+  globally unique; prefixing it with a reserved sentinel (`__sub:` or
+  `<parent>::child::`) produces a name that cannot collide with any
+  user-chosen top-level type name. Reads simply reverse the
+  construction.
 
   ### Two-stage tombstones
 
@@ -289,15 +283,14 @@ defmodule Yelixer do
      reclaiming memory while preserving the ID slot.
 
   Read paths skip tombstones via `BlockStore.get_sequence/2`; encoding
-  preserves them so both sides can reconcile symmetrically. *Why this
-  matters*: the two stages serve different concerns. Stage 1 (flag
-  set, content kept) is **correctness** — concurrent network anchors
-  pointing at the deleted item still need to resolve. Stage 2
-  (content rewritten as `:gc`) is **memory optimization** — once the
-  grace period is past and no live anchors target the slot, we can
-  drop the payload while keeping the ID slot live for any future
-  references. Conflating them would either leak content forever
-  (skip stage 2) or break causal anchors (skip stage 1).
+  preserves them so both sides reconcile symmetrically. *Why this
+  matters*: the two stages serve distinct concerns. Stage 1 (flag set,
+  content kept) is **correctness** — concurrent network anchors still
+  need to resolve. Stage 2 (content rewritten as `:gc`) is **memory
+  optimization** — once no live anchors target the slot the payload
+  can be dropped while the ID slot stays live. Conflating the stages
+  would either leak content forever (skip stage 2) or break causal
+  anchors (skip stage 1).
 
   ## Byte-determinism
 

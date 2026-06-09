@@ -5,39 +5,33 @@ defmodule Yelixer.ID do
 
   Every insertion gets exactly one ID — assigned once, kept forever.
   Items reference each other by ID; `Yelixer.DeleteSet` indexes
-  tombstones by ID; `Yelixer.StateVector` summarizes "how much of each
-  client's clock space we have observed." Sync messages, encoding,
-  garbage collection, and integration all key off this struct.
+  tombstones by ID; `Yelixer.StateVector` tracks "how much of each
+  client's clock space we have observed." Sync, encoding, GC, and
+  integration all key off this struct.
 
-  Why this shape:
+  - `client` — per-replica integer chosen at connect time. Collisions
+    are tolerated but generation tries to avoid them.
+  - `clock` — that client's monotonic counter, starting at 0.
+    Clocks are dense: an item at clock N implies 0..N-1 exist.
 
-    - `client` is a per-replica integer chosen at connect time. Two
-      replicas pick distinct values (collision is acceptable; the
-      protocol is robust to it but generation tries to avoid it).
-    - `clock` is that client's monotonic counter, starting at 0 and
-      incrementing once per item the client emits. Clocks are dense:
-      an item at clock N implies its predecessors at clocks 0..N-1
-      already exist.
-
-  Together, `(client, clock)` is unique across the entire document
-  forever, regardless of replica counts or merge order. That's the
-  property the rest of the system relies on.
+  Together, `(client, clock)` is globally unique across the document
+  regardless of replica count or merge order — the invariant everything
+  else depends on.
   """
 
   @type t :: %__MODULE__{client: non_neg_integer(), clock: non_neg_integer()}
   defstruct [:client, :clock]
 
-  @doc "Constructs an ID from a client integer and a clock integer."
+  @doc "Build an ID from a client integer and a clock integer."
   def new(client, clock), do: %__MODULE__{client: client, clock: clock}
 
   @doc """
-  Checks whether `clock` falls in the half-open range
-  `[id.clock, id.clock + len)`. Used by callers that store an Item or
-  range as an `(id, length)` pair and need to ask "does this specific
-  clock land inside that run?"
+  Returns true if `clock` falls in `[id.clock, id.clock + len)`.
 
-  Note: this only checks the clock dimension. The caller is
-  responsible for matching `client` separately.
+  Used when an Item or range is stored as an `(id, length)` pair to
+  ask "does this clock land inside that run?"
+
+  Only checks the clock dimension — the caller must match `client`.
   """
   def contains?(%__MODULE__{clock: start}, len, clock) do
     clock >= start and clock < start + len

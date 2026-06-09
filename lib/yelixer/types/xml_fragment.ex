@@ -27,9 +27,10 @@ defmodule Yelixer.Types.XMLFragment do
       The fragment owns one YATA sequence under the derived name
       `"<type_name>::children"`; each child is one Item with
       `content: {:type, type_ref}` parented to that sequence. (In
-      YATA, type references always live as Items; the children
-      sequence is just one application — `YMap` values that hold
-      sub-types use the same `{:type, _}` content shape.)
+      YATA, type references always live as Items — `{:type, _}` content
+      is not specific to XML. `YMap` values that hold sub-types use the
+      same shape; the children sequence is one application of the
+      pattern.)
     - **Each child sub-type** (`XMLElement`, `XMLText`, or a nested
       `XMLFragment`) is registered in `Yelixer.Doc` under a name
       synthesized from the parent's name and the child Item's id:

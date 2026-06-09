@@ -1,51 +1,45 @@
 defmodule Yelixer.Transaction do
   @moduledoc """
-  Aspirational batched-mutation API. Currently a partial / vestigial
-  module — flagged for removal or completion.
+  Aspirational batched-mutation API. Partial and possibly vestigial —
+  flagged for completion or removal.
 
-  ## Honest current state
+  ## Current state
 
-  This module ships with one mutator (`insert/4`) and one batch
-  primitive (`transact/2`). The struct's `before_state` and
-  `delete_set` fields suggest the intended shape was a classic CRDT
-  transaction: capture the doc's state vector at the start, collect
-  mutations into a deferred set, accumulate tombstones into a
-  per-transaction delete set, and commit them all atomically as a
-  single Yjs update. Most of that scaffolding is missing.
+  Two functions exist: `transact/2` and `insert/4`. The struct's
+  `before_state` and `delete_set` fields hint at the intended design —
+  capture the doc's state vector at open, accumulate mutations and
+  tombstones, commit everything as one Yjs update. That design is
+  incomplete. Most of the scaffolding is missing.
 
-  Today the module supports:
+  What works:
 
-    - `transact(doc, fun)` — wrap `fun` with a transaction context;
-      `fun` receives a `%Transaction{}` and must return
-      `{txn, result}`. Commit merges the txn's delete set into the
-      doc and returns `{result, doc}`.
-    - `insert(txn, parent, parent_sub, content)` — push one Item
-      into the txn's underlying doc with `nil` anchors. No YATA
-      integration, no broadcast, no run-length, no support for
-      anchored inserts. Lower-level than the type facades.
+    - `transact(doc, fun)` — opens a transaction context, passes a
+      `%Transaction{}` to `fun`, expects `{txn, result}` back, then
+      commits. Commit merges the txn's delete set into the doc and
+      returns `{result, doc}`.
+    - `insert(txn, parent, parent_sub, content)` — appends one raw
+      Item to the txn's doc store with `nil` anchors. No YATA
+      integration. Lower-level than the type facades.
 
-  Today the module does **not** support:
+  What doesn't work:
 
-    - Deletion. The `delete_set` field exists on the struct but no
-      function adds to it. `commit/1` merges it dutifully — into a
-      delete set that's always empty.
-    - Type-aware operations. There's no `transact_text_insert`,
-      `transact_array_push`, etc. The single `insert/4` lets callers
-      drop raw Items but doesn't wire them through
-      `Yelixer.Integrate.integrate/3`, so concurrent-insert
-      ordering won't follow YATA.
-    - Rollback. A `fun` that crashes mid-transaction leaves the
-      caller without a recovery path; `transact/2` returns the
-      partially-mutated doc only on the success path.
-    - Anchored inserts. `insert/4` always passes `nil` for `origin`
-      and `right_origin`, so transaction-built items can't position
-      themselves relative to existing content.
+    - **Deletion.** `delete_set` exists on the struct but nothing
+      populates it. `commit/1` merges it anyway — always a no-op.
+    - **Type-aware ops.** No `transact_text_insert`,
+      `transact_array_push`, etc. `insert/4` bypasses
+      `Yelixer.Integrate.integrate/3`, so items built here won't
+      follow YATA ordering under concurrent edits.
+    - **Rollback.** A crash mid-transaction leaves the caller holding
+      a partially-mutated doc. `transact/2` has no recovery path.
+    - **Anchored inserts.** `insert/4` always passes `nil` for
+      `origin` and `right_origin`; items can't position themselves
+      relative to existing content.
 
   ## How callers get transaction-like semantics today
 
-  They don't need this module. The type facades — `Yelixer.Types.Text`,
-  `Array`, `YMap`, the XML modules — already return fresh `%Doc{}`
-  values from each operation, giving callers copy-on-write semantics
+  They bypass this module entirely. The type facades —
+  `Yelixer.Types.Text`, `Array`, `YMap`, the XML modules — return a
+  fresh `%Doc{}` from every operation, giving copy-on-write semantics
   for free:
 
       doc =
@@ -54,51 +48,42 @@ defmodule Yelixer.Transaction do
         |> Array.push("items", [1, 2, 3])
         |> YMap.set("meta", "title", "Doc 1")
 
-  Each step builds on the previous one without committing intermediate
-  results to anything observable. If a caller wants "all of these
-  mutations as one network message," they can run the whole pipeline
-  locally and then call `Yelixer.Encoding.encode_diff/2` against the
-  receiver's state vector — the diff naturally batches every change
-  since the receiver's last sync.
+  Each step threads forward without touching anything observable.
+  For "batch these as one network message": run the pipeline locally,
+  then call `Yelixer.Encoding.encode_diff/2` against the receiver's
+  state vector — the diff batches every change since the last sync.
 
-  Mutations on a `Yelixer.DocServer` are even simpler: each mutation
-  GenServer call is already serialized, and the broadcast-on-update
-  loop sends one diff per mutation. Multi-step "atomic" semantics
-  there mean composing the calls in the caller; there's no in-server
-  transaction primitive needed for the existing use cases.
+  `Yelixer.DocServer` is simpler still: GenServer calls are already
+  serialized; broadcast-on-update fires once per mutation. "Atomic
+  multi-step" just means composing calls in the caller — no in-server
+  transaction primitive is needed.
 
-  ## What completion would look like
+  ## What completion would require
 
-  If we ever revive this module, the shape that does match Yjs's wire
-  contract is roughly:
-
-    - All mutators run against the txn's accumulated state, threading
+    - All mutators run against the txn's accumulated state, threaded
       through `Integrate.integrate/3` so YATA holds.
-    - Deletes go into the per-txn `delete_set` and get merged at
-      commit; they don't appear in `doc.delete_set` mid-transaction.
-    - On commit, encode the txn's accumulated diff against
-      `before_state` for fan-out — this is what makes "many edits
-      = one network round" meaningful.
-    - On crash mid-transaction, the original doc is unchanged because
-      the txn worked on a copy.
+    - Deletes accumulate in the per-txn `delete_set` and merge at
+      commit; they stay invisible in `doc.delete_set` mid-transaction.
+    - On commit, encode the diff against `before_state` for fan-out —
+      that's what makes "many edits, one network round" real.
+    - On crash, the original doc is untouched because the txn worked
+      on a copy.
 
-  The yrs equivalent (`yrs::Transaction`) implements roughly that
-  shape and is worth referencing if anyone takes this on.
+  `yrs::Transaction` implements roughly this shape and is the right
+  reference if anyone picks this up.
 
   ## Recommendation
 
-  Either complete it (filling in the gaps above) or remove it. Half-
-  done public API surfaces are confusing for new contributors who try
-  to use this module and discover the mismatch between the struct's
-  shape and its actual capability. Filed for follow-up; commonplace
-  side has the call.
+  Complete it or delete it. A half-done public API misleads
+  contributors who find the struct's shape and assume the semantics
+  are there. Filed for follow-up; commonplace side has the call.
 
   ## What this module is NOT (today)
 
   - Not a YATA-aware mutation API — `insert/4` skips
     `Yelixer.Integrate.integrate/3`.
   - Not the deletion path — `Yelixer.Types.YMap.delete/3`,
-    `Array.delete/4`, etc. are the canonical paths.
+    `Array.delete/4`, etc. are canonical.
   - Not the broadcast path — see `Yelixer.DocServer`.
   - Not the encoding layer — see `Yelixer.Encoding`.
   """
@@ -115,14 +100,13 @@ defmodule Yelixer.Transaction do
 
   @doc """
   Runs `fun` inside a transaction context. `fun` receives a
-  `%Transaction{}` and must return `{txn, result}`; the transaction
-  commits and `{result, doc}` is returned to the caller.
+  `%Transaction{}` and must return `{txn, result}`. On return,
+  the transaction commits and `{result, doc}` goes back to the caller.
 
-  In its current form, `commit/1` only merges the txn's accumulated
-  delete set into the doc — and nothing in this module adds anything
-  to that delete set, so the merge is always a no-op. See the
-  moduledoc for the full picture of what this primitive does and
-  doesn't do today.
+  `commit/1` merges the txn's delete set into the doc. Nothing in
+  this module adds to that delete set, so the merge is always a
+  no-op. See the moduledoc for the full accounting of what this
+  primitive does and doesn't do.
   """
   def transact(%Doc{} = doc, fun) when is_function(fun, 1) do
     txn = %__MODULE__{
@@ -137,14 +121,13 @@ defmodule Yelixer.Transaction do
   end
 
   @doc """
-  Pushes one Item directly into the txn's doc store with `nil`
-  anchors and no YATA integration. Lower-level than the type facades;
-  not suitable for collaborative edits because concurrent inserts
-  built this way won't agree on order across replicas.
+  Appends one raw Item to the txn's doc store with `nil` anchors and
+  no YATA integration. Lower-level than the type facades. Not safe
+  for collaborative edits — concurrent inserts built this way won't
+  converge to the same order across replicas.
 
-  Use `Yelixer.Types.Text.insert/4` /
-  `Yelixer.Types.Array.insert/4` / `Yelixer.Types.YMap.set/4` for
-  YATA-correct mutations.
+  For YATA-correct mutations use `Yelixer.Types.Text.insert/4`,
+  `Yelixer.Types.Array.insert/4`, or `Yelixer.Types.YMap.set/4`.
   """
   def insert(%__MODULE__{doc: doc} = txn, parent, parent_sub, content) do
     clock = StateVector.get(BlockStore.state_vector(doc.store), doc.client_id)

@@ -1,89 +1,77 @@
 defmodule Yelixer.DocServer do
   @moduledoc """
-  GenServer wrapper that turns a `Yelixer.Doc` into a stateful
-  long-lived process with subscribe-on-update broadcast semantics.
+  OTP companion to `Yelixer.Doc`: a GenServer that owns the live doc
+  state and broadcasts incremental updates to subscribers.
 
-  The rest of yelixer treats `Yelixer.Doc` as an immutable struct —
-  every operation returns a fresh `%Doc{}` and the caller threads it
-  through subsequent calls. That's the right shape for the core CRDT
-  logic (no shared mutable state, easy to test, trivial to compose).
-  But production callers usually need three things on top:
+  `Yelixer.Doc` is a pure immutable struct — every operation returns a
+  new `%Doc{}` that the caller threads forward. That shape is right for
+  CRDT logic (no shared state, easy to test, easy to compose), but
+  production callers need three things the struct alone cannot provide:
 
-    1. A **stable identity** to send messages to from many concurrent
-       producers (web sockets, HTTP handlers, presence updates) —
-       a process under a registered name or pid.
-    2. **Single-writer serialization** — Doc operations are pure but
-       the *latest version* must be visible to all readers in
-       real-time, which means somebody owns the live state. A
-       GenServer is the natural place: messages serialize per
-       process, so concurrent updates linearize without explicit
-       locking.
-    3. **Broadcast on update** — every other participant in a sync
-       relationship needs to hear about local edits. Pure Doc has
-       no notification surface; DocServer adds one.
+    1. **Stable identity** — a registered process that concurrent
+       producers (WebSocket handlers, HTTP endpoints, presence hooks)
+       can all address without coordinating on who holds the ref.
+    2. **Single-writer serialization** — OTP delivers messages to a
+       GenServer one at a time, so concurrent callers naturally
+       linearize around the live doc without locks or transactions.
+    3. **Broadcast on update** — local edits must propagate to other
+       participants. Pure `Doc` has no notification surface; DocServer
+       adds one.
 
-  ## What's wrapped, what's not
+  ## Mutation surface vs. encoding surface
 
-  The current public surface is **Text-only** for mutations:
-  `insert_text/4`, `delete_text/4`, `get_text/2`. Sync/encoding paths
-  (`encode_update/1`, `encode_diff/2`, `apply_update/2`,
-  `state_vector/1`) work on the whole doc and so cover Array, YMap,
-  XML content too — they just go through `Yelixer.Encoding` directly,
-  which doesn't care about facade boundaries.
+  Mutation functions (`insert_text/4`, `delete_text/4`, `get_text/2`)
+  are **Text-only** — that was the original use case. The encoding and
+  sync functions (`encode_update/1`, `encode_diff/2`, `apply_update/2`,
+  `state_vector/1`) operate on the whole doc, so they reach Array, YMap,
+  and XML content too; `Yelixer.Encoding` is type-agnostic.
 
-  Why Text-only on the mutation side? It's a deliberately narrow
-  starting surface — the original use case was a collaborative text
-  editor. Extending to `Array.insert/4`, `YMap.set/4`, and the XML
-  facades is mechanical (each gets a `handle_call/3` clause that
-  threads through `state.doc` and broadcasts the resulting diff)
-  but hasn't been needed yet. Callers that want the broader surface
-  today work directly with `Yelixer.Doc` outside a GenServer, or
-  layer their own wrapper.
+  Adding mutation wrappers for other types is mechanical — each needs one
+  `handle_call/3` clause that threads through `state.doc` and broadcasts
+  the resulting diff — but none have been needed yet. Callers that need
+  the broader surface today use `Yelixer.Doc` directly.
 
-  ## The subscribe / broadcast loop
+  ## Subscribe / broadcast loop
 
-  Subscribers register their pid via `subscribe/1`. After every
-  *local* mutation, the server computes the diff between the doc
-  state before and after, encodes it via
-  `Yelixer.Encoding.encode_diff/2`, and `send/2`s it to every
-  subscriber as `{:yelixer_update, binary}`. Subscribers handle the
-  message however they like (forward to a websocket, apply to their
-  own doc, log it).
+  Call `subscribe/1` to register a pid. After each local mutation the
+  server snapshots the state vector *before* the change, applies the
+  mutation, then calls `Yelixer.Encoding.encode_diff/2` with that
+  before-snapshot as the remote state vector. This produces a binary
+  containing exactly the new operations — nothing the subscriber already
+  had. The binary is sent to every subscriber as `{:yelixer_update,
+  binary}`. Subscribers do whatever they like with it: forward over a
+  WebSocket, apply to a local doc, log it.
 
-  The broadcast deliberately ships only the local delta — passing in
-  the *before* state vector as `encode_diff`'s remote-sv argument
-  ensures the diff carries exactly the items the subscriber wouldn't
-  already know about, assuming the subscriber's view was in sync
-  before this update. Subscribers that fall behind reconcile via the
-  full sync path (`Yelixer.SyncProtocol`).
+  Subscribers that fall behind (missed messages, reconnected late)
+  reconcile via the full sync handshake in `Yelixer.SyncProtocol`.
 
-  Subscribers are monitored, so a crashed subscriber is automatically
-  removed from the set on `:DOWN`. No explicit unsubscribe required
-  for crashed processes.
+  Each subscriber pid is monitored. When a subscriber crashes, the
+  `:DOWN` message removes it from the set automatically; no manual
+  unsubscribe is needed for crashed processes.
 
-  ## How sync messages flow through
+  ## Sync message flow
 
-  DocServer doesn't know about `Yelixer.SyncProtocol` directly. The
-  pattern is: a transport layer above DocServer holds protocol
-  state, calls `state_vector/1` to compose its step1 messages, calls
-  `apply_update/2` when step2 arrives, calls `encode_diff/2` to
-  build outgoing step2 responses. DocServer is just the
-  serialization point that keeps doc mutations safe under
-  concurrent access.
+  DocServer has no direct dependency on `Yelixer.SyncProtocol`. The
+  expected pattern: a transport layer above DocServer holds protocol
+  state, calls `state_vector/1` to build step-1 messages, calls
+  `apply_update/2` when a step-2 update arrives, and calls
+  `encode_diff/2` to build outgoing step-2 responses. DocServer's only
+  role in this flow is serialization — it ensures mutations and reads
+  against the live doc are safe under concurrent access.
 
-  ## What this module is NOT
+  ## Boundaries
 
   - **Not a transport.** No sockets, no PubSub, no fan-out beyond
-    direct subscriber pids. The transport layer above DocServer
-    decides whether `{:yelixer_update, binary}` flows over a
-    websocket, Phoenix.PubSub, MQTT, etc.
-  - **Not the protocol layer.** `Yelixer.SyncProtocol` owns the
-    step1/step2 framing; DocServer exposes the encode/apply
+    direct pid delivery. The layer above decides whether
+    `{:yelixer_update, binary}` travels over a WebSocket,
+    Phoenix.PubSub, MQTT, or something else entirely.
+  - **Not the protocol layer.** `Yelixer.SyncProtocol` owns
+    step-1/step-2 framing. DocServer exposes the encode/apply
     primitives that protocol implementations call.
-  - **Not durable.** Doc state lives in process memory; if the
-    GenServer dies, state is lost unless the supervision tree
-    restores it (e.g. by re-applying a snapshot update on init).
-    Persistence is the caller's concern.
+  - **Not durable.** State lives in process memory. If the GenServer
+    exits, the doc is gone unless the supervision tree rebuilds it
+    (e.g. by replaying a snapshot update in `init/1`). Persistence
+    is the caller's responsibility.
   """
   use GenServer
 
@@ -92,10 +80,12 @@ defmodule Yelixer.DocServer do
   # Client API
 
   @doc """
-  Starts a DocServer. Accepts `:name` (passed to `GenServer.start_link/3`
-  for registration) and `:client_id` (forwarded to `Doc.new/1` for
-  stable replica identity across restarts — see `Yelixer.Doc`'s
-  client-id assignment section).
+  Starts a DocServer.
+
+  Options:
+  - `:name` — passed to `GenServer.start_link/3` for process registration.
+  - `:client_id` — forwarded to `Doc.new/1` to pin this replica's identity
+    across restarts. See the client-id section in `Yelixer.Doc`.
   """
   def start_link(opts \\ []) do
     {gen_opts, doc_opts} = Keyword.split(opts, [:name])
@@ -131,9 +121,9 @@ defmodule Yelixer.DocServer do
   end
 
   @doc """
-  Registers the calling process to receive `{:yelixer_update,
-  binary}` messages after every local mutation. The server monitors
-  the caller, so a crashed subscriber is removed automatically.
+  Registers the caller to receive `{:yelixer_update, binary}` after
+  each local mutation. The server monitors the caller; a crash removes
+  it from the subscriber set without requiring an explicit unsubscribe.
   """
   def subscribe(server) do
     GenServer.call(server, {:subscribe, self()})

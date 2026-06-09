@@ -1,127 +1,116 @@
 defmodule Yelixer.Types.Array do
   @moduledoc """
-  Collaborative array type — element-list facade over a YATA sequence.
+  Collaborative array type — ordered-list facade over a YATA sequence.
 
-  Array is the user-facing facade for "treat this part of the
-  document as an ordered list of arbitrary values." Callers think in
-  element indices (`insert(doc, name, 2, [val_a, val_b])` means "splice
-  these two elements in starting at position 2"); under the hood,
-  every operation translates that index into a YATA anchor pair
-  (`origin`, `right_origin`) and emits one or more `Yelixer.Item`s
-  into the doc's `Yelixer.BlockStore`.
+  Callers think in element indices: `insert(doc, name, 2, [a, b])`
+  splices two elements at position 2. Internally, each operation
+  resolves that index into a YATA *anchor pair* — `{origin,
+  right_origin}`, the IDs of the left and right neighbours — and
+  emits one `Yelixer.Item` per element into `Yelixer.BlockStore`.
 
   Public surface:
 
     - `insert/4` — splice a list of values at an element index.
     - `push/3` — append values to the tail (sugar over `insert/4`).
-    - `delete/4` — drop a contiguous range of elements.
-    - `to_list/2` — render the live elements as an Elixir list.
-    - `to_json/2` — render the live elements with nested CRDT
-      sub-types resolved into plain JSON-shaped values.
-    - `length/2` — element count of the live sequence.
+    - `delete/4` — tombstone a contiguous range of elements.
+    - `to_list/2` — live elements as an Elixir list.
+    - `to_json/2` — live elements as JSON-shaped data, with nested
+      CRDT sub-types resolved.
+    - `length/2` — live element count.
 
-  ## How Array differs from Text
+  ## Array vs. Text: same machinery, different granularity
 
-  `Yelixer.Types.Text` and Array share the same underlying machinery
-  — both are facades over a YATA sequence in `BlockStore`. The
-  difference is the granularity of items:
+  `Yelixer.Types.Text` and Array are both facades over a YATA
+  sequence in `BlockStore`, differing only in how they pack values
+  into blocks:
 
-    - **Text** packs a whole inserted string into ONE block with
-      `content: {:string, "hello"}` and `length: 5`. Run-length
-      compresses character keystrokes.
-    - **Array** emits ONE block per element, each with `content:
-      {:any, [value]}` and `length: 1`. There's no equivalent of
-      run-length here — every element is anchored independently so
-      it can be deleted or reordered without splitting.
+    - **Text** packs an entire inserted string into one block
+      (`content: {:string, "hello"}`, `length: 5`), run-length
+      compressing character keystrokes.
+    - **Array** emits one block per element (`content: {:any,
+      [value]}`, `length: 1`), so every element is independently
+      addressable without splitting.
 
-  This means Array's offset → anchor translation is simpler than
-  Text's: no need to split a multi-element block, because no block
-  ever holds more than one element. Compare the private helpers in
-  this file with their `_with_split` counterparts in
-  `Yelixer.Types.Text` — Array's `find_origins/3` and
-  `find_items_in_range/4` skip the split machinery entirely.
+  That one-block-per-element rule makes Array's index → anchor
+  translation simpler: offsets always land on block boundaries.
+  Compare `find_origins/3` and `find_items_in_range/4` here with
+  their `_with_split` counterparts in `Yelixer.Types.Text` — the
+  suffix marks exactly the split machinery Array doesn't need.
 
-  ## Content variants in Array sequences
+  ## Content variants
 
-  Most elements carry `content: {:any, [value]}` — Yjs's
-  JSON-shaped tagged value. But the sequence can also contain:
+  The canonical form is `{:any, [value]}` — Yjs's JSON-shaped tagged
+  value. Sequences arriving over the wire may also contain:
 
-    - `{:type, type_ref}` — nested CRDT sub-types (a `YArray` inside
-      a `YArray`, or a `YMap` inside a `YArray`). The actual
-      sub-type's items live elsewhere; this block is just the
-      addressable handle, parented elsewhere through their
-      `parent: {:id, this_block_id}`. `to_json/2` resolves these
-      via `Yelixer.Types.sub_type_to_json/2`.
-    - `{:string, s}` — a string element from a peer that chose to
-      use `:string` content (rare; mostly arrives over the wire from
-      yrs implementations that compress single-string elements).
-      `to_list/2` ignores them; `to_json/2` includes them.
-    - `{:embed, v}` — opaque embedded value.
-    - `{:json, values}` — yrs-compatible JSON encoding (kept distinct
-      from `:any` for binary parity with the Rust port — see
+    - `{:type, type_ref}` — a nested CRDT sub-type (e.g. a `YArray`
+      or `YMap` embedded inside this array). The sub-type's own items
+      live elsewhere in the store; this block is its addressable
+      handle, with the sub-type's items pointing back via
+      `parent: {:id, this_block_id}`. `to_json/2` resolves these via
+      `Yelixer.Types.sub_type_to_json/2`.
+    - `{:string, s}` — a single string element from a peer that
+      omitted the `:any` wrapper (common in yrs). Excluded from
+      `to_list/2`; included in `to_json/2`.
+    - `{:embed, v}` — opaque embedded value, passed through as-is.
+    - `{:json, values}` — yrs-compatible JSON encoding, kept separate
+      from `:any` for binary parity with the Rust port (see
       `Yelixer.Encoding`).
 
   `to_list/2` only surfaces `:any` content; `to_json/2` covers all
-  variants and resolves nested sub-types recursively.
+  variants.
 
   ## Anchor conventions
 
-  Array shares the same anchor-pair model as
-  `Yelixer.Types.Text` and the rest of the YATA layer: `origin`
-  points at the **last clock** of the left neighbour (irrelevant
-  here since elements are length-1, but the convention is preserved
-  via `id.clock + len - 1`); `right_origin` points at the **first
-  clock** of the right neighbour. See `Yelixer.Item`'s "Why both
-  anchors" section for the YATA tiebreak story.
-
-  Concurrent inserts at the same index land in a deterministic
-  order via `Yelixer.Integrate`'s two-set conflict scan, identical
-  to Text.
+  Array uses the same anchor-pair model as `Yelixer.Types.Text`:
+  `origin` is the last clock of the left neighbour (`id.clock + len
+  - 1`); `right_origin` is the first clock of the right neighbour.
+  See `Yelixer.Item`'s "Why both anchors" section for the YATA
+  tiebreak story. Concurrent inserts at the same index resolve
+  deterministically via `Yelixer.Integrate`'s two-set conflict scan,
+  identical to Text.
 
   ## Deletion and tombstones
 
-  `delete/4` follows the standard YATA tombstone pattern: collect the
-  IDs in the index range via `find_items_in_range/4`, mark each one
-  `deleted: true` via `Yelixer.Integrate.mark_deleted/2`, and record
-  the `(client, clock, length)` interval in `doc.delete_set` via
-  `Yelixer.DeleteSet.insert/4`. Tombstones are filtered out of read
-  paths by `BlockStore.get_sequence/2`.
+  `delete/4` follows the standard YATA tombstone pattern: collect
+  IDs in `[index, index + len)` via `find_items_in_range/4`, mark
+  each `deleted: true` via `Yelixer.Integrate.mark_deleted/2`, and
+  record the `(client, clock, length)` interval in `doc.delete_set`
+  via `Yelixer.DeleteSet.insert/4`. `BlockStore.get_sequence/2`
+  filters tombstones from all read paths.
 
-  Because every Array element is its own block, deletion never needs
-  to split — unlike Text, where a partial-character-range deletion
-  has to split the run first. Array's `find_items_in_range/4`
-  collects whole-block IDs by walking the sequence summing
-  `item.length` (always 1 for canonical Array elements; longer for
-  any wire-arriving multi-value `:any` blocks).
+  Because each element is its own block, deletion never splits —
+  unlike Text's partial-run-deletion. `find_items_in_range/4`
+  collects whole-block IDs by summing `item.length` (always 1 for
+  canonical elements; larger for wire-arriving multi-value `:any`
+  blocks, which are tombstoned whole — partial deletion of such
+  blocks is a known gap).
 
-  ## What this module is NOT
+  ## Scope
 
-  - Not the wire format: encoding lives in `Yelixer.Encoding`.
-  - Not the YATA placement algorithm: that's `Yelixer.Integrate`.
-    This module computes anchors and hands the new Item off.
-  - Not the storage: blocks live in `Yelixer.BlockStore`.
-  - Not the document container: see `Yelixer.Doc`. This file is one
-    of the type-side facades (alongside `Yelixer.Types.Text`,
-    `YMap`, the XML modules) that operate on a `%Doc{}`.
+  - Wire encoding: `Yelixer.Encoding`.
+  - YATA placement: `Yelixer.Integrate` (this module computes anchors
+    and hands the `Item` off).
+  - Block storage: `Yelixer.BlockStore`.
+  - Document container: `Yelixer.Doc`.
   """
 
   alias Yelixer.{Doc, ID, Item, BlockStore, DeleteSet, Integrate, StateVector}
 
   @doc """
-  Inserts each of `values` into `type_name`'s sequence starting at
-  element index `index`.
+  Splices `values` into `type_name`'s sequence starting at element
+  index `index`.
 
-  Folds over the values, emitting one block per element. Element `i`
-  in the input list lands at sequence index `index + i` and gets its
-  own `(client, clock)` id from the doc's running clock. Anchors are
-  computed fresh for each insertion — the second element anchors
-  *after* the first, not at the original `index`.
+  Folds over the list, emitting one block per element. Element `i`
+  lands at sequence index `index + i` and receives its own
+  `(client, clock)` ID from the doc's running clock. Anchors are
+  recomputed for each step — the second element anchors after the
+  first, not at the original `index`.
 
-  Each block carries `content: {:any, [value]}` regardless of the
-  value's runtime type (number, string, list, map, etc.). Use
-  `Yelixer.Types.YMap` for nested key/value structure and the YArray
-  insertion path for nested arrays — passing a sub-type *value* here
-  stores it as opaque `:any` content rather than as a CRDT sub-type.
+  Every block carries `content: {:any, [value]}` regardless of
+  runtime type. To store a nested CRDT sub-type, use the dedicated
+  YArray or `Yelixer.Types.YMap` insertion path — passing a sub-type
+  value here stores it as opaque `:any` content, not as a linked
+  sub-type.
   """
   def insert(%Doc{} = doc, type_name, index, values) when is_list(values) do
     Enum.with_index(values)
@@ -147,15 +136,14 @@ defmodule Yelixer.Types.Array do
   @doc """
   Tombstones `len` elements starting at element index `index`.
 
-  Walks the sequence summing block lengths, collects the IDs that
-  fall in `[index, index + len)`, marks each `deleted: true` via
+  Collects the IDs in `[index, index + len)` via
+  `find_items_in_range/4`, marks each `deleted: true` via
   `Yelixer.Integrate.mark_deleted/2`, and records the
   `(client, clock, length)` intervals in `doc.delete_set`.
 
-  Unlike `Yelixer.Types.Text.delete/4`, no block-splitting is needed
-  — each element is its own length-1 block (or a wire-arriving
-  multi-value block, which we tombstone whole; partial deletion of
-  multi-value `:any` blocks is not yet supported).
+  No block-splitting is needed — each element is its own length-1
+  block. Wire-arriving multi-value `:any` blocks are tombstoned
+  whole; partial deletion of such blocks is a known gap.
   """
   def delete(%Doc{} = doc, type_name, index, len) when len > 0 do
     items = find_items_in_range(doc.store, type_name, index, len)
@@ -172,13 +160,12 @@ defmodule Yelixer.Types.Array do
   end
 
   @doc """
-  Returns the live elements as a flat Elixir list.
+  Returns live elements as a flat Elixir list.
 
-  Only `:any`-content blocks contribute. Tombstones are filtered by
+  Only `:any`-content blocks contribute; tombstones are excluded by
   `BlockStore.get_sequence/2`. Other content variants (`:type`,
-  `:embed`, `:string`, `:json`) that may exist in a wire-arriving
-  Array sequence are silently dropped — use `to_json/2` for a
-  variant-aware render.
+  `:embed`, `:string`, `:json`) are silently dropped — use `to_json/2`
+  for variant-aware output.
   """
   def to_list(%Doc{} = doc, type_name) do
     doc.store
@@ -187,20 +174,18 @@ defmodule Yelixer.Types.Array do
   end
 
   @doc """
-  Renders the live array as JSON-shaped data, resolving nested CRDT
+  Renders live elements as JSON-shaped data, resolving nested
   sub-types recursively.
 
-  Per-variant behaviour:
+  Per-variant:
 
-    - `:any` — values pass through `Yelixer.Types.resolve_content_value/2`
-      so any nested CRDT-shaped values are unwrapped.
-    - `:type` — looked up via `Yelixer.Types.sub_type_to_json/2`,
-      which recurses into the sub-type's stored content.
-    - `:string` — string passes through `resolve_content_value/2`.
-    - `:embed` — embedded value returned as-is.
+    - `:any` — each value through `Yelixer.Types.resolve_content_value/2`.
+    - `:type` — sub-type resolved via `Yelixer.Types.sub_type_to_json/2`.
+    - `:string` — string through `resolve_content_value/2`.
+    - `:embed` — returned as-is.
     - `:json` — value list flattened in.
-    - Anything else — dropped (including tombstones, which never
-      reach this far thanks to `BlockStore.get_sequence/2`).
+    - Anything else — dropped (tombstones never reach here;
+      `BlockStore.get_sequence/2` excludes them upstream).
   """
   def to_json(%Doc{} = doc, type_key) do
     doc.store
@@ -225,12 +210,12 @@ defmodule Yelixer.Types.Array do
   defp item_to_json_values(_doc, _item), do: []
 
   @doc """
-  Returns the number of live elements.
+  Returns the live element count.
 
-  Sums `item.length` over the live sequence. For canonical Array
-  blocks every element contributes 1; multi-value `:any` blocks
-  arriving over the wire contribute their list length. Tombstones
-  are excluded by `BlockStore.get_sequence/2`.
+  Sums `item.length` over the live sequence. Canonical blocks
+  each contribute 1; wire-arriving multi-value `:any` blocks
+  contribute their list length. Tombstones excluded by
+  `BlockStore.get_sequence/2`.
   """
   def length(%Doc{} = doc, type_name) do
     doc.store
@@ -238,14 +223,14 @@ defmodule Yelixer.Types.Array do
     |> Enum.reduce(0, fn %Item{length: len}, acc -> acc + len end)
   end
 
-  # ---- Offset → anchor / range translation ----
+  # ---- Index → anchor / range translation ----
   #
   # Same shape as `Yelixer.Types.Text`'s offset-walking helpers, but
-  # *without* the split machinery: every Array element is its own
-  # length-1 block, so offsets always land cleanly on block
-  # boundaries. Compare with Text's `find_origins_with_split/3` and
-  # `find_items_in_range_with_split/4` — those suffix variants exist
-  # specifically to handle Text's run-length blocks.
+  # without split machinery. Every Array element is its own length-1
+  # block, so indices always land on block boundaries. Text's
+  # `find_origins_with_split/3` and `find_items_in_range_with_split/4`
+  # carry the `_with_split` suffix precisely because run-length blocks
+  # require splitting before they can be anchored or range-collected.
 
   defp find_origins(store, type_name, index) do
     seq = BlockStore.get_sequence(store, type_name)

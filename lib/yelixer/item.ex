@@ -2,113 +2,104 @@ defmodule Yelixer.Item do
   @moduledoc """
   The atomic unit of a Yjs document.
 
-  A Yjs document, after all the high-level types (`Text`, `Array`,
-  `YMap`, `XmlElement`, …) are unwound, is a collection of Items —
-  each carrying a chunk of content along with the metadata needed to
-  position it relative to other items. Insertion, deletion, ordering
-  under concurrent edits, encoding, garbage collection, and rendering
-  all operate on Items.
+  Unwinding all high-level types (`Text`, `Array`, `YMap`,
+  `XmlElement`, …) leaves a flat collection of Items. Every
+  operation — insertion, deletion, ordering under concurrent edits,
+  encoding, garbage collection, rendering — ultimately acts on Items.
 
-  An Item ties four concerns together:
+  Each Item bundles four concerns:
 
-    - **Identity.** Every item has an `id :: Yelixer.ID.t()` — a
-      `(client, clock)` pair that names it forever. See `Yelixer.ID`.
-    - **Causal anchors (YATA).** `origin` and `right_origin` record
-      the item's left and right neighbors *at the moment it was
-      authored*. They are stable references; they do not update when
-      neighbors change. See "Why both anchors" below.
-    - **Tree placement.** `parent` (and optional `parent_sub`) places
-      the item inside a containing CRDT type — a list element in a
-      `YArray`, a value under a key in a `YMap`, etc.
-    - **Content.** A single tagged variant carrying the actual data —
-      run-length-encoded text, an embedded value, a tombstone marker,
-      a sub-type pointer, and so on. See "Content variants" below.
+    - **Identity.** A unique `id :: Yelixer.ID.t()` — a `(client,
+      clock)` pair assigned at authoring time and never reused. See
+      `Yelixer.ID`.
+    - **Causal anchors.** `origin` and `right_origin` capture the
+      item's left and right neighbors *as they existed when the item
+      was created*. These anchors are immutable; later edits do not
+      update them. See "Causal anchors (YATA)" below.
+    - **Tree placement.** `parent` (and optional `parent_sub`) names
+      the containing CRDT type — a `YArray`, a `YMap` key, etc.
+    - **Content.** A tagged variant carrying the payload: text,
+      binary data, a tombstone length, a nested-type pointer, etc.
+      See "Content variants" below.
 
-  ## Why both anchors (the YATA model)
+  ## Causal anchors (YATA)
 
-  Yjs uses YATA (Yet Another Transformation Approach) for ordering
-  concurrent insertions. When Alice and Bob both insert immediately
-  after item `X` while disconnected, both items record `origin = X`.
-  That alone is not enough to pick a stable order between them. YATA
-  resolves this by also recording `right_origin` — the item that was
-  to the immediate right at authoring time — and applying a
-  deterministic interleave rule (compare client IDs as a tiebreaker
-  when origins agree). Both replicas independently arrive at the same
-  final order.
+  YATA (Yet Another Transformation Approach) is Yjs's algorithm for
+  ordering concurrent insertions into a shared sequence. Each item
+  records two anchors at authoring time:
 
-  The anchors are *historical*: they record where the item was placed
-  originally, not where it sits now. After enough concurrent edits the
-  item's actual neighbors in the rendered list can be entirely
-  different items.
+    - `origin` — the item immediately to its left.
+    - `right_origin` — the item immediately to its right.
+
+  When two peers both insert after the same item `X` while
+  disconnected, both record `origin = X`. The right anchor breaks
+  the tie: YATA's interleave rule consults `right_origin` and,
+  when that is also equal, falls back to comparing client IDs.
+  Every replica applies the same rule and converges to the same
+  order without coordination.
+
+  Because anchors are historical, an item's actual neighbors in the
+  rendered sequence can differ from its anchors after many concurrent
+  edits.
 
   ## Content variants
 
   The `content` field is a tagged tuple:
 
-    - `{:string, s}` — a run of text. One Item can hold many
-      consecutive characters from the same client; see "length and
-      run-length" below.
-    - `{:any, list}` — a list of primitive values (numbers, booleans,
-      strings, lists, maps treated as JSON-shaped data).
+    - `{:string, s}` — a run of text characters from a single
+      client; see "Run-length" below.
+    - `{:any, list}` — a list of primitives (numbers, booleans,
+      strings, maps) treated as opaque JSON-shaped data.
     - `{:binary, b}` — raw bytes.
-    - `{:deleted, n}` — tombstone of length `n`. The item still
-      occupies its ID slot but its prior content has been replaced
-      with a length marker. See "Tombstones and `:gc`" below.
-    - `{:gc, n}` — garbage-collected tombstone. Equivalent to
-      `:deleted` but eligible for compaction; once a deletion is old
-      enough that no live edits anchor to it, the content variant
-      is rewritten from `:deleted` to `:gc` and the slot can
-      eventually be collapsed.
-    - `{:embed, term}` — an opaque embedded value (rich-text
-      attribute, image reference, etc.).
-    - `{:format, {key, val}}` — a formatting marker. Not visible
-      content; describes how neighboring text should be rendered.
-    - `{:type, atom}` — a sub-type marker. This Item *is* a nested
-      CRDT (a YArray, YMap, etc.); the children of that nested type
-      live elsewhere and reference this Item's ID via their
-      `parent`.
-    - `{:json, list}` — a yrs-compatible JSON encoding, kept distinct
+    - `{:json, list}` — yrs-compatible JSON encoding; kept separate
       from `:any` for binary-format compatibility with the Rust port.
+    - `{:embed, term}` — an opaque embedded value (image reference,
+      rich-text object, etc.).
+    - `{:format, {key, val}}` — a formatting marker, not visible
+      content; describes how adjacent text should be rendered.
+    - `{:type, atom}` — marks this Item as a nested CRDT (a `YArray`,
+      `YMap`, etc.). The nested type's children live elsewhere and
+      point back here via their `parent`.
     - `{:doc, term}` — a sub-document reference.
+    - `{:deleted, n}` — tombstone of length `n`. Content has been
+      cleared; only the occupied ID range is retained. See "Deletion
+      and GC" below.
+    - `{:gc, n}` — garbage-collected tombstone. Structurally
+      identical to `:deleted` but signals that no live item anchors
+      to this slot, making it a candidate for compaction.
 
-  ## Tombstones and `:gc`
+  ## Deletion and GC
 
-  Two fields can encode "this item is deleted": the `deleted` boolean
-  and the content variant `{:deleted, n}` / `{:gc, n}`. They are not
-  redundant — they describe overlapping but distinct states.
+  "Deleted" is expressed two ways, serving different purposes:
 
-    - `deleted` is the **fast-path flag**. At construction time
-      (`new/6`) it is derived from the content variant; at runtime it
-      can be flipped independently when an item is tombstoned but its
-      content hasn't yet been rewritten.
-    - The `:deleted` / `:gc` content variant is the **persistent
-      replacement** — once content is dropped, the variant records
-      only the length the item used to occupy.
+    - `deleted` (boolean) is a **fast-path flag** set at construction
+      from the content variant. The renderer can skip deleted items
+      without inspecting content. At runtime the flag may be set
+      before the content is rewritten, so the two can briefly diverge.
+    - `{:deleted, n}` / `{:gc, n}` are the **persistent forms**:
+      once content is dropped, only the length it occupied remains.
+      The distinction between `:deleted` and `:gc` lets encoding and
+      GC paths track whether the slot is still reachable from any
+      live anchor.
 
-  Both representations exist so the renderer can short-circuit on the
-  flag without inspecting the content tag, while encoding and GC
-  paths can still distinguish "tombstoned but content present" from
-  "fully cleared."
+  ## Run-length
 
-  ## Length and run-length
+  `length` counts how many consecutive logical clocks an Item covers.
+  Typing "abc" produces one Item with `length=3` occupying clocks
+  `id.clock`, `id.clock + 1`, `id.clock + 2` — far more compact than
+  one item per character.
 
-  `length` is the number of consecutive clocks an Item occupies. A
-  user typing "abc" produces a single Item with `length=3` whose
-  three clocks are `id.clock`, `id.clock + 1`, `id.clock + 2`. The
-  whole document is represented far more compactly than one item per
-  character.
+  When a concurrent operation targets a clock in the middle of a run,
+  `split/2` divides the Item at that boundary so each half can be
+  handled independently.
 
-  This compression is what makes `split/2` necessary: when a
-  concurrent operation targets a clock in the middle of a run, the
-  Item has to be broken in two so the boundary can be handled.
+  ## Boundaries
 
-  ## What this module is not
-
-  - Not a container — an Item is one element of a sequence; the
-    sequence itself lives in `Yelixer.BlockStore`.
-  - Not the document — see `Yelixer.Doc`.
-  - Not the integrator — `Yelixer.Integrate` is what places new
-    items into the YATA-ordered sequence.
+  - Items are elements of a sequence; the sequence lives in
+    `Yelixer.BlockStore`.
+  - Document-level state lives in `Yelixer.Doc`.
+  - Placing a new Item into YATA order is the job of
+    `Yelixer.Integrate`.
   """
 
   alias Yelixer.ID
@@ -125,9 +116,9 @@ defmodule Yelixer.Item do
           | {:json, list()}
           | {:doc, term()}
 
-  # `parent` always present; either a top-level named type registered
-  # on the doc, or a nested type whose container is identified by an
-  # Item ID (the parent item's `:type` content).
+  # Every item has a parent: either a top-level named type registered
+  # on the doc, or a nested type identified by its container Item's ID
+  # (the item that carries `{:type, _}` content).
   @type parent_ref :: {:named, String.t()} | {:id, ID.t()}
 
   @type t :: %__MODULE__{
@@ -144,16 +135,15 @@ defmodule Yelixer.Item do
   defstruct [:id, :origin, :right_origin, :content, :parent, :parent_sub, :deleted, :length]
 
   @doc """
-  Builds an Item.
+  Constructs an Item from its six required fields.
 
-  `deleted` and `length` are derived rather than passed in:
+  `deleted` and `length` are derived, not passed:
 
-    - `deleted` is true iff the content is already a tombstone variant
-      (`:deleted` or `:gc`). Construction-time derivation; at runtime
-      the flag can drift from the content tag — see the "Tombstones
-      and `:gc`" section in the moduledoc.
-    - `length` is the number of clocks the content covers; see
-      `content_length/1` below.
+    - `deleted` — `true` when `content` is already a tombstone
+      (`{:deleted, _}` or `{:gc, _}`). Can drift from the content tag
+      at runtime if an item is tombstoned before its content is
+      rewritten; see "Deletion and GC" in the moduledoc.
+    - `length` — clocks covered by this content; see `content_length/1`.
   """
   def new(id, origin, right_origin, content, parent, parent_sub) do
     %__MODULE__{
@@ -169,50 +159,43 @@ defmodule Yelixer.Item do
   end
 
   @doc """
-  Splits a run-length item at `offset`, returning `{left, right}`.
+  Divides a run-length item at `offset`, returning `{left, right}`.
 
-  Required when a concurrent operation needs to anchor at a clock in
-  the *middle* of an existing run. The original Item, which covered
-  clocks `[id.clock, id.clock + length)`, becomes two Items covering
-  `[id.clock, id.clock + offset)` and `[id.clock + offset,
-  id.clock + length)` respectively.
+  When a concurrent operation must anchor at a clock inside an
+  existing run, the run must be split so the boundary clock can be
+  addressed independently. An item covering
+  `[id.clock, id.clock + length)` becomes two items covering
+  `[id.clock, id.clock + offset)` and
+  `[id.clock + offset, id.clock + length)`.
 
-  ## Field-by-field
+  ## Field assignment
 
-  Left half:
+  **Left half** retains the original `id`, `origin`, `right_origin`,
+  and `parent*`; only `content` and `length` shrink to the first
+  `offset` clocks.
 
-    - keeps the original `id`
-    - keeps the original `origin` (still anchored to the same left
-      neighbor at authoring time)
-    - keeps the original `right_origin` *(see invariant below)*
-    - shrinks `content` and `length` to cover the first `offset` clocks
+  **Right half**:
 
-  Right half:
+    - `id` = `(client, clock + offset)` — same client, clock advanced.
+    - `origin` = `(client, clock + offset - 1)` — the last clock of
+      the left half, preserving causal continuity within the run.
+    - `right_origin` = the original's `right_origin` *(see below)*.
+    - `content` / `length` cover the remaining clocks.
 
-    - new `id` = `(client, clock + offset)` — same client, clock
-      pushed forward
-    - `origin` = `(client, clock + offset - 1)` — the *last* clock of
-      the left half. Causal continuity inside the original run.
-    - `right_origin` = the original's `right_origin` *(see invariant)*
-    - tail `content`, with `length` adjusted
+  ## Invariant: both halves inherit the original's `right_origin`
 
-  ## Invariant: both halves share the original's `right_origin`
+  The two halves occupy the same logical YATA position as the
+  original, so they must share its anchors. The previous behavior
+  (fixed in CX-2sv) set `left.right_origin = right.id`. That broke
+  the invariant that a leftmost item has `right_origin = nil`:
+  splitting a leftmost item produced a left half that pointed at the
+  new right half instead of `nil`, severing the termination of the
+  right-origin chain. On encode/decode round-trips the parent linkage
+  was then lost.
 
-  Both Items conceptually occupy the same YATA position — the
-  original Item before the split. They share the original's left and
-  right anchors. Setting `left.right_origin = right.id` (the previous
-  buggy behaviour fixed in CX-2sv) breaks the invariant that
-  *leftmost sequence items have `right_origin = nil`*. With the
-  buggy form, an item that was leftmost (and thus had
-  `right_origin = nil`) would, after a split, have its left half
-  pointing right at the new right half — destroying the leftmost
-  marker. On encode/decode round-trips the parent linkage then got
-  lost because the right_origin chain no longer terminated cleanly.
-
-  Sharing the original's `right_origin` preserves the invariant: a
-  leftmost-original split into two leftmost-equivalent halves, each
-  still pointing at whatever was to the original's right (often
-  `nil`).
+  Propagating the original's `right_origin` to both halves restores
+  the invariant: each half is leftmost-equivalent if the original was,
+  pointing at whatever lay to the original's right (often `nil`).
   """
   def split(%__MODULE__{} = item, offset) when offset > 0 and offset < item.length do
     {left_content, right_content} = split_content(item.content, offset)
@@ -240,11 +223,11 @@ defmodule Yelixer.Item do
     {left, right}
   end
 
-  # Splitting a content tuple into a head/tail pair at `offset`. Each
-  # variant that supports run-length representation (string, any,
-  # binary, json, deleted, gc) gets a dedicated clause. Singleton
-  # variants (embed, format, type, doc) have length 1 and would never
-  # land here — split/2's guard rejects offset == 0 / offset == length.
+  # Splits a content tuple at `offset` into a head/tail pair.
+  # Run-length variants (string, any, binary, json, deleted, gc) each
+  # get a dedicated clause. Singleton variants (embed, format, type,
+  # doc) always have length 1 and can never satisfy split/2's guard
+  # `offset > 0 and offset < item.length`, so they need no clause.
 
   defp split_content({:string, s}, offset) do
     {left, right} = String.split_at(s, offset)
@@ -274,13 +257,11 @@ defmodule Yelixer.Item do
     {{:binary, left}, {:binary, right}}
   end
 
-  # The number of clocks a piece of content covers. Drives the
-  # `length` field at construction time and the `length` of each half
-  # after a `split/2`.
-  #
-  # Run-length variants delegate to their natural size measure; the
-  # tombstone variants store the count directly; everything else
-  # (embed, format, type, doc) covers exactly one clock.
+  # Returns the number of logical clocks a content value covers.
+  # Used to populate `length` at construction and after `split/2`.
+  # Run-length variants delegate to their natural size measure;
+  # tombstone variants store the count directly; all singletons
+  # (embed, format, type, doc) cover one clock.
   defp content_length({:gc, n}), do: n
   defp content_length({:string, s}), do: String.length(s)
   defp content_length({:any, list}), do: length(list)

@@ -1,71 +1,56 @@
 defmodule Yelixer.Types do
   @moduledoc """
-  Routing utilities for the type-side facades — primitive
-  passthrough plus the nested-sub-type read path.
+  Read-path routing utilities: primitive pass-through and nested
+  sub-type resolution.
 
-  This module has no state of its own. It exists for two reasons:
+  No struct, no state, no GenServer. Two responsibilities:
 
-    - **Pass primitive values through unchanged** so the facades'
-      `to_json/2` / `to_map/2` paths can call one helper for every
-      element value regardless of its runtime type.
-    - **Resolve nested CRDT sub-types** when a parent block carries
-      `{:type, type_ref}` content. This is the read-path
-      counterpart of the `__sub:CLIENT:CLOCK` synthetic naming
-      scheme used by `Yelixer.Doc`, `Yelixer.Types.YMap`, and the
-      XML modules — the loop those modules talk about minting
-      finally gets *applied* here.
+    - **Primitives** — `resolve_content_value/2` passes strings,
+      numbers, booleans, `nil`, lists, and maps through unchanged,
+      giving every facade a single call site regardless of value type.
+    - **Nested CRDTs** — `sub_type_to_json/2` resolves blocks whose
+      content is `{:type, type_ref}` into JSON, dispatching to the
+      right facade. This is where the `__sub:CLIENT:CLOCK` naming
+      loop closes.
 
-  ## Closing the synthetic-naming loop
+  ## Closing the `__sub:CLIENT:CLOCK` loop
 
+  On the **write path**, inserting a nested CRDT into a YMap or
+  Array causes `Yelixer.Doc` to register the sub-type in
+  `doc.types` under a synthetic key `"__sub:<client>:<clock>"`
+  derived from the parent block's id. The parent block itself just
+  records `{:type, type_ref}` as its content. See
   `Yelixer.Doc`'s "Sub-types and the `__sub:CLIENT:CLOCK` naming"
-  section describes how nested CRDTs are registered: when a
-  `YMap.set/4` value or a `YArray.insert/4` element happens to be
-  itself a sub-type, the parent block holds `{:type, type_ref}` and
-  the sub-type's children are registered in `doc.types` under a
-  synthesized name `"__sub:CLIENT:CLOCK"` derived from the parent
-  block's id.
+  section, `Yelixer.Types.YMap`, and the XML modules for the write
+  sites.
 
-  `sub_type_to_json/2` is the read side of that contract: given a
-  parent block's id, it reconstructs the synthetic name, looks up
-  the registered type, and dispatches to the appropriate
-  `to_string` / `to_json` facade — `Text`, `Array`, `YMap`, or the
-  XML-fragment-based unified shape from Yjs v14. Recursive: a
-  sub-type containing another sub-type just calls back here.
+  On the **read path**, `sub_type_to_json/2` receives the parent
+  block's id, rebuilds the same synthetic key, looks up what kind
+  of sub-type was registered (`:text`, `:array`, `:map`,
+  `:xml_fragment`), and calls the matching facade. The recursion
+  is natural: a sub-type whose items contain further `{:type,
+  type_ref}` blocks just calls back here again.
 
-  ## Why this is utility-shaped
+  ## Scope
 
-  No struct, no state, no GenServer. The functions are pure routing
-  + pattern matching. The module sits between the facade layer
-  (`Text.to_string`, `YMap.to_json`, etc.) and the `BlockStore`
-  read path; it exists so the facades can call one helper rather
-  than duplicating "is this a primitive? a sub-type? a nested
-  CRDT?" logic per facade.
-
-  ## What this module is NOT
-
-  - Not a content-variant encoder — `Yelixer.Encoding` owns the
-    bytes-out path.
-  - Not a sub-type creator — `YMap.set/4`, `Array.insert/4`, and
-    the XML insert paths register synthetic names; this module
-    only consumes them.
-  - Not the BlockStore — see `Yelixer.BlockStore`. This module
-    reads from it via `get_sequence/2`.
+  - Not a content encoder — `Yelixer.Encoding` owns the wire format.
+  - Not a sub-type creator — write sites mint the synthetic names;
+    this module only consumes them.
+  - Not the BlockStore — reads via `BlockStore.get_sequence/2`.
   """
 
   @doc """
-  Pass-through resolver for primitive values.
+  Returns any primitive value unchanged.
 
-  Every clause returns its input unchanged — strings, numbers,
-  booleans, `nil`, lists, and maps all flow through. The catch-all
-  at the end means anything else (atoms, tuples, structs) also
-  passes through verbatim. Why so many explicit clauses then? They
-  document the JSON-shape contract: `to_json` callers can rely on
-  primitives surviving the round-trip.
+  Explicit clauses for strings, numbers, booleans, `nil`, lists,
+  and maps; a catch-all handles everything else. The explicit
+  clauses aren't redundant — they document the JSON-shape contract:
+  callers can rely on these types surviving unmodified.
 
-  This function does **not** recurse into sub-types — values that
-  carry CRDT structure (a YMap reachable via a parent item id, a
-  nested array's contents) are routed through `sub_type_to_json/2`
-  by the calling facade, not by this function.
+  Does **not** recurse into CRDT structure. Values carrying
+  `{:type, type_ref}` content are routed through
+  `sub_type_to_json/2` by the calling facade before they reach
+  here.
   """
   def resolve_content_value(_doc, value) when is_binary(value), do: value
   def resolve_content_value(_doc, value) when is_number(value), do: value
@@ -76,27 +61,24 @@ defmodule Yelixer.Types do
   def resolve_content_value(_doc, value), do: value
 
   @doc """
-  Reads a nested CRDT sub-type and returns its JSON-shaped content.
+  Resolves a nested CRDT sub-type to its JSON representation.
 
-  Given the id of a parent Item whose content is `{:type, type_ref}`,
-  this function:
+  Given the id of a parent Item whose content is `{:type, type_ref}`:
 
-    1. Reconstructs the synthetic registration name —
-       `"__sub:<client>:<clock>"` — from the parent id.
-    2. Looks up `doc.types[name]` to find what kind of sub-type
-       was registered when the parent was inserted. The kinds are
-       the symbolic refs `Yelixer.Doc.get_or_create_type/3` accepts:
-       `:text`, `:array`, `:map`, `:xml_fragment`.
-    3. Dispatches to the right facade's read path —
-       `Text.to_string`, `Array.to_json`, `YMap.to_json`, or the
-       Yjs-v14 unified XML-fragment-as-anything shape via
-       `xml_fragment_to_json/2` below.
-    4. Returns `nil` for unrecognized refs.
+    1. Rebuilds the synthetic key `"__sub:<client>:<clock>"` from
+       the parent id's `client` and `clock` fields.
+    2. Looks up `doc.types[key]` for the kind registered at insert
+       time — one of `:text`, `:array`, `:map`, `:xml_fragment`
+       (the same atoms `Yelixer.Doc.get_or_create_type/3` accepts).
+    3. Dispatches to the matching facade: `Text.to_string`,
+       `Array.to_json`, `YMap.to_json`, or `xml_fragment_to_json/2`
+       for the Yjs-v14 unified shape.
+    4. Returns `nil` for unrecognized kinds.
 
-  This is the read side of the synthetic-naming contract documented
-  in `Yelixer.Doc` (write side: parent insertion mints the name)
-  and `Yelixer.Types.YMap` / `Yelixer.Types.XMLFragment` (call
-  sites: their `to_json/2` recurses through this function).
+  This is the read side of the contract whose write side lives in
+  `Yelixer.Doc` (minting the name on insertion) and whose call
+  sites are `Yelixer.Types.YMap` and the XML modules (their
+  `to_json/2` functions recurse through here for nested values).
   """
   def sub_type_to_json(doc, %Yelixer.ID{client: c, clock: k}) do
     type_key = "__sub:#{c}:#{k}"
@@ -110,14 +92,12 @@ defmodule Yelixer.Types do
     end
   end
 
-  # Yjs v14 collapsed all nested CRDT shapes into a single XML-
-  # fragment-like type at the wire level: every nested-type block
-  # arrives here as `:xml_fragment` regardless of whether it was
-  # authored as a YArray, YMap, or actual XML fragment. The runtime
-  # shape is recovered from the items inside it: items with a
-  # `parent_sub` (key) become "attrs"; items without (positional
-  # children) become "children". Both keys are omitted when empty
-  # so the JSON output stays compact for the common case.
+  # Yjs v14 uses a single xml_fragment wire type for all nested
+  # CRDTs — YArray, YMap, and actual XML fragments all arrive here
+  # as :xml_fragment. The semantic shape is recovered from the items
+  # themselves: items with a parent_sub field (a string key) become
+  # "attrs"; positional items (parent_sub nil) become "children".
+  # Both keys are omitted when empty to keep output compact.
   defp xml_fragment_to_json(doc, type_key) do
     items = Yelixer.BlockStore.get_sequence(doc.store, type_key)
 

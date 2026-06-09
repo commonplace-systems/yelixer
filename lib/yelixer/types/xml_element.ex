@@ -8,12 +8,12 @@ defmodule Yelixer.Types.XMLElement do
       *type ref* in `Yelixer.Doc`: `{:xml_element, tag}` instead of
       `:xml_fragment`. The tag lives on the type registration, not on
       any Item.
-    - **Attributes** — string-keyed values stored as Items keyed by
-      `parent_sub` (the attribute name), sharing the encoding used by
-      `Yelixer.Types.YMap`. Attributes are unordered string→value
-      pairs; see `YMap` for the full mechanics (rightmost-wins LWW,
-      tombstone semantics on overwrite, sub-type values). Attribute
-      Items parent directly to the element's named sequence.
+    - **Attributes** — unordered string→value pairs stored as Items
+      keyed by `parent_sub` (the attribute name). They use the same
+      `parent_sub` encoding as `Yelixer.Types.YMap`; see `YMap` for
+      the full mechanics (rightmost-wins LWW, tombstone semantics on
+      overwrite, sub-type values). Attribute Items are parented
+      directly to the element's named sequence.
 
   Children use the same `"<type_name>::children"` derived sequence as
   `XMLFragment` — separate from attribute Items, so the two don't

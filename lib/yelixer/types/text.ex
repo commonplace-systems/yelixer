@@ -1,97 +1,95 @@
 defmodule Yelixer.Types.Text do
   @moduledoc """
-  Collaborative text type — string-stream view over a YATA sequence.
+  Collaborative text type — a character-stream view over a YATA sequence.
 
-  Text is the user-facing facade for "treat this part of the document
-  as a character stream." Callers think in character offsets
-  (`insert(doc, name, 5, "hello")` means "insert 'hello' starting at
-  character 5"); under the hood, every operation translates that
-  offset into a YATA anchor pair (`origin`, `right_origin`) and emits
-  one or more `Yelixer.Item`s into the doc's `Yelixer.BlockStore`.
+  This module is the public facade for a named text field inside a
+  `Yelixer.Doc`. Callers work in character offsets:
+  `insert(doc, name, 5, "hello")` means "insert 'hello' starting at
+  position 5." Internally, every call translates that offset into a
+  YATA anchor pair (`origin`, `right_origin`) and writes one or more
+  `Yelixer.Item`s into the doc's `Yelixer.BlockStore`.
 
   Public surface:
 
-    - `insert/4` — splice a string into the sequence at a character
-      offset.
-    - `delete/4` — drop a character range from the sequence.
-    - `to_string/2` — render the live (non-tombstoned) characters as
-      a single Elixir string.
-    - `length/2` — character count of the live sequence.
+    - `insert/4` — splice a string at a character offset.
+    - `delete/4` — remove a character range.
+    - `to_string/2` — render the live text as a single Elixir string.
+    - `length/2` — character count of the live text.
 
-  No formatting, embeds, observers, or rich-text features in this
-  module — those live higher up the stack and would emit different
-  content variants (`:format`, `:embed`) into the same sequence.
-  This file is the plain-text core.
+  This module handles plain text only. Formatting marks, embedded
+  objects, and change observers would emit different content variants
+  (`:format`, `:embed`) into the same sequence — those belong to
+  higher-level types.
 
   ## Run-length encoding
 
-  A single `insert(doc, name, 5, "hello")` call emits **one** Item
-  with `content: {:string, "hello"}` and `length: 5`, not five
-  separate items. The block store keeps one entry per run; the
-  rendered text is the concatenation of all live `:string` blocks.
-  This matters everywhere downstream: `Yelixer.BlockStore`'s binary
-  search lookups, `Yelixer.Encoding`'s wire format, and the
-  `Yelixer.Item.split/2` machinery all assume run-length blocks
-  exist and may need partitioning.
+  One `insert` call produces **one** Item regardless of string length:
+  `content: {:string, "hello"}`, `length: 5`. The block store holds
+  one entry per contiguous run; the rendered text is the join of all
+  live `:string` blocks. Downstream code — `Yelixer.BlockStore`'s
+  offset lookups, `Yelixer.Encoding`'s wire format, and
+  `Yelixer.Item.split/2` — all depend on this representation and may
+  need to split a block before operating on its interior.
 
-  ## The character-offset → YATA-anchor bridge
+  ## Character offset → YATA anchor
 
-  Insertion at character offset `i` needs to anchor between two
-  existing block boundaries — `origin` to the left and
-  `right_origin` to the right. `find_origins_with_split/3` walks the
-  sequence summing block lengths until it crosses `i`:
+  YATA insertion is anchored, not indexed: a new item records the
+  item to its left (`origin`) and the item to its right
+  (`right_origin`) at write time, so concurrent inserts at the same
+  position resolve deterministically without re-indexing.
 
-    - If `i` lands cleanly between two blocks, those are the anchors.
-    - If `i` lands *inside* a block (a multi-char run), the block is
-      split via `BlockStore.split_block/3` first so the boundary
-      exists, then the new left half becomes `origin` and the new
-      right half becomes `right_origin`. The fresh insertion sits
-      between them, all three blocks share the same parent, and
-      YATA's interleave rule resolves their order
-      (`Yelixer.Integrate`).
+  `find_origins_with_split/3` walks the sequence, summing block
+  lengths, to locate the boundary at offset `i`:
 
-  `origin` for a multi-char left block points at the **last clock**
-  of the block (`id.clock + length - 1`) — `Yelixer.Item`'s anchor
-  convention. `right_origin` points at the **first clock** of the
-  right block (its `id`). See `Yelixer.Item`'s "Why both anchors"
-  section.
+    - If `i` falls between two existing blocks, those blocks are the
+      anchors.
+    - If `i` falls inside a multi-character run, that block is split
+      at `i` via `BlockStore.split_block/3`, and the resulting left
+      and right halves become the anchors.
+
+  For a multi-character left block, `origin` points at the **last**
+  clock of the block (`id.clock + length - 1`) — the convention
+  defined in `Yelixer.Item`. `right_origin` points at the **first**
+  clock of the right block (its `id`). See `Yelixer.Item`'s
+  "Why both anchors" section.
 
   ## Deletion and tombstones
 
-  `delete/4` follows the same offset-walking pattern but flags
-  matching items rather than emitting new ones:
+  Deleted items are *tombstoned* — their `deleted` flag is set to
+  `true` and their content is preserved in place rather than removed.
+  This lets peers apply the same deletion even after receiving it out
+  of order, and allows GC to clean up later (see `Yelixer.Doc.gc/1`).
 
-    1. Walk the sequence, splitting blocks at the start and end of
-       the range so the deletion targets whole blocks.
-    2. For each block in the range, set `deleted: true` via
-       `Yelixer.Integrate.mark_deleted/2`, and record the
-       `(client, clock, length)` interval in `doc.delete_set` via
+  `delete/4` works in two steps:
+
+    1. Walk the sequence, splitting blocks at the start and end of the
+       target range so the deletion covers only whole blocks.
+    2. For each block in the range, call
+       `Yelixer.Integrate.mark_deleted/2` to set the flag, and record
+       the `(client, clock, length)` interval in `doc.delete_set` via
        `Yelixer.DeleteSet.insert/4`.
 
-  `to_string/2` and `length/2` rely on
-  `Yelixer.BlockStore.get_sequence/2`, which already filters
-  tombstoned items — neither function inspects `deleted` directly,
-  but tombstones are nevertheless invisible because they're
-  short-circuited there.
+  `to_string/2` and `length/2` call `BlockStore.get_sequence/2`,
+  which filters tombstones out before returning — neither function
+  checks `deleted` directly.
 
   ## Codepoints, not graphemes
 
-  All offsets are **codepoint** offsets in the Elixir sense
-  (`String.length/1`, `String.split_at/2`), not grapheme clusters.
-  An emoji that spans multiple codepoints (a flag, a skin-tone
-  modifier sequence) counts as more than one position. This is
-  consistent with yrs and with Y.js's behaviour, so wire-level
-  exchanges round-trip correctly; callers wanting grapheme-level
-  semantics need a layer above this one.
+  All offsets count Unicode **codepoints** — what `String.length/1`
+  counts in Elixir — not grapheme clusters. A flag emoji or a
+  skin-tone modifier sequence spans multiple codepoints and therefore
+  multiple positions. This matches the behavior of Y.js and yrs, so
+  documents round-trip correctly across peers. Callers that need
+  grapheme-level offsets must convert before calling this API.
 
-  ## What this module is NOT
+  ## What this module is not
 
-  - Not the wire format: encoding lives in `Yelixer.Encoding`.
-  - Not the YATA placement algorithm: that's `Yelixer.Integrate`.
-    This module computes anchors and hands the new Item off.
-  - Not the storage: blocks live in `Yelixer.BlockStore`.
-  - Not the document container: see `Yelixer.Doc`. This file is
-    one of the type-side facades that operate *on* a `%Doc{}`.
+  - Wire encoding: see `Yelixer.Encoding`.
+  - YATA placement: see `Yelixer.Integrate`. This module computes
+    anchors and hands the item off; Integrate does the ordering.
+  - Block storage: see `Yelixer.BlockStore`.
+  - Document container: see `Yelixer.Doc`. This module is one of
+    several type facades that operate on a `%Doc{}`.
   """
 
   alias Yelixer.{Doc, ID, Item, BlockStore, DeleteSet, Integrate, StateVector}
@@ -100,22 +98,18 @@ defmodule Yelixer.Types.Text do
   Inserts `text` into `type_name`'s sequence at character offset
   `index`.
 
-  Five-step pipeline:
-
-    1. Resolve `index` to a YATA anchor pair via
-       `find_origins_with_split/3`, splitting an existing run-length
-       block if `index` lands in its interior.
-    2. Read the current high-water clock for our `client_id` from
-       `BlockStore.state_vector/1` — this becomes the new Item's
-       starting clock.
-    3. Build a single Item with `content: {:string, text}` and
-       `length: String.length(text)`. Run-length compresses the whole
-       insertion into one block.
-    4. Hand off to `Yelixer.Integrate.integrate/3` for YATA placement
-       and BlockStore insertion.
+    1. Resolve `index` to a YATA anchor pair (`origin`, `right_origin`)
+       via `find_origins_with_split/3`, splitting a run-length block if
+       `index` falls in its interior.
+    2. Read the caller's current clock from `BlockStore.state_vector/1`
+       — this becomes the new Item's starting clock.
+    3. Build one Item with `content: {:string, text}`. The entire
+       insertion is one block regardless of length.
+    4. Pass the Item to `Yelixer.Integrate.integrate/3` for YATA
+       ordering and block-store insertion.
     5. Return the updated `%Doc{}`.
 
-  No-op on empty `text` (caught by the guard).
+  Guards against empty `text` — the function is a no-op in that case.
   """
   def insert(%Doc{} = doc, type_name, index, text) when is_binary(text) and byte_size(text) > 0 do
     {store, origin, right_origin} = find_origins_with_split(doc.store, type_name, index)
@@ -129,16 +123,16 @@ defmodule Yelixer.Types.Text do
   @doc """
   Tombstones `len` characters starting at character offset `index`.
 
-  Walks the sequence to collect the IDs that fall in `[index, index +
-  len)`, splitting blocks at the start and end of the range so the
-  deletion targets whole blocks. Each collected ID is marked
-  `deleted: true` via `Yelixer.Integrate.mark_deleted/2`, and the
-  corresponding `(client, clock, length)` interval is recorded in
-  `doc.delete_set`.
+  Collects the IDs covering `[index, index + len)`, splitting blocks
+  at the start and end of the range so every target is a whole block.
+  Each collected ID is flagged `deleted: true` via
+  `Yelixer.Integrate.mark_deleted/2`; the `(client, clock, length)`
+  interval is recorded in `doc.delete_set` via
+  `Yelixer.DeleteSet.insert/4`.
 
-  The original content is preserved on each tombstoned block during
-  the GC grace period (see `Yelixer.Doc.gc/1`). Subsequent reads via
-  `to_string/2` and `length/2` already filter tombstoned items.
+  Content is kept on tombstoned blocks until GC runs (see
+  `Yelixer.Doc.gc/1`). `to_string/2` and `length/2` already exclude
+  tombstoned items via `BlockStore.get_sequence/2`.
   """
   def delete(%Doc{} = doc, type_name, index, len) when len > 0 do
     {store, ids_to_delete} = find_items_in_range_with_split(doc.store, type_name, index, len)
@@ -155,12 +149,12 @@ defmodule Yelixer.Types.Text do
   end
 
   @doc """
-  Renders the live text content of `type_name` as an Elixir string.
+  Renders the live text of `type_name` as an Elixir string.
 
-  Concatenates the `:string` content of every non-tombstoned block
-  in the sequence. Tombstones are filtered by
-  `BlockStore.get_sequence/2`; non-`:string` blocks (sub-types,
-  embeds) are skipped here — they don't contribute character output.
+  Joins the `:string` content of every non-tombstoned block in
+  document order. `BlockStore.get_sequence/2` handles tombstone
+  filtering; non-`:string` blocks (embeds, sub-types) are skipped
+  here because they contribute no characters.
   """
   def to_string(%Doc{} = doc, type_name) do
     doc.store
@@ -173,15 +167,16 @@ defmodule Yelixer.Types.Text do
   end
 
   @doc """
-  Returns the codepoint length of the live text. Each block's
-  `length` field already counts codepoints (set at construction by
-  `Yelixer.Item.new/6`'s `content_length/1`); summing live blocks
-  produces the total.
+  Returns the codepoint count of the live text.
 
-  Note: counts non-`:string` blocks as well — every live block in
-  the sequence contributes its length. For most Text-only documents
-  this is identical to `String.length(to_string(doc, name))`; if
-  the sequence contains embeds or sub-types, the values diverge.
+  Each block's `length` field is set to its codepoint count at
+  construction by `Yelixer.Item.new/6`. Summing live blocks gives the
+  total.
+
+  Counts all live blocks, not just `:string` ones. In a pure-text
+  sequence this equals `String.length(to_string(doc, name))`; if the
+  sequence contains embeds or sub-types, the two values diverge
+  because those blocks contribute length but no characters.
   """
   def length(%Doc{} = doc, type_name) do
     doc.store
@@ -191,15 +186,15 @@ defmodule Yelixer.Types.Text do
 
   # ---- Offset → anchor / range translation ----
   #
-  # Both private helpers below walk the sequence summing block
-  # lengths until the running offset reaches the caller's character
-  # index. When the index lands in the middle of a run-length block,
-  # they call `BlockStore.split_block/3` to create the boundary
-  # before continuing — that's the "with_split" suffix in their names.
+  # Both helpers walk the sequence summing block lengths until the
+  # running total reaches the caller's index. When the index falls
+  # inside a run-length block, they split that block via
+  # `BlockStore.split_block/3` before proceeding — hence the
+  # `_with_split` suffix.
   #
   # `find_origins_with_split/3` returns a left/right anchor pair for
-  # insertion; `find_items_in_range_with_split/4` returns a list of
-  # whole-block IDs that fall in a deletion range.
+  # a single insertion point. `find_items_in_range_with_split/4`
+  # returns the list of whole-block IDs that cover a deletion range.
 
   defp find_origins_with_split(store, type_name, index) do
     seq = BlockStore.get_sequence(store, type_name)
@@ -244,7 +239,7 @@ defmodule Yelixer.Types.Text do
         do_find_neighbors(store, rest, type_name, index, item_end, item)
 
       true ->
-        # Index falls within this item — split it
+        # Index lands inside this block — split it at the boundary
         offset = index - pos
         split_clock = item.id.clock + offset
         {store, right} = BlockStore.split_block(store, ID.new(item.id.client, split_clock), type_name)
@@ -253,7 +248,7 @@ defmodule Yelixer.Types.Text do
     end
   end
 
-  # Find item IDs in a character range, splitting at boundaries as needed.
+  # Collect whole-block IDs covering [index, index+len), splitting at range boundaries.
   defp find_items_in_range_with_split(store, type_name, index, len) do
     seq = BlockStore.get_sequence(store, type_name)
     do_collect_ids(store, seq, type_name, index, len, 0, [])
@@ -267,33 +262,33 @@ defmodule Yelixer.Types.Text do
 
     cond do
       item_end <= index ->
-        # Before the range, skip
+        # Block ends before the range starts — skip it.
         do_collect_ids(store, rest, type_name, index, remaining, item_end, acc)
 
       pos >= index and item.length <= remaining ->
-        # Entire item is within range
+        # Block is entirely inside the range — collect it.
         do_collect_ids(store, rest, type_name, index, remaining - item.length, item_end, [
           item.id | acc
         ])
 
       pos >= index ->
-        # Item extends beyond range — split at end of deletion range
+        # Block starts inside the range but extends past its end.
+        # Split at the end boundary, then collect the left piece.
         split_clock = item.id.clock + remaining
         {store, _right} = BlockStore.split_block(store, ID.new(item.id.client, split_clock), type_name)
         {store, Enum.reverse([item.id | acc])}
 
       true ->
-        # Partial overlap at start — split at start of range
+        # Block straddles the start of the range — split at the start boundary.
         split_clock = item.id.clock + (index - pos)
         {store, right} = BlockStore.split_block(store, ID.new(item.id.client, split_clock), type_name)
 
         if right.length <= remaining do
-          # Take the whole right piece and continue
+          # The right piece fits entirely in the range — re-walk from the top.
           new_seq = BlockStore.get_sequence(store, type_name)
-          # Re-walk from the split point
           do_collect_ids(store, new_seq, type_name, index, remaining, 0, acc)
         else
-          # Need to also split at the end
+          # The right piece also extends past the range end — split it too.
           split_end = right.id.clock + remaining
           {store, _} = BlockStore.split_block(store, ID.new(right.id.client, split_end), type_name)
           {store, [right.id]}
