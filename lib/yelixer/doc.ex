@@ -159,6 +159,28 @@ defmodule Yelixer.Doc do
   def has_type?(%__MODULE__{types: types}, name), do: Map.has_key?(types, name)
 
   @doc """
+  Returns the synthetic names of CRDT sub-types nested inside maps and
+  arrays — the `"__sub:CLIENT:CLOCK"`-keyed types that `snapshot_update/1`
+  does **not** replay structurally (`replay_named_type/3` short-circuits on
+  the `__sub:` prefix). Each such type's internal CRDT state is therefore
+  dropped on snapshot/compaction.
+
+  An empty list means the doc is safe to snapshot without losing nested
+  state. XML sub-types are *excluded* — they use `"::child::"` naming and
+  are replayed structurally via the `replay_xml_*` helpers.
+
+  Callers that compact docs (e.g. `Commonplace.Store.Snapshotter`) use this
+  to refuse a lossy snapshot rather than silently discarding the nested
+  CRDT, converting a delayed data-loss trap into a visible no-op.
+  """
+  @spec nested_subtype_names(t()) :: [String.t()]
+  def nested_subtype_names(%__MODULE__{types: types}) do
+    types
+    |> Map.keys()
+    |> Enum.filter(&String.starts_with?(&1, "__sub:"))
+  end
+
+  @doc """
   Looks up or registers a named top-level type. Returns
   `{doc, type_ref}`.
 
