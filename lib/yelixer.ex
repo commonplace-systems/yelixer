@@ -50,9 +50,6 @@ defmodule Yelixer do
       │  ID  (client, clock)  ─── universal identifier           │  primitive
       └──────────────────────────────────────────────────────────┘
 
-  `Transaction` sits at the type-facade layer but is currently
-  partial; see its moduledoc.
-
   ## Why layered this way
 
   Lower layers are reusable primitives; higher layers compose them.
