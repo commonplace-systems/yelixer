@@ -84,16 +84,21 @@ defmodule Yelixer.Types.YMap do
     1. Tombstone the existing live Item for this key (if any) — see LWW
        semantics in the moduledoc.
     2. Build a new Item: `content: {:any, [value]}`, `parent_sub: key`,
-       `origin` and `right_origin` both `nil` (keyed entries anchor by
-       client-ID tiebreak, not to specific neighbours).
+       `origin = <the overwritten item's id>` (nil for a first write) —
+       the Yjs map-set convention, so a causally-later overwrite from a
+       SMALLER client id still integrates RIGHT of the value it replaces
+       and wins the rightmost-wins conflict resolution on replay (found
+       via CX-saix: outline reparent flaked on random client-id order).
     3. Pass to `Yelixer.Integrate.integrate/3` for YATA placement.
   """
   def set(%Doc{} = doc, type_name, key, value) do
+    existing = find_current_item(doc.store, type_name, key)
     doc = delete_existing(doc, type_name, key)
 
     clock = StateVector.get(BlockStore.state_vector(doc.store), doc.client_id)
     id = ID.new(doc.client_id, clock)
-    item = Item.new(id, nil, nil, {:any, [value]}, {:named, type_name}, key)
+    origin = existing && existing.id
+    item = Item.new(id, origin, nil, {:any, [value]}, {:named, type_name}, key)
     {:ok, store} = Integrate.integrate(doc.store, item, type_name)
     %{doc | store: store}
   end

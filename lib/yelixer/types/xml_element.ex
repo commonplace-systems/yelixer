@@ -57,14 +57,26 @@ defmodule Yelixer.Types.XMLElement do
     end
   end
 
-  @doc "Set an attribute, replacing any existing value for `key`."
+  @doc """
+  Set an attribute, replacing any existing value for `key`.
+
+  The replacement item carries `origin = <the overwritten item's id>`
+  (the Yjs map-set convention): on replay, YATA places it RIGHT of the
+  value it replaces regardless of client ids, so the rightmost-wins map
+  conflict resolution keeps the causally-later write. With a nil origin
+  a smaller-client overwrite integrates LEFT of the old item and is
+  auto-deleted as a phantom concurrent loser (found via CX-saix —
+  outline reparent flaked on random client-id order).
+  """
   def set_attribute(%Doc{} = doc, type_name, key, value) do
+    existing = find_current_attr(doc.store, type_name, key)
     doc = delete_existing_attr(doc, type_name, key)
 
     clock = StateVector.get(BlockStore.state_vector(doc.store), doc.client_id)
     id = ID.new(doc.client_id, clock)
-    item = Item.new(id, nil, nil, {:any, [value]}, {:named, type_name}, key)
-    store = BlockStore.push(doc.store, item)
+    origin = existing && existing.id
+    item = Item.new(id, origin, nil, {:any, [value]}, {:named, type_name}, key)
+    {:ok, store} = Integrate.integrate(doc.store, item, type_name)
     %{doc | store: store}
   end
 
