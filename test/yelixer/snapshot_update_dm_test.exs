@@ -10,7 +10,7 @@ defmodule Yelixer.SnapshotUpdateDmTest do
   """
   use ExUnit.Case, async: true
 
-  alias Yelixer.{Doc, Encoding}
+  alias Yelixer.{BlockStore, Doc, Encoding}
   alias Yelixer.Types.Text
 
   describe "snapshot_update/1 returns {bytes, dm}" do
@@ -63,8 +63,8 @@ defmodule Yelixer.SnapshotUpdateDmTest do
       # Before running snapshot_update, normalize client_id the same way
       # Snapshotter does (min client in the store). This is the contract
       # — snapshot_update is deterministic given identical source state.
-      a_min = converged_a.store.clients |> Map.keys() |> Enum.min()
-      b_min = converged_b.store.clients |> Map.keys() |> Enum.min()
+      a_min = converged_a.store |> BlockStore.client_ids() |> Enum.min()
+      b_min = converged_b.store |> BlockStore.client_ids() |> Enum.min()
       a_norm = %{converged_a | client_id: a_min}
       b_norm = %{converged_b | client_id: b_min}
 

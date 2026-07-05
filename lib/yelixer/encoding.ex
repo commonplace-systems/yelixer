@@ -445,7 +445,9 @@ defmodule Yelixer.Encoding do
     structs_bin =
       Enum.reduce(diff_clients, <<>>, fn {client, _local_clock}, acc ->
         remote_clock = StateVector.get(remote_sv, client)
-        all_items = Map.get(store.clients, client, [])
+        # CX-w1fw: materialized *view* — recent pushes may still be
+        # sitting in client_pending, not yet folded into store.clients.
+        all_items = BlockStore.client_blocks(store, client)
 
         # Filter to items at or after the remote clock
         items =
@@ -939,7 +941,15 @@ defmodule Yelixer.Encoding do
     end
   end
 
+  # CX-w1fw: delete-range application is a direct-mutation path (it
+  # reshapes clients[client] and every sequence with List.replace_at /
+  # List.insert_at), so it needs the canonical, fully-materialized
+  # lists — pending buffers folded in first — rather than the
+  # materialized *view* helpers used by read-only callers.
   defp split_in_clients(store, client, item, offset) do
+    store = BlockStore.materialize_client(store, client)
+    store = BlockStore.materialize_all_sequences(store)
+
     {left, right} = Item.split(item, offset)
 
     clients =
@@ -952,19 +962,25 @@ defmodule Yelixer.Encoding do
       end)
 
     # Update sequences too, if the item is present in one
-    sequences =
-      Enum.reduce(store.sequences, store.sequences, fn {type_key, seq}, sequences ->
+    {sequences, sequence_len} =
+      Enum.reduce(store.sequences, {store.sequences, store.sequence_len}, fn {type_key, seq}, {sequences, lens} ->
         case Enum.find_index(seq, &(&1 == item.id)) do
-          nil -> sequences
-          idx -> Map.put(sequences, type_key, List.insert_at(seq, idx + 1, right.id))
+          nil ->
+            {sequences, lens}
+
+          idx ->
+            {Map.put(sequences, type_key, List.insert_at(seq, idx + 1, right.id)),
+             Map.update(lens, type_key, 1, &(&1 + 1))}
         end
       end)
 
-    %{store | clients: clients, sequences: sequences}
+    %{store | clients: clients, sequences: sequences, sequence_len: sequence_len}
     |> BlockStore.refresh_tuple_cache(client)
   end
 
   defp mark_item_deleted(store, client, item) do
+    store = BlockStore.materialize_client(store, client)
+
     clients =
       Map.update!(store.clients, client, fn blocks ->
         {idx, _} = BlockStore.find_block_index(blocks, item.id.clock)
@@ -1077,6 +1093,7 @@ defmodule Yelixer.Encoding do
   defp maybe_resolve_map_conflict(store, %Item{parent_sub: :inherit}, _type_key), do: store
 
   defp maybe_resolve_map_conflict(store, %Item{parent_sub: sub}, type_key) do
+    store = BlockStore.materialize_sequence(store, type_key)
     seq_ids = Map.get(store.sequences, type_key, [])
 
     # All non-deleted items sharing this parent_sub, with their sequence positions
@@ -1107,6 +1124,8 @@ defmodule Yelixer.Encoding do
             store
 
           loser ->
+            store = BlockStore.materialize_client(store, loser.id.client)
+
             clients =
               Map.update!(store.clients, loser.id.client, fn blocks ->
                 {idx, _} = BlockStore.find_block_index(blocks, loser.id.clock)

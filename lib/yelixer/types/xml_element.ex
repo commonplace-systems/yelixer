@@ -90,8 +90,7 @@ defmodule Yelixer.Types.XMLElement do
 
   @doc "Return all live attributes as a `%{key => value}` map."
   def get_attributes(%Doc{} = doc, type_name) do
-    doc.store.clients
-    |> Enum.flat_map(fn {_client, items} -> items end)
+    BlockStore.all_items(doc.store)
     |> Enum.filter(fn %Item{parent: parent, parent_sub: sub, deleted: deleted} ->
       parent == {:named, type_name} and sub != nil and not deleted
     end)
@@ -277,8 +276,7 @@ defmodule Yelixer.Types.XMLElement do
   end
 
   defp find_current_attr(store, type_name, key) do
-    store.clients
-    |> Enum.flat_map(fn {_client, items} -> items end)
+    BlockStore.all_items(store)
     |> Enum.filter(fn %Item{parent: parent, parent_sub: sub, deleted: deleted} ->
       parent == {:named, type_name} and sub == key and not deleted
     end)

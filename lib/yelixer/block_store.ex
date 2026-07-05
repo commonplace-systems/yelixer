@@ -30,12 +30,69 @@ defmodule Yelixer.BlockStore do
   Binary search needs O(1) random access; Erlang lists are O(n).
   `client_tuples` mirrors each client's block list as a tuple
   (`:erlang.elem` is O(1)). The cache is built lazily (`get_tuple/2`).
-  `push/2` extends it cheaply with `:erlang.append_element/2` — the
-  only O(1) Erlang tuple mutation. `split_block/3`, which inserts into
-  the middle of a list, drops the cached tuple and lets the next read
-  rebuild it.
+
+  Historical note (CX-w1fw): an earlier version of this moduledoc
+  claimed `:erlang.append_element/2` was "the only O(1) Erlang tuple
+  mutation" and used it in `push/2` to extend the cache on every
+  write. That claim is false — `append_element/2` allocates a new
+  tuple and copies all N existing elements, same as
+  `Tuple.append/2` or rebuilding from a list. There is no O(1) tuple
+  mutation in Erlang; tuples are fixed-size and immutable. Calling
+  `append_element/2` once per push made every push O(n), which is
+  exactly the O(n²) replay pattern this rewrite removes. `push/2` no
+  longer touches the tuple cache at all — see "Deferred writes" below.
 
   Lists are the source of truth; tuples are a read-side optimization.
+
+  ## Deferred writes (CX-w1fw)
+
+  `clients[c]` and `sequences[name]` remain forward-order lists at
+  rest — external readers (tests, the LWW-loss auditor, CLI inspect,
+  snapshotters) still see plain `[Item.t()]` / `[ID.t()]` values with
+  the same shape as before. But an Elixir list cannot support cheap
+  tail-append without breaking that shape (appending copies the
+  spine), so writes are buffered instead:
+
+    - `push/2` puts the new item into `client_pending[c]`, a
+      `:gb_trees` tree keyed by *negated* start clock. Insert is
+      O(log k) in the pending count; keying by `-clock` makes
+      "largest start clock ≤ target" (the floor query `get/2` needs)
+      expressible as `:gb_trees.iterator_from/2`, and makes
+      `:gb_trees.smallest/1` the newest block (the `state_vector/1`
+      high-water mark).
+    - The tail-append path of `insert_into_sequence/4` conses onto
+      `sequence_pending[name]`, a reverse-order list, O(1). Sequences
+      never need clock search — only append and whole-list reads.
+    - `sequence_len` tracks the logical total sequence length
+      (materialized + pending) in O(1) so append detection and
+      `find_insertion_index`'s end-of-sequence case never call
+      `length/1` on a list.
+
+  Pending entries are folded into the canonical lists — "materialized"
+  — lazily:
+
+    - `client_blocks/2`, `all_items/1`, `get_sequence/2` compute a
+      materialized *view* on demand without persisting it (cheap
+      relative to their existing O(n) cost; they're not called per
+      integrated item).
+    - Any path that *mutates* `clients[c]` or `sequences[name]`
+      directly (`split_block/3`, `mark_deleted/2`, delete-range
+      splitting) calls `materialize_client/2` / `materialize_sequence/2`
+      first, which folds pending in, rebuilds the tuple cache, and
+      clears the pending buffer — so a later direct read of `clients`
+      never races with a stale pending copy.
+    - `get/2` does an O(log k) floor lookup in `client_pending[c]`
+      before the tuple, so the hot path (an item's own most recent
+      block, which is where YATA anchors it during append-heavy
+      replay) never touches the tuple or the canonical list — and
+      cold lookups deep inside an unmaterialized bucket stay
+      sub-linear too.
+
+  The upshot: appending N items to one client/sequence in a replay
+  loop costs O(log N) each, not O(N) each — the tuple cache and
+  canonical lists get rebuilt once, lazily, the first time something
+  needs them (typically once, at the end of a whole replay), rather
+  than once per item.
 
   ## Block ranges and clock membership
 
@@ -72,36 +129,38 @@ defmodule Yelixer.BlockStore do
   @type t :: %__MODULE__{
           clients: %{non_neg_integer() => [Item.t()]},
           sequences: %{String.t() => [ID.t()]},
-          client_tuples: %{non_neg_integer() => tuple()}
+          client_tuples: %{non_neg_integer() => tuple()},
+          client_pending: %{non_neg_integer() => :gb_trees.tree(integer(), Item.t())},
+          sequence_pending: %{String.t() => [ID.t()]},
+          sequence_len: %{String.t() => non_neg_integer()}
         }
-  defstruct clients: %{}, sequences: %{}, client_tuples: %{}
+  defstruct clients: %{},
+            sequences: %{},
+            client_tuples: %{},
+            client_pending: %{},
+            sequence_pending: %{},
+            sequence_len: %{}
 
   @doc "An empty BlockStore — no clients, no sequences, no cached tuples."
   def new, do: %__MODULE__{}
 
   @doc """
-  Appends `item` to its client's bucket and extends the tuple cache in place.
+  Appends `item` to its client's bucket, O(log k) in the client's
+  pending count.
 
   Integration produces Items in clock order per client, so the new
-  item's clock always exceeds every existing block in the bucket. That
-  monotonicity lets the tuple cache grow with `:erlang.append_element/2`
-  (O(1) on the right) rather than a full rebuild.
+  item's clock always exceeds every existing block in the bucket.
+  Rather than copying `clients[client]` (and rebuilding the tuple
+  cache) on every push, the item goes into `client_pending[client]` —
+  a `:gb_trees` tree keyed by negated start clock — and is folded into
+  the canonical list lazily. See the moduledoc's "Deferred writes"
+  section.
   """
-  def push(%__MODULE__{clients: clients, client_tuples: ct} = store, %Item{} = item) do
+  def push(%__MODULE__{client_pending: pending} = store, %Item{} = item) do
     client = item.id.client
-    client_blocks = Map.get(clients, client, [])
-    new_blocks = client_blocks ++ [item]
-
-    new_tuple =
-      case Map.get(ct, client) do
-        nil -> List.to_tuple(new_blocks)
-        existing -> :erlang.append_element(existing, item)
-      end
-
-    %{store |
-      clients: Map.put(clients, client, new_blocks),
-      client_tuples: Map.put(ct, client, new_tuple)
-    }
+    tree = Map.get(pending, client) || :gb_trees.empty()
+    tree = :gb_trees.enter(-item.id.clock, item, tree)
+    %{store | client_pending: Map.put(pending, client, tree)}
   end
 
   @doc """
@@ -112,17 +171,196 @@ defmodule Yelixer.BlockStore do
   multi-clock run-length block, and the containing block is returned.
   Callers that need `id.clock == clock` exactly (e.g. to anchor at
   an interior boundary) should call `split_block/3` first.
+
+  Does an O(log k) floor lookup in `client_pending[client]` (most
+  recently pushed items, unmaterialized) before falling back to the
+  tuple-cache binary search. During append-heavy replay the queried id
+  is almost always the client's own last-pushed item, so the pending
+  tree resolves it without ever touching the canonical list.
   """
   def get(%__MODULE__{} = store, %ID{client: client, clock: clock}) do
-    case get_tuple(store, client) do
-      nil -> nil
-      tuple -> bsearch_item(tuple, clock)
+    case pending_floor(store.client_pending, client, clock) do
+      %Item{} = item ->
+        item
+
+      nil ->
+        case get_tuple(store, client) do
+          nil -> nil
+          tuple -> bsearch_item(tuple, clock)
+        end
     end
   end
 
-  @doc "Returns the full list of blocks for a client (or `[]` if none)."
-  def client_blocks(%__MODULE__{clients: clients}, client) do
-    Map.get(clients, client, [])
+  # Floor query on the pending tree: the pending block with the
+  # largest start clock <= `clock`, if it covers `clock`. Keys are
+  # negated clocks, so `iterator_from(-clock)` positions at the first
+  # key >= -clock — i.e. the first start clock <= clock. Blocks never
+  # overlap, so if that block doesn't cover the clock, nothing in
+  # pending does.
+  defp pending_floor(pending, client, clock) do
+    case Map.get(pending, client) do
+      nil ->
+        nil
+
+      tree ->
+        case :gb_trees.next(:gb_trees.iterator_from(-clock, tree)) do
+          {_key, %Item{} = item, _iter} -> if covers?(item, clock), do: item, else: nil
+          :none -> nil
+        end
+    end
+  end
+
+  defp covers?(%Item{id: %ID{clock: c}, length: len}, clock), do: clock >= c and clock < c + len
+
+  # Pending items for a client in ascending clock order (tree values
+  # come out ascending by key = descending clock; reverse them).
+  defp pending_items(pending, client) do
+    case Map.get(pending, client) do
+      nil -> []
+      tree -> tree |> :gb_trees.values() |> Enum.reverse()
+    end
+  end
+
+  @doc """
+  Returns the full list of blocks for a client (or `[]` if none) in
+  clock order.
+
+  A read-only *materialized view*: folds `client_pending[client]` onto
+  `clients[client]` without persisting the fold. Callers that need to
+  mutate the client's bucket (`split_block/3`, `mark_deleted/2`, delete
+  splitting) must call `materialize_client/2` instead so the fold is
+  persisted and the pending buffer is cleared before they write.
+  """
+  def client_blocks(%__MODULE__{clients: clients, client_pending: pending}, client) do
+    Map.get(clients, client, []) ++ pending_items(pending, client)
+  end
+
+  @doc """
+  Returns every client id with at least one block — materialized or
+  still pending. `Map.keys(store.clients)` alone would miss clients
+  whose only blocks haven't been folded in yet.
+  """
+  def client_ids(%__MODULE__{clients: clients, client_pending: pending}) do
+    clients
+    |> Map.keys()
+    |> MapSet.new()
+    |> MapSet.union(MapSet.new(Map.keys(pending)))
+    |> MapSet.to_list()
+  end
+
+  @doc """
+  Returns every Item across every client, materialized-view (read-only).
+
+  Order is by ascending client id, then clock within a client; callers
+  that don't care about client order (attribute scans, LWW auditors)
+  can treat this as an unordered bag, matching the unspecified
+  Map-iteration order the pre-CX-w1fw code relied on.
+  """
+  def all_items(%__MODULE__{} = store) do
+    store |> client_ids() |> Enum.sort() |> Enum.flat_map(&client_blocks(store, &1))
+  end
+
+  @doc """
+  Folds `client_pending[client]` into `clients[client]` and rebuilds
+  the tuple cache, clearing the pending buffer. No-op (returns `store`
+  unchanged) if there's nothing pending.
+
+  Required before any direct mutation of `clients[client]` (e.g.
+  `List.replace_at/3`, `List.insert_at/3`) — those paths need the
+  canonical list to already include every pushed item, and need the
+  pending buffer cleared so a later `get/2` doesn't resurrect a
+  pre-mutation copy from pending.
+  """
+  def materialize_client(%__MODULE__{} = store, client) do
+    case pending_items(store.client_pending, client) do
+      [] ->
+        store
+
+      new_items ->
+        new_list = Map.get(store.clients, client, []) ++ new_items
+
+        %{store |
+          clients: Map.put(store.clients, client, new_list),
+          client_pending: Map.delete(store.client_pending, client),
+          client_tuples: Map.put(store.client_tuples, client, List.to_tuple(new_list))
+        }
+    end
+  end
+
+  @doc """
+  Folds `sequence_pending[type_name]` into `sequences[type_name]`,
+  clearing the pending buffer. No-op if nothing pending. Required
+  before any direct read or mutation of `sequences[type_name]` that
+  doesn't go through `insert_into_sequence/4` (e.g. `split_block/3`'s
+  splice, `Encoding`'s delete-range splitting).
+  """
+  def materialize_sequence(%__MODULE__{} = store, type_name) do
+    case Map.get(store.sequence_pending, type_name) do
+      pending when pending in [nil, []] ->
+        store
+
+      pending ->
+        new_ids = Enum.reverse(pending)
+        new_seq = Map.get(store.sequences, type_name, []) ++ new_ids
+
+        %{store |
+          sequences: Map.put(store.sequences, type_name, new_seq),
+          sequence_pending: Map.delete(store.sequence_pending, type_name)
+        }
+    end
+  end
+
+  @doc """
+  Materializes every pending sequence (all type names). Used by
+  operations that scan every sequence for an id's position (e.g.
+  `Yelixer.Encoding`'s delete-range splitting, which doesn't know in
+  advance which type an item belongs to).
+  """
+  def materialize_all_sequences(%__MODULE__{} = store) do
+    Enum.reduce(Map.keys(store.sequence_pending), store, fn type_name, store ->
+      materialize_sequence(store, type_name)
+    end)
+  end
+
+  @doc """
+  Materializes every pending client bucket and every pending sequence.
+  Used by whole-store operations that already touch everything, e.g.
+  `Yelixer.Doc.gc/1`.
+  """
+  def materialize_all(%__MODULE__{} = store) do
+    store =
+      Enum.reduce(Map.keys(store.client_pending), store, fn client, store ->
+        materialize_client(store, client)
+      end)
+
+    materialize_all_sequences(store)
+  end
+
+  @doc """
+  Logical length of `type_name`'s sequence — materialized plus
+  pending — in O(1). Replaces `length(seq_ids)` on the hot path in
+  `Yelixer.Integrate.find_insertion_index/3`.
+  """
+  def sequence_length(%__MODULE__{sequence_len: lens}, type_name) do
+    Map.get(lens, type_name, 0)
+  end
+
+  @doc """
+  Returns the ID of the logically-last element of `type_name`'s
+  sequence (materialized or still pending), or `nil` if empty.
+  """
+  def last_sequence_id(%__MODULE__{} = store, type_name) do
+    case Map.get(store.sequence_pending, type_name) do
+      [id | _] ->
+        id
+
+      _ ->
+        case Map.get(store.sequences, type_name) do
+          nil -> nil
+          [] -> nil
+          list -> List.last(list)
+        end
+    end
   end
 
   @doc """
@@ -130,16 +368,35 @@ defmodule Yelixer.BlockStore do
 
   For each client, the high-water mark is `last_block.id.clock + length`
   — the next unused clock, per `StateVector`'s contract. Clients absent
-  from `clients` produce no entry; the state vector defaults to 0 for
-  unknown clients.
+  from `clients` (and from `client_pending`) produce no entry; the
+  state vector defaults to 0 for unknown clients.
+
+  Reads `client_pending` alongside `clients` so this stays correct
+  without forcing a materialize: the pending tree's smallest key
+  (most-negated clock) — when present — is always the highest-clock
+  item for that client, same information `List.last(clients[client])`
+  would give if it had been materialized. This function is called once
+  per `Yelixer.Encoding.apply_update/2`, so keeping it O(#clients)
+  instead of O(#clients + a materialize) matters for replay.
   """
-  def state_vector(%__MODULE__{clients: clients}) do
-    Enum.reduce(clients, StateVector.new(), fn {client, blocks}, sv ->
-      case List.last(blocks) do
+  def state_vector(%__MODULE__{} = store) do
+    Enum.reduce(client_ids(store), StateVector.new(), fn client, sv ->
+      case last_client_item(store, client) do
         nil -> sv
         %Item{id: id, length: len} -> StateVector.set(sv, client, id.clock + len)
       end
     end)
+  end
+
+  defp last_client_item(store, client) do
+    case Map.get(store.client_pending, client) do
+      nil ->
+        List.last(Map.get(store.clients, client, []))
+
+      tree ->
+        {_key, item} = :gb_trees.smallest(tree)
+        item
+    end
   end
 
   @doc """
@@ -156,11 +413,31 @@ defmodule Yelixer.BlockStore do
   Inserts an existing block's ID into a sequence at `index`. Used when
   a split introduces a new right-half block, or when reordering moves
   an existing item's slot.
+
+  When `index` is exactly the sequence's current logical length (the
+  overwhelmingly common case for append-heavy replay — YATA anchors a
+  new item after the client's own last block), this is O(1): the id is
+  consed onto `sequence_pending[type_name]` rather than spliced into
+  the materialized list with `List.insert_at/3` (O(index), i.e. O(n)
+  for an append). Any other index materializes pending first, then
+  inserts normally — mid-sequence inserts are the concurrent-edit case
+  this rewrite doesn't need to special-case.
   """
   def insert_into_sequence(%__MODULE__{} = store, type_name, index, id) do
-    seq = Map.get(store.sequences, type_name, [])
-    seq = List.insert_at(seq, index, id)
-    %{store | sequences: Map.put(store.sequences, type_name, seq)}
+    len = sequence_length(store, type_name)
+
+    store =
+      if index == len do
+        pending = [id | Map.get(store.sequence_pending, type_name, [])]
+        %{store | sequence_pending: Map.put(store.sequence_pending, type_name, pending)}
+      else
+        store = materialize_sequence(store, type_name)
+        seq = Map.get(store.sequences, type_name, [])
+        seq = List.insert_at(seq, index, id)
+        %{store | sequences: Map.put(store.sequences, type_name, seq)}
+      end
+
+    %{store | sequence_len: Map.put(store.sequence_len, type_name, len + 1)}
   end
 
   @doc """
@@ -182,51 +459,57 @@ defmodule Yelixer.BlockStore do
   boundaries, so a split is the prerequisite for anchoring a new YATA
   insertion at an interior clock.
   """
-  def split_block(%__MODULE__{} = store, %ID{client: client, clock: clock}, type_name) do
-    case get_tuple(store, client) do
+  def split_block(%__MODULE__{} = store, %ID{client: client, clock: clock} = id, type_name) do
+    # get/2 checks client_pending first, so this doesn't force a
+    # materialize for the common "already a boundary" no-op case (the
+    # last item pushed for `client`, still pending, exactly on a
+    # boundary — true for every single-char append). Only the actual
+    # split branch below needs the canonical, mutable list.
+    case get(store, id) do
       nil ->
         {store, nil}
 
-      tuple ->
-        case bsearch_index(tuple, clock) do
-          nil ->
-            {store, nil}
+      %Item{id: %ID{clock: item_clock}} = item when item_clock == clock ->
+        # Already on a boundary; nothing to do.
+        {store, item}
 
-          {_idx, item} when item.id.clock == clock ->
-            # Already on a boundary; nothing to do.
-            {store, item}
+      _found ->
+        store = materialize_client(store, client)
+        store = materialize_sequence(store, type_name)
 
-          {idx, item} ->
-            offset = clock - item.id.clock
-            {left, right} = Item.split(item, offset)
+        tuple = get_tuple(store, client)
+        {idx, item} = bsearch_index(tuple, clock)
+        offset = clock - item.id.clock
+        {left, right} = Item.split(item, offset)
 
-            clients =
-              Map.update!(store.clients, client, fn blocks ->
-                blocks
-                |> List.replace_at(idx, left)
-                |> List.insert_at(idx + 1, right)
-              end)
+        clients =
+          Map.update!(store.clients, client, fn blocks ->
+            blocks
+            |> List.replace_at(idx, left)
+            |> List.insert_at(idx + 1, right)
+          end)
 
-            # Cache no longer mirrors the list; drop it for lazy rebuild.
-            ct = Map.delete(store.client_tuples, client)
+        # Cache no longer mirrors the list; drop it for lazy rebuild.
+        ct = Map.delete(store.client_tuples, client)
 
-            sequences =
-              case Map.get(store.sequences, type_name) do
-                nil ->
-                  store.sequences
+        {sequences, sequence_len} =
+          case Map.get(store.sequences, type_name) do
+            nil ->
+              {store.sequences, store.sequence_len}
 
-                seq ->
-                  seq_idx = Enum.find_index(seq, &(&1 == item.id))
+            seq ->
+              seq_idx = Enum.find_index(seq, &(&1 == item.id))
 
-                  if seq_idx != nil do
-                    Map.put(store.sequences, type_name, List.insert_at(seq, seq_idx + 1, right.id))
-                  else
-                    store.sequences
-                  end
+              if seq_idx != nil do
+                new_seq = List.insert_at(seq, seq_idx + 1, right.id)
+                new_len = Map.update(store.sequence_len, type_name, 1, &(&1 + 1))
+                {Map.put(store.sequences, type_name, new_seq), new_len}
+              else
+                {store.sequences, store.sequence_len}
               end
+          end
 
-            {%{store | clients: clients, sequences: sequences, client_tuples: ct}, right}
-        end
+        {%{store | clients: clients, sequences: sequences, client_tuples: ct, sequence_len: sequence_len}, right}
     end
   end
 
@@ -234,14 +517,21 @@ defmodule Yelixer.BlockStore do
   Returns all live (non-tombstoned) Items for `type_name` in document order.
 
   Resolves each ID in the sequence via the per-client index, then
-  drops missing and tombstoned entries.
+  drops missing and tombstoned entries. Reads a materialized *view* of
+  the sequence (pending ids folded in without persisting) so a caller
+  mid-replay always sees every item integrated so far.
   """
   def get_sequence(%__MODULE__{} = store, type_name) do
-    store.sequences
-    |> Map.get(type_name, [])
+    sequence_view(store, type_name)
     |> Enum.map(&get(store, &1))
     |> Enum.reject(&is_nil/1)
     |> Enum.reject(& &1.deleted)
+  end
+
+  defp sequence_view(%__MODULE__{} = store, type_name) do
+    base = Map.get(store.sequences, type_name, [])
+    pending = Map.get(store.sequence_pending, type_name, [])
+    base ++ Enum.reverse(pending)
   end
 
   # Public binary-search hook for callers that hold a `[Item.t()]` list

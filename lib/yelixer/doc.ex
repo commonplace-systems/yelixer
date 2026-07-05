@@ -229,6 +229,12 @@ defmodule Yelixer.Doc do
   read.
   """
   def gc(%__MODULE__{store: store} = doc) do
+    # CX-w1fw: gc/1 already touches every item in the store, so a full
+    # materialize (folding client_pending into clients) costs no more
+    # than the Map.new below would anyway — and it must happen first,
+    # or any still-pending items would be silently skipped.
+    store = BlockStore.materialize_all(store)
+
     clients =
       Map.new(store.clients, fn {client, blocks} ->
         {client, Enum.map(blocks, &gc_item/1)}
@@ -356,12 +362,16 @@ defmodule Yelixer.Doc do
     pair_ids(new_ids, source_ids)
   end
 
-  defp collect_item_ids(%__MODULE__{store: %BlockStore{clients: clients}}) do
-    clients
-    |> Enum.sort_by(fn {client, _} -> client end, :desc)
-    |> Enum.flat_map(fn {_client, items} ->
-      items
-      |> Enum.sort_by(fn item -> item.id.clock end)
+  defp collect_item_ids(%__MODULE__{store: %BlockStore{} = store}) do
+    # CX-w1fw: read through client_blocks/2 (materialized view), not
+    # store.clients directly — recently written items may still be in
+    # the pending buffer. client_blocks/2 is already clock-ascending.
+    store
+    |> BlockStore.client_ids()
+    |> Enum.sort(:desc)
+    |> Enum.flat_map(fn client ->
+      store
+      |> BlockStore.client_blocks(client)
       |> Enum.map(fn item -> {item.id.client, item.id.clock} end)
     end)
   end
@@ -391,9 +401,10 @@ defmodule Yelixer.Doc do
     Enum.sort_by(types, fn {name, _ref} -> earliest_id_for_type(source, name) end)
   end
 
-  defp earliest_id_for_type(%__MODULE__{store: %BlockStore{clients: clients}}, name) do
-    clients
-    |> Enum.flat_map(fn {_client, items} -> items end)
+  defp earliest_id_for_type(%__MODULE__{store: %BlockStore{} = store}, name) do
+    # CX-w1fw: all_items/1 view — see collect_item_ids/1.
+    store
+    |> BlockStore.all_items()
     |> Enum.filter(fn
       %Item{parent: {:named, ^name}} -> true
       _ -> false

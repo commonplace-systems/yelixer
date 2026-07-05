@@ -133,7 +133,7 @@ defmodule Yelixer.Integrate do
   def integrate(%BlockStore{} = store, %Item{} = item, type_name) do
     store = maybe_split_at_origin(store, item.origin, type_name)
     store = maybe_split_at_right_origin(store, item.right_origin, type_name)
-    index = find_insertion_index(store, item, type_name)
+    {store, index} = find_insertion_index(store, item, type_name)
 
     store = BlockStore.insert_at(store, type_name, index, item)
     {:ok, store}
@@ -142,11 +142,19 @@ defmodule Yelixer.Integrate do
   @doc """
   Computes the insertion index without inserting. For items already
   in the block store when only their sequence position is needed.
+
+  Any materialization `find_insertion_index/3` performs internally
+  (the slow, conflict-resolution path) is local to this call and not
+  returned to the caller — matches the pre-CX-w1fw behavior, where
+  `maybe_split_at_origin/right_origin`'s splits were computed but
+  never persisted either. This function is a test/diagnostic surface;
+  it was never meant to mutate the store.
   """
   def find_index(%BlockStore{} = store, %Item{} = item, type_name) do
     store = maybe_split_at_origin(store, item.origin, type_name)
     store = maybe_split_at_right_origin(store, item.right_origin, type_name)
-    find_insertion_index(store, item, type_name)
+    {_store, index} = find_insertion_index(store, item, type_name)
+    index
   end
 
   # If `origin` falls inside a block (not on its last clock), split
@@ -213,6 +221,7 @@ defmodule Yelixer.Integrate do
   the GC threshold; see `Yelixer.Item` "Tombstones and `:gc`".
   """
   def mark_deleted(%BlockStore{} = store, %ID{} = id) do
+    store = BlockStore.materialize_client(store, id.client)
     blocks = Map.get(store.clients, id.client, [])
 
     case BlockStore.find_block_index(blocks, id.clock) do
@@ -235,40 +244,110 @@ defmodule Yelixer.Integrate do
   # Computes the insertion index via YATA conflict resolution.
   # Brackets the search to [start, end) — strictly between origin and
   # right_origin — then either returns start (empty bracket) or runs
-  # the two-set scan.
+  # the two-set scan. Returns `{store, index}` — the fast path below
+  # never mutates `store`, but the slow path materializes the sequence
+  # before scanning it, so both branches must agree on a shape.
   defp find_insertion_index(store, item, type_name) do
-    seq_ids = Map.get(store.sequences, type_name, [])
+    case fast_append_index(store, item, type_name) do
+      {:ok, index} ->
+        {store, index}
 
-    start_index =
-      case item.origin do
-        nil ->
-          0
+      :slow ->
+        # CX-w1fw: this is the O(n) path (linear scan + conflict
+        # resolution) — unchanged from before this rewrite, except
+        # `seq_ids` is now a materialized view (pending ids folded in)
+        # since sequence writes can be deferred. It only runs for a
+        # non-empty origin/right_origin bracket: concurrent inserts
+        # landing in the same gap, or an item whose origin isn't the
+        # sequence's own last element (mid-history insert, replay of
+        # merged history, etc). Append-heavy replay never reaches it.
+        store = BlockStore.materialize_sequence(store, type_name)
+        seq_ids = Map.get(store.sequences, type_name, [])
+        seq_len = BlockStore.sequence_length(store, type_name)
 
-        origin_id ->
-          case find_id_index(seq_ids, store, origin_id) do
-            nil -> 0
-            idx -> idx + 1
+        start_index =
+          case item.origin do
+            nil ->
+              0
+
+            origin_id ->
+              case find_id_index(seq_ids, store, origin_id) do
+                nil -> 0
+                idx -> idx + 1
+              end
           end
-      end
 
-    end_index =
-      case item.right_origin do
-        nil ->
-          length(seq_ids)
+        end_index =
+          case item.right_origin do
+            nil ->
+              seq_len
 
-        ro_id ->
-          case find_id_index(seq_ids, store, ro_id) do
-            nil -> length(seq_ids)
-            idx -> idx
+            ro_id ->
+              case find_id_index(seq_ids, store, ro_id) do
+                nil -> seq_len
+                idx -> idx
+              end
           end
-      end
 
-    if start_index >= end_index do
-      start_index
-    else
-      resolve_conflicts(store, item, seq_ids, start_index, end_index)
+        index =
+          if start_index >= end_index do
+            start_index
+          else
+            resolve_conflicts(store, item, seq_ids, start_index, end_index)
+          end
+
+        {store, index}
     end
   end
+
+  # Fast path for the append-dominant case: `right_origin` is nil (the
+  # new item has no upper anchor — it's being placed after `origin`
+  # with nothing else constraining it) and `origin` is exactly the
+  # sequence's current last block. Then the bracket is empty by
+  # construction (`start_index == end_index == seq_len`) and the
+  # correct insertion index is `seq_len`, with no scan needed. This is
+  # the common case for sequential same-client edits (typing, or
+  # replaying a commit chain one small update at a time), where each
+  # new item's origin is literally the previous keystroke.
+  #
+  # Only reads `BlockStore.last_sequence_id/2` and `BlockStore.get/2`,
+  # both O(1) in the pending-hit case — no scan, no materialize.
+  defp fast_append_index(store, %Item{right_origin: nil, origin: nil}, type_name) do
+    # No left anchor either — only unambiguous when the sequence is
+    # (still) empty (the very first item). A non-empty sequence with
+    # an anchorless item is the ambiguous case the general algorithm
+    # (and its conflict-resolution scan) has to resolve.
+    if BlockStore.sequence_length(store, type_name) == 0 do
+      {:ok, 0}
+    else
+      :slow
+    end
+  end
+
+  defp fast_append_index(store, %Item{right_origin: nil, origin: %ID{} = origin_id}, type_name) do
+    case BlockStore.last_sequence_id(store, type_name) do
+      nil ->
+        :slow
+
+      %ID{client: client} = last_id when client == origin_id.client ->
+        case BlockStore.get(store, last_id) do
+          %Item{id: %ID{clock: c}, length: len} ->
+            if origin_id.clock >= c and origin_id.clock < c + len do
+              {:ok, BlockStore.sequence_length(store, type_name)}
+            else
+              :slow
+            end
+
+          _ ->
+            :slow
+        end
+
+      _ ->
+        :slow
+    end
+  end
+
+  defp fast_append_index(_store, _item, _type_name), do: :slow
 
   # YATA two-set scan — see moduledoc for the conceptual walkthrough.
   # Recursive state:

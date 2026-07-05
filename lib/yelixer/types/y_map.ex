@@ -206,9 +206,9 @@ defmodule Yelixer.Types.YMap do
     else
       parent_match = match_parent(type_key)
 
-      store.clients
-      |> Enum.sort_by(fn {client, _items} -> client end)
-      |> Enum.flat_map(fn {_client, items} -> items end)
+      # BlockStore.all_items/1 is already sorted by ascending client id.
+      store
+      |> BlockStore.all_items()
       |> Enum.filter(fn item -> parent_match.(item.parent) and not item.deleted end)
     end
   end
