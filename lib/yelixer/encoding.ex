@@ -117,6 +117,18 @@ defmodule Yelixer.Encoding do
   @has_right_origin 64
   @has_parent_sub 32
 
+  # CX-wmtz (H2): the largest clock/length value a legitimate Yjs
+  # client can ever produce. JS clocks are plain `Number`s, so no real
+  # peer can advance a clock (or declare an item/delete-range length)
+  # past `Number.MAX_SAFE_INTEGER`. A crafted update that claims a
+  # larger value is not a possible legitimate state — it's an attempt
+  # to poison a client's high-water mark (silently starving future
+  # real items from that client, since `integrate_items/5`'s "fully
+  # known" check would then treat them as already-seen) or to make
+  # `apply_delete_range/4` spin over an astronomically large absent
+  # range. Reject at decode time instead of letting either happen.
+  @max_safe_clock 9_007_199_254_740_991
+
   # --- Varint (unsigned LEB128) ---
   #
   # The default integer encoding in the Yjs wire format. Each byte
@@ -357,6 +369,7 @@ defmodule Yelixer.Encoding do
   """
   def decode_delete_set(binary) do
     {count, rest} = decode_uint(binary)
+    assert_sane_count!(count, rest, "delete set client count")
     decode_ds_clients(rest, count, DeleteSet.new())
   end
 
@@ -365,6 +378,7 @@ defmodule Yelixer.Encoding do
   defp decode_ds_clients(binary, remaining, ds) do
     {client, rest} = decode_uint(binary)
     {num_ranges, rest} = decode_uint(rest)
+    assert_sane_count!(num_ranges, rest, "delete set range count")
     {ds, rest} = decode_ds_ranges(rest, num_ranges, ds, client)
     decode_ds_clients(rest, remaining - 1, ds)
   end
@@ -374,8 +388,40 @@ defmodule Yelixer.Encoding do
   defp decode_ds_ranges(binary, remaining, ds, client) do
     {clock, rest} = decode_uint(binary)
     {len, rest} = decode_uint(rest)
+    assert_clock_bound!(clock + len, "delete set range (client #{client}, start #{clock}, len #{len})")
     ds = DeleteSet.insert(ds, client, clock, len)
     decode_ds_ranges(rest, remaining - 1, ds, client)
+  end
+
+  # --- CX-wmtz: adversarial-input bounds ---
+  #
+  # Both helpers raise ArgumentError, which decode_update/1's rescue
+  # clause (and decode_state_vector/1's, transitively, since it shares
+  # decode_uint) already catches and reshapes into the tagged
+  # {:malformed_update, reason} / {:malformed_state_vector, reason}
+  # error the callers expect. Nothing else in this module needs to
+  # change to surface these as rejections rather than crashes or
+  # (worse) silent data corruption.
+
+  # A varint count that claims more entries than there are bytes left
+  # to hold them is definitely malformed — each entry needs at least
+  # one byte. Catching this here means we fail fast instead of
+  # recursing `count` times over a short (or empty) binary.
+  defp assert_sane_count!(count, rest, label) do
+    if count > byte_size(rest) do
+      raise ArgumentError,
+            "malformed #{label}: claims #{count} entries but only #{byte_size(rest)} bytes remain"
+    end
+  end
+
+  # No legitimate Yjs client can produce a clock, length, or
+  # clock+length beyond JS's Number.MAX_SAFE_INTEGER — see the
+  # @max_safe_clock moduledoc note above.
+  defp assert_clock_bound!(value, label) do
+    if value > @max_safe_clock do
+      raise ArgumentError,
+            "malformed #{label}: value #{value} exceeds max safe clock #{@max_safe_clock}"
+    end
   end
 
   # --- Update Encoding ---
@@ -906,8 +952,25 @@ defmodule Yelixer.Encoding do
   defp apply_delete_range(store, client, clock, remaining) do
     case BlockStore.get(store, ID.new(client, clock)) do
       nil ->
-        # Item not found, skip this clock
-        apply_delete_range(store, client, clock + 1, remaining - 1)
+        # No block covers `clock`. Rather than walking absent clocks
+        # one at a time (CX-wmtz: a crafted delete-set range over
+        # clocks that don't exist would otherwise make this recurse
+        # `remaining` times — unbounded CPU), jump straight to the
+        # next existing block's start clock, or bail if the range has
+        # nothing left to find.
+        range_end = clock + remaining
+        {next_clock, store} = BlockStore.next_block_at_or_after(store, client, clock)
+
+        case next_clock do
+          nil ->
+            store
+
+          next when next >= range_end ->
+            store
+
+          next ->
+            apply_delete_range(store, client, next, remaining - (next - clock))
+        end
 
       item ->
         offset = clock - item.id.clock
@@ -1246,6 +1309,7 @@ defmodule Yelixer.Encoding do
   def decode_update(binary) do
     try do
       {num_clients, rest} = decode_uint(binary)
+      assert_sane_count!(num_clients, rest, "update client count")
       {items, rest} = decode_clients(rest, num_clients, [])
       {ds, rest} = decode_delete_set(rest)
       {:ok, {items, ds, rest}}
@@ -1351,6 +1415,8 @@ defmodule Yelixer.Encoding do
     {num_structs, rest} = decode_uint(binary)
     {client, rest} = decode_uint(rest)
     {first_clock, rest} = decode_uint(rest)
+    assert_sane_count!(num_structs, rest, "update struct count (client #{client})")
+    assert_clock_bound!(first_clock, "first_clock (client #{client})")
     {items, rest} = decode_structs(rest, num_structs, client, first_clock, [])
     decode_clients(rest, remaining - 1, acc ++ items)
   end
@@ -1365,6 +1431,7 @@ defmodule Yelixer.Encoding do
   defp decode_struct(<<@content_ref_gc, rest::binary>>, client, clock) do
     # GC blocks: info byte 0 + length only — no origin, parent, or content
     {len, rest} = decode_uint(rest)
+    assert_clock_bound!(clock + len, "gc block (client #{client}, clock #{clock}, len #{len})")
     item = Item.new(ID.new(client, clock), nil, nil, {:gc, len}, {:gc_placeholder, nil}, nil)
     {item, rest, clock + len}
   end
@@ -1419,6 +1486,8 @@ defmodule Yelixer.Encoding do
         item
       end
     next_clock = clock + item.length
+
+    assert_clock_bound!(next_clock, "item (client #{client}, clock #{clock}, length #{item.length})")
 
     {item, rest, next_clock}
   end

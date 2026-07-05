@@ -543,6 +543,63 @@ defmodule Yelixer.BlockStore do
     bsearch_index(tuple, clock)
   end
 
+  @doc """
+  Returns `{next_clock, store}` where `next_clock` is the start clock
+  of the first block for `client` at or after `at_least`, or `{nil,
+  store}` if no such block exists.
+
+  CX-wmtz (H2): `Yelixer.Encoding.apply_delete_range/4` calls this when
+  it finds no block at the clock it's currently walking. Without it,
+  a crafted delete-set range declaring a huge length over clocks that
+  don't exist (e.g. a client that only ever wrote 3 items, with a
+  delete range of length 10^12 starting at clock 1000) makes
+  `apply_delete_range/4` recurse once per absent clock — unbounded CPU
+  on any node that replays the update. This lets the caller jump
+  straight to the next real block (or bail immediately if there is
+  none), turning that walk into a single binary search.
+
+  Materializes `client`'s bucket first (folding `client_pending` in),
+  since the search needs the canonical sorted list; `apply_delete_range/4`
+  already materializes before mutating; the returned `store` carries
+  that fold forward so it isn't repeated.
+  """
+  @spec next_block_at_or_after(t(), non_neg_integer(), non_neg_integer()) ::
+          {non_neg_integer() | nil, t()}
+  def next_block_at_or_after(%__MODULE__{} = store, client, at_least) do
+    store = materialize_client(store, client)
+    blocks = Map.get(store.clients, client, [])
+
+    case blocks do
+      [] ->
+        {nil, store}
+
+      _ ->
+        tuple = List.to_tuple(blocks)
+        idx = first_index_at_or_after(tuple, at_least, 0, tuple_size(tuple) - 1, nil)
+
+        case idx do
+          nil -> {nil, store}
+          idx -> {elem(tuple, idx).id.clock, store}
+        end
+    end
+  end
+
+  # Binary search for the leftmost index whose block start clock is
+  # >= at_least (blocks are sorted ascending by start clock, per the
+  # module's clients-bucket invariant).
+  defp first_index_at_or_after(_tuple, _at_least, low, high, best) when low > high, do: best
+
+  defp first_index_at_or_after(tuple, at_least, low, high, best) do
+    mid = div(low + high, 2)
+    start_clock = elem(tuple, mid).id.clock
+
+    if start_clock >= at_least do
+      first_index_at_or_after(tuple, at_least, low, mid - 1, mid)
+    else
+      first_index_at_or_after(tuple, at_least, mid + 1, high, best)
+    end
+  end
+
   # --- Internal helpers ---
 
   # Returns the cached tuple for `client`, building it lazily if absent.
