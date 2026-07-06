@@ -213,32 +213,24 @@ defmodule Yelixer.Integrate do
   end
 
   @doc """
-  Sets the `deleted` flag on the block at `id` and refreshes the
-  tuple cache.
+  Sets the `deleted` flag on the block at `id`.
 
   Only flips the flag — does not rewrite `content`. Content is
   rewritten to `:deleted` (and later `:gc`) once the item is past
   the GC threshold; see `Yelixer.Item` "Tombstones and `:gc`".
+
+  CX-xes3 (E3): callers (`Text`, `Array`, `YMap`, XML types) call this
+  once per deleted item, often many in a row against the same client
+  (a long editing session, or a replay walking one client's history).
+  The old body — `materialize_client/2` + `List.replace_at/3` — is
+  O(n) per call no matter how the tuple cache is handled (list
+  point-mutation has no faster path), which is O(n²) for n deletes
+  against one client. `BlockStore.tombstone/2` defers the mutation
+  into an overlay instead — see its moduledoc — turning this into
+  O(log n).
   """
   def mark_deleted(%BlockStore{} = store, %ID{} = id) do
-    store = BlockStore.materialize_client(store, id.client)
-    blocks = Map.get(store.clients, id.client, [])
-
-    case BlockStore.find_block_index(blocks, id.clock) do
-      nil ->
-        store
-
-      {idx, item} ->
-        deleted_item = %{item | deleted: true}
-
-        clients =
-          Map.update!(store.clients, id.client, fn blocks ->
-            List.replace_at(blocks, idx, deleted_item)
-          end)
-
-        %{store | clients: clients}
-        |> BlockStore.refresh_tuple_cache(id.client)
-    end
+    BlockStore.tombstone(store, id)
   end
 
   # Computes the insertion index via YATA conflict resolution.
@@ -260,43 +252,90 @@ defmodule Yelixer.Integrate do
         # non-empty origin/right_origin bracket: concurrent inserts
         # landing in the same gap, or an item whose origin isn't the
         # sequence's own last element (mid-history insert, replay of
-        # merged history, etc). Append-heavy replay never reaches it.
+        # merged history, etc). Append-heavy replay never reaches it —
+        # but this is NOT the same as "rarely reached": every `YMap`
+        # write anchors `origin` at the *previous write to the same
+        # key*, which is essentially never the sequence's own last
+        # element once other keys interleave (see CX-xes3). Locating
+        # `origin`'s (and `right_origin`'s) position via
+        # `BlockStore.sequence_index_of/3` — O(log n), cached — instead
+        # of the old O(n) `Enum.find_index/2` scan is what actually
+        # fixes that: the bracket itself is usually tiny (a handful of
+        # slots), it was the position *lookup* that was quadratic.
         store = BlockStore.materialize_sequence(store, type_name)
-        seq_ids = Map.get(store.sequences, type_name, [])
         seq_len = BlockStore.sequence_length(store, type_name)
 
-        start_index =
+        {start_index, store} =
           case item.origin do
             nil ->
-              0
+              {0, store}
 
             origin_id ->
-              case find_id_index(seq_ids, store, origin_id) do
-                nil -> 0
-                idx -> idx + 1
+              case find_id_index(store, type_name, origin_id) do
+                {nil, store} -> {0, store}
+                {idx, store} -> {idx + 1, store}
               end
           end
 
-        end_index =
+        {end_index, store} =
           case item.right_origin do
             nil ->
-              seq_len
+              {seq_len, store}
 
             ro_id ->
-              case find_id_index(seq_ids, store, ro_id) do
-                nil -> seq_len
-                idx -> idx
+              case find_id_index(store, type_name, ro_id) do
+                {nil, store} -> {seq_len, store}
+                {idx, store} -> {idx, store}
               end
           end
 
-        index =
+        {store, index} =
           if start_index >= end_index do
-            start_index
+            {store, start_index}
           else
-            resolve_conflicts(store, item, seq_ids, start_index, end_index)
+            resolve_conflicts(store, item, type_name, start_index, end_index)
           end
 
         {store, index}
+    end
+  end
+
+  # Fast path for YMap-style entries (`parent_sub` set): a map write's
+  # `origin` is always the previous write to the *same key* (see
+  # `Yelixer.Types.YMap.set/3`), never the sequence's own last element
+  # once other keys interleave — so the generic append-fast-path below
+  # essentially never fires for these, and the general two-set scan's
+  # bracket, while small, still costs an O(n) position lookup for
+  # `origin` (fixed by `BlockStore.sequence_index_of/3`) AND lands the
+  # new item mid-sequence, forcing an O(n) `List.insert_at/3` splice —
+  # THIS clause is what actually avoids that splice.
+  #
+  # `BlockStore.map_live_ids/3` (CX-xes3/E4) names the id(s) currently
+  # undisputed-live for this key. When it's exactly `[origin_id]` — our
+  # origin is still the sole live writer, nothing raced ahead of us —
+  # this write is unambiguously the new winner and can be appended at
+  # the sequence's true end, no scan, no mid-splice.
+  #
+  # Correctness for genuine concurrent same-key writes doesn't depend
+  # on this clause firing for both sides: at most one concurrent writer
+  # sees `map_live_ids == [origin_id]` at integration time (the first
+  # one integrated on a given replica) and takes this shortcut; every
+  # later writer targeting the same key sees a DIFFERENT live id and
+  # falls through to the slow, fully general two-set scan below. That
+  # scan's same-origin case (Case 1) resolves purely from `.origin`
+  # equality and client-id comparison — not from any assumption about
+  # where earlier writes physically landed — so an earlier write
+  # having been fast-pathed to the sequence's end doesn't change the
+  # deterministic winner: it's still discoverable inside the scan's
+  # bracket (anything appended after `origin` and before the scan
+  # necessarily falls within `[start_index, end_index)`), and Case 1
+  # still fires on it as normal. See the CX-xes3 issue for the
+  # convergence argument and the regression test that pins it.
+  defp fast_append_index(store, %Item{parent_sub: sub, origin: %ID{} = origin_id, right_origin: nil}, type_name)
+       when sub not in [nil, :inherit] do
+    case BlockStore.map_live_ids(store, type_name, sub) do
+      [^origin_id] -> {:ok, BlockStore.sequence_length(store, type_name)}
+      _ -> :slow
     end
   end
 
@@ -355,44 +394,80 @@ defmodule Yelixer.Integrate do
   #   - left_index: candidate insertion point
   #   - items_before_origin: all blocks seen so far
   #   - conflicting_items: rivals since the last "advance past"
-  defp resolve_conflicts(store, item, seq_ids, start_index, end_index) do
-    do_resolve(store, item, seq_ids, start_index, end_index, start_index,
+  #
+  # CX-xes3: `seq_ids` used to be walked with `Enum.at/2` (O(index) per
+  # step, and `index` here runs near the *end* of a long-lived
+  # sequence — O(n) per step, not O(bracket)) and `find_origin_seq_id/3`
+  # rescanned it from scratch (another O(n), with a `BlockStore.get/2`
+  # per element) on every Case-2 element. An in-between fix that built
+  # one `List.to_tuple(seq_ids)` up front doesn't help — that
+  # conversion is itself O(n), paid on every call. `BlockStore`'s
+  # lazily-built, incrementally-extended `sequence_id_at/3` /
+  # `sequence_index_of/3` caches (shared across calls for the same
+  # `type_name`, kept valid across pure appends) turn both the
+  # positional read and the reverse lookup into O(log n) map lookups —
+  # amortized O(1) once the cache for a `type_name` is warm.
+  defp resolve_conflicts(store, item, type_name, start_index, end_index) do
+    do_resolve(store, item, type_name, start_index, end_index, start_index,
       MapSet.new(), MapSet.new())
   end
 
-  defp do_resolve(_store, _item, _seq_ids, index, end_index, left_index, _ibo, _ci)
+  defp do_resolve(store, _item, _type_name, index, end_index, left_index, _ibo, _ci)
        when index >= end_index do
-    left_index
+    {store, left_index}
   end
 
-  defp do_resolve(store, item, seq_ids, index, end_index, left_index, items_before_origin, conflicting_items) do
-    other_id = Enum.at(seq_ids, index)
-    other = BlockStore.get(store, other_id)
+  defp do_resolve(store, item, type_name, index, end_index, left_index, items_before_origin, conflicting_items) do
+    {other_id, store} = BlockStore.sequence_id_at(store, type_name, index)
+    other = other_id && BlockStore.get(store, other_id)
 
     if other == nil do
-      left_index
+      {store, left_index}
     else
       items_before_origin = MapSet.put(items_before_origin, other_id)
       conflicting_items = MapSet.put(conflicting_items, other_id)
 
       cond do
+        # CX-xes3 (E4/YATA): a different YMap key entirely is never a
+        # real position rival for `item` — only same-key writes need
+        # the client-id tiebreak (Case 1 below). Without this guard,
+        # two map entries under the SAME type but DIFFERENT keys that
+        # both happen to have no anchor (`origin: nil` — the common
+        # shape for a freshly-authored map write with nothing to
+        # anchor against) fall into Case 1 purely because
+        # `nil == nil`, and get compared/tiebroken by client id as if
+        # they were genuine rivals. Across a long-lived document that's
+        # not just wasted work: it means an unrelated key's random
+        # client id can force `item` to settle at an essentially
+        # arbitrary position deep inside the sequence rather than near
+        # its true end, which is what turns the eventual
+        # `List.insert_at/3` splice into an O(n) memmove instead of an
+        # O(1) append. Treating different-key items as always-settled
+        # (advance past, no tiebreak, no reset of `items_before_origin`
+        # — only `conflicting_items` resets, matching the "settled"
+        # branch below) keeps the scan moving at O(1) per unrelated
+        # item instead of paying a spurious comparison.
+        item.parent_sub not in [nil, :inherit] and other.parent_sub != item.parent_sub ->
+          do_resolve(store, item, type_name, index + 1, end_index, index + 1,
+            items_before_origin, MapSet.new())
+
         # Case 1: same left anchor — client-ID tiebreak.
         other.origin == item.origin ->
           cond do
             # other has lower client id: it wins; advance past it,
             # reset the rival set.
             other.id.client < item.id.client ->
-              do_resolve(store, item, seq_ids, index + 1, end_index, index + 1,
+              do_resolve(store, item, type_name, index + 1, end_index, index + 1,
                 items_before_origin, MapSet.new())
 
             # same right anchor: item wins this cluster; stop.
             item.right_origin == other.right_origin ->
-              left_index
+              {store, left_index}
 
             # other has higher client id: item will win, but later
             # items may shift the position; keep scanning.
             true ->
-              do_resolve(store, item, seq_ids, index + 1, end_index, left_index,
+              do_resolve(store, item, type_name, index + 1, end_index, left_index,
                 items_before_origin, conflicting_items)
           end
 
@@ -401,59 +476,65 @@ defmodule Yelixer.Integrate do
         true ->
           case other.origin do
             nil ->
-              left_index
+              {store, left_index}
 
             other_origin ->
-              other_origin_seq_id = find_origin_seq_id(seq_ids, store, other_origin)
+              {other_origin_seq_id, store} = find_origin_seq_id(store, type_name, other_origin)
 
               cond do
                 other_origin_seq_id == nil ->
-                  left_index
+                  {store, left_index}
 
                 MapSet.member?(items_before_origin, other_origin_seq_id) ->
                   if MapSet.member?(conflicting_items, other_origin_seq_id) do
                     # other.origin is an active rival; keep scanning.
-                    do_resolve(store, item, seq_ids, index + 1, end_index, left_index,
+                    do_resolve(store, item, type_name, index + 1, end_index, left_index,
                       items_before_origin, conflicting_items)
                   else
                     # other.origin already settled; advance past
                     # `other`, reset the rival set.
-                    do_resolve(store, item, seq_ids, index + 1, end_index, index + 1,
+                    do_resolve(store, item, type_name, index + 1, end_index, index + 1,
                       items_before_origin, MapSet.new())
                   end
 
                 true ->
                   # other.origin unseen; stop before jumping it.
-                  left_index
+                  {store, left_index}
               end
           end
       end
     end
   end
 
-  # Returns the sequence ID whose block contains target_id's clock.
-  # Used by the two-set scan to locate where an anchor lands.
-  defp find_origin_seq_id(seq_ids, store, %ID{} = target_id) do
-    Enum.find(seq_ids, fn seq_id ->
-      item = BlockStore.get(store, seq_id)
-      item != nil and
-        item.id.client == target_id.client and
-        target_id.clock >= item.id.clock and
-        target_id.clock < item.id.clock + item.length
-    end)
+  # Returns `{seq_id_or_nil, store}` for the sequence entry whose block
+  # contains `target_id`'s clock. Used by the two-set scan to locate
+  # where an anchor lands.
+  #
+  # CX-xes3: resolves via the identity index (`BlockStore.get/2`,
+  # O(log n)) instead of scanning `seq_ids` with a per-element
+  # `BlockStore.get/2` (O(n)), then confirms the resolved block is
+  # actually a member of `type_name`'s sequence via the cached reverse
+  # index instead of a second linear scan.
+  defp find_origin_seq_id(store, type_name, %ID{} = target_id) do
+    case BlockStore.get(store, target_id) do
+      nil ->
+        {nil, store}
+
+      item ->
+        case BlockStore.sequence_index_of(store, type_name, item.id) do
+          {nil, store} -> {nil, store}
+          {_idx, store} -> {item.id, store}
+        end
+    end
   end
 
-  # Same containment check, returning the sequence index instead of
-  # the ID.
-  defp find_id_index(seq_ids, store, %ID{} = target_id) do
-    Enum.find_index(seq_ids, fn seq_id ->
-      item = BlockStore.get(store, seq_id)
-
-      item != nil and
-        item.id.client == target_id.client and
-        target_id.clock >= item.id.clock and
-        target_id.clock < item.id.clock + item.length
-    end)
+  # Same containment check as `find_origin_seq_id/3`, returning the
+  # sequence index instead of the ID.
+  defp find_id_index(store, type_name, %ID{} = target_id) do
+    case BlockStore.get(store, target_id) do
+      nil -> {nil, store}
+      item -> BlockStore.sequence_index_of(store, type_name, item.id)
+    end
   end
 
   defp content_values(%Item{content: {:string, s}}), do: [s]

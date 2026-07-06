@@ -497,6 +497,13 @@ defmodule Yelixer.Encoding do
 
     num_clients = length(diff_clients)
 
+    # CX-xes3 (E3): `ds` is fixed for this whole call — build the
+    # binary-search cache once instead of paying `DeleteSet.deleted?/3`'s
+    # O(range count) linear scan per item below (a document with many
+    # scattered/non-coalesced deletions on one client would otherwise
+    # make this diff O(items * ranges) for that client).
+    ds_cache = DeleteSet.range_cache(ds)
+
     structs_bin =
       Enum.reduce(diff_clients, <<>>, fn {client, _local_clock}, acc ->
         remote_clock = StateVector.get(remote_sv, client)
@@ -519,7 +526,7 @@ defmodule Yelixer.Encoding do
           items_bin =
             Enum.reduce(items, <<>>, fn item, iacc ->
               item =
-                if item.deleted or DeleteSet.deleted?(ds, item.id.client, item.id.clock) do
+                if item.deleted or DeleteSet.deleted_in_cache?(ds_cache, item.id.client, item.id.clock) do
                   %{item | content: {:deleted, item.length}, deleted: true}
                 else
                   item
@@ -973,12 +980,35 @@ defmodule Yelixer.Encoding do
     # or — for a retry-of-an-already-buffered-blob — leaves it be.
     {doc, _sv, still_pending} = retry_within_batch(doc, sv, pending_items)
 
-    # Apply delete set: walk ranges, splitting blocks at deletion boundaries
+    # Apply delete set: walk ranges, splitting blocks at deletion boundaries.
+    #
+    # CX-xes3 (E3): `ds` here is the WIRE update's delete set, which —
+    # per `Yelixer.Encoding.encode_diff/2` — is the peer's entire
+    # ACCUMULATED delete set, not a diff since the last sync (there's
+    # no per-range provenance to diff against). Replaying a long edit
+    # history one small update at a time therefore re-presents the
+    # SAME, ever-growing range on every single call: without the skip
+    # below, `apply_delete_range/4` would re-walk the WHOLE known
+    # history block-by-block on every update — idempotent, but O(n)
+    # redundant work per update, O(n²) across n updates. Real
+    # histories are heavily self-adjacent (a key's overwrite deletes
+    # the immediately-preceding clock — see `YMap.set/4` — so
+    # `add_range/2`'s coalescing keeps `doc.delete_set` compact),
+    # so `DeleteSet.skip_known_prefix/4` can jump straight past the
+    # already-applied portion in O(log range count) and leave only the
+    # genuinely new suffix (typically the single item this very update
+    # added) for `apply_delete_range/4` to walk.
     doc =
       Enum.reduce(Map.to_list(ds.clients), doc, fn {client, ranges}, doc ->
         Enum.reduce(ranges, doc, fn {start, stop}, doc ->
-          store = apply_delete_range(doc.store, client, start, stop - start)
-          %{doc | store: store}
+          effective_start = DeleteSet.skip_known_prefix(doc.delete_set, client, start, stop)
+
+          if effective_start >= stop do
+            doc
+          else
+            store = apply_delete_range(doc.store, client, effective_start, stop - effective_start)
+            %{doc | store: store}
+          end
         end)
       end)
 
@@ -1170,6 +1200,17 @@ defmodule Yelixer.Encoding do
             apply_delete_range(store, client, next, remaining - (next - clock))
         end
 
+      %Item{deleted: true} = item ->
+        # CX-xes3 (E3): already tombstoned — this clock's block was
+        # handled by an earlier call (the `skip_known_prefix/4` check
+        # in `integrate_batch/3` covers the common case; this covers
+        # everything else, e.g. a range spanning several blocks where
+        # only some were already deleted). No split/mark-deleted work
+        # needed; skip the WHOLE block in one step rather than walking
+        # it clock by clock.
+        advance = min(item.length - (clock - item.id.clock), remaining)
+        apply_delete_range(store, client, clock + advance, remaining - advance)
+
       item ->
         offset = clock - item.id.clock
         item_remaining = item.length - offset
@@ -1203,13 +1244,23 @@ defmodule Yelixer.Encoding do
   end
 
   # CX-w1fw: delete-range application is a direct-mutation path (it
-  # reshapes clients[client] and every sequence with List.replace_at /
+  # reshapes clients[client] and a sequence with List.replace_at /
   # List.insert_at), so it needs the canonical, fully-materialized
   # lists — pending buffers folded in first — rather than the
   # materialized *view* helpers used by read-only callers.
+  #
+  # CX-xes3 (E3): this used to fold in and scan EVERY sequence
+  # (`materialize_all_sequences` + `Enum.reduce(store.sequences, ...)`
+  # with an `Enum.find_index/2` per sequence) to find the one sequence
+  # containing `item.id` — O(total items across every type) per split.
+  # A stored item's `parent` is already resolved by the time it reaches
+  # here (integration resolves it before the item is ever pushed), so
+  # `parent_type_key/1` names the one sequence that matters — touch
+  # only that one.
   defp split_in_clients(store, client, item, offset) do
     store = BlockStore.materialize_client(store, client)
-    store = BlockStore.materialize_all_sequences(store)
+    type_key = parent_type_key(item)
+    store = if type_key, do: BlockStore.materialize_sequence(store, type_key), else: store
 
     {left, right} = Item.split(item, offset)
 
@@ -1222,34 +1273,78 @@ defmodule Yelixer.Encoding do
         |> List.insert_at(idx + 1, right)
       end)
 
-    # Update sequences too, if the item is present in one
     {sequences, sequence_len} =
-      Enum.reduce(store.sequences, {store.sequences, store.sequence_len}, fn {type_key, seq}, {sequences, lens} ->
-        case Enum.find_index(seq, &(&1 == item.id)) do
-          nil ->
-            {sequences, lens}
+      case type_key && Map.get(store.sequences, type_key) do
+        nil ->
+          {store.sequences, store.sequence_len}
 
-          idx ->
-            {Map.put(sequences, type_key, List.insert_at(seq, idx + 1, right.id)),
-             Map.update(lens, type_key, 1, &(&1 + 1))}
-        end
-      end)
+        seq ->
+          case Enum.find_index(seq, &(&1 == item.id)) do
+            nil ->
+              {store.sequences, store.sequence_len}
 
-    %{store | clients: clients, sequences: sequences, sequence_len: sequence_len}
-    |> BlockStore.refresh_tuple_cache(client)
+            idx ->
+              {Map.put(store.sequences, type_key, List.insert_at(seq, idx + 1, right.id)),
+               Map.update(store.sequence_len, type_key, 1, &(&1 + 1))}
+          end
+      end
+
+    store = %{store | clients: clients, sequences: sequences, sequence_len: sequence_len}
+    store = BlockStore.invalidate_tuple_cache(store, client)
+    # Splicing `right.id` in after `item.id` shifts every later index —
+    # the cached reverse index (if any) for this sequence is now stale.
+    store = if type_key, do: BlockStore.invalidate_sequence_index(store, type_key), else: store
+
+    # Map items are length-1 and effectively never split, but if one
+    # somehow is, don't let a stale live-id cache corrupt later
+    # conflict resolution — drop it and let the next write to this key
+    # rebuild it via the full scan.
+    if type_key && item.parent_sub not in [nil, :inherit] do
+      BlockStore.invalidate_map_index(store, type_key)
+    else
+      store
+    end
   end
 
-  defp mark_item_deleted(store, client, item) do
-    store = BlockStore.materialize_client(store, client)
+  # CX-xes3 (E3): switched from `refresh_tuple_cache/2` (rebuilds the
+  # whole tuple, O(n)) to `invalidate_tuple_cache/2` (O(1) — the next
+  # reader rebuilds lazily). `apply_delete_range/4` calls this once per
+  # deleted sub-range within a client, so an update deleting many
+  # ranges on one client no longer pays an O(n) tuple rebuild per range.
+  # CX-xes3 (E3): `BlockStore.tombstone/2` defers this into an overlay
+  # (O(log n)) instead of `materialize_client/2` + `List.replace_at/3`
+  # (O(n), unavoidably — see its moduledoc) — `apply_delete_range/4`
+  # calls this once per affected item, so a delete-set range spanning
+  # many items on one client no longer costs O(n) each.
+  defp mark_item_deleted(store, _client, item) do
+    store = BlockStore.tombstone(store, item.id)
 
-    clients =
-      Map.update!(store.clients, client, fn blocks ->
-        {idx, _} = BlockStore.find_block_index(blocks, item.id.clock)
-        List.replace_at(blocks, idx, %{item | deleted: true})
-      end)
+    # CX-xes3 (E4): only invalidate this map key's live-id cache if the
+    # item we just tombstoned was the id `map_index` currently believes
+    # is live for it. `integrate_items/5` runs before delete-set
+    # application (see `integrate_batch/3`), so the overwhelmingly
+    # common case — `YMap.set/4`'s own delete-range for the key's PRIOR
+    # value — lands here *after* `maybe_resolve_map_conflict/3` has
+    # already moved the key's live id on to the NEW item. Unconditional
+    # invalidation (the old behavior) would throw that fresh, correct
+    # entry away on every single write to a multi-key map, forcing a
+    # full-sequence scan on the very next write — reintroducing the
+    # O(n)-per-write cost this issue removed. Only a delete that
+    # actually outruns resolution (e.g. a standalone `YMap.delete/3`)
+    # needs the defensive drop, and only for this one key — not every
+    # other key sharing `type_key`.
+    case parent_type_key(item) do
+      nil ->
+        store
 
-    %{store | clients: clients}
-    |> BlockStore.refresh_tuple_cache(client)
+      type_key ->
+        if item.parent_sub not in [nil, :inherit] and
+             item.id in (BlockStore.map_live_ids(store, type_key, item.parent_sub) || []) do
+          BlockStore.invalidate_map_index_key(store, type_key, item.parent_sub)
+        else
+          store
+        end
+    end
   end
 
   defp integrate_items(items, doc, sv, pending) do
@@ -1350,14 +1445,56 @@ defmodule Yelixer.Encoding do
   # Map conflict resolution for items with parent_sub (map entries).
   # The rightmost item in the YATA sequence for a key wins; all other
   # non-deleted items for the same key are auto-deleted. Matches yrs.
+  #
+  # CX-xes3 (E4): the naive version of this walked the ENTIRE type
+  # sequence with a `get/2` per element on every single integrated map
+  # write — O(n) per write, O(k·n) for k writes to one map-heavy
+  # document (schemas, presence, per-entity status docs are exactly
+  # this shape; see `Yelixer.BlockStore.map_live_ids/3` moduledoc for
+  # the measured blowup). `BlockStore.map_index` caches the live id(s)
+  # per `{type_key, sub}` so repeat writes to the same key skip the
+  # scan entirely:
+  #
+  #   - **Known + append** — the new item landed at the end of the
+  #     sequence (the overwhelmingly common case: a client's own
+  #     successive writes to a key). It is now the rightmost item for
+  #     the key, so it wins outright — no scan, tombstone the cached
+  #     losers directly.
+  #   - **Known + not-append** — a concurrent/mid-history write. Scan
+  #     the sequence once, but only looking for the handful of
+  #     candidate ids (the new item plus the cached live ids), not a
+  #     `get/2` per element.
+  #   - **Unknown** — first time this key is touched (or a
+  #     conservative invalidation dropped the entry). Falls back to
+  #     the full O(n) scan, then populates the index so subsequent
+  #     writes to the same key take the fast path.
   defp maybe_resolve_map_conflict(store, %Item{parent_sub: nil}, _type_key), do: store
   defp maybe_resolve_map_conflict(store, %Item{parent_sub: :inherit}, _type_key), do: store
 
-  defp maybe_resolve_map_conflict(store, %Item{parent_sub: sub}, type_key) do
+  defp maybe_resolve_map_conflict(store, %Item{parent_sub: sub, id: item_id}, type_key) do
+    case BlockStore.map_live_ids(store, type_key, sub) do
+      nil ->
+        resolve_map_conflict_full_scan(store, type_key, sub)
+
+      known_ids ->
+        if BlockStore.last_sequence_id(store, type_key) == item_id do
+          losers = Enum.reject(known_ids, &(&1 == item_id))
+          store = tombstone_losers(store, losers)
+          BlockStore.put_map_live_ids(store, type_key, sub, [item_id])
+        else
+          resolve_map_conflict_candidates(store, type_key, sub, Enum.uniq([item_id | known_ids]))
+        end
+    end
+  end
+
+  # Full O(n) scan over `type_key`'s sequence — the cold path, taken
+  # once per key (its result seeds `map_index` for every later write to
+  # that key) and as the safety fallback after a conservative
+  # invalidation.
+  defp resolve_map_conflict_full_scan(store, type_key, sub) do
     store = BlockStore.materialize_sequence(store, type_key)
     seq_ids = Map.get(store.sequences, type_key, [])
 
-    # All non-deleted items sharing this parent_sub, with their sequence positions
     same_key_items =
       seq_ids
       |> Enum.with_index()
@@ -1368,36 +1505,86 @@ defmodule Yelixer.Encoding do
         end
       end)
 
-    if length(same_key_items) <= 1 do
-      store
-    else
-      # Highest sequence index wins; delete the rest
-      {_winner_id, winner_idx} = Enum.max_by(same_key_items, fn {_id, idx} -> idx end)
+    settle_map_conflict(store, type_key, sub, same_key_items)
+  end
 
-      losers =
-        same_key_items
-        |> Enum.reject(fn {_id, idx} -> idx == winner_idx end)
-        |> Enum.map(fn {id, _idx} -> id end)
+  # Positional resolution restricted to a small candidate set (the new
+  # item plus the ids `map_index` believes are still live). Walks the
+  # sequence once, recording only candidate positions, with an early
+  # exit once every candidate has been located.
+  defp resolve_map_conflict_candidates(store, type_key, sub, candidate_ids) do
+    store = BlockStore.materialize_sequence(store, type_key)
+    seq_ids = Map.get(store.sequences, type_key, [])
+    candidate_set = MapSet.new(candidate_ids)
+    total = MapSet.size(candidate_set)
 
-      Enum.reduce(losers, store, fn loser_seq_id, store ->
-        case BlockStore.get(store, loser_seq_id) do
-          nil ->
-            store
+    {positions, _remaining} =
+      Enum.reduce_while(seq_ids, {[], total}, fn seq_id, {found, remaining} ->
+        cond do
+          remaining <= 0 ->
+            {:halt, {found, remaining}}
 
-          loser ->
-            store = BlockStore.materialize_client(store, loser.id.client)
+          MapSet.member?(candidate_set, seq_id) ->
+            {:cont, {[seq_id | found], remaining - 1}}
 
-            clients =
-              Map.update!(store.clients, loser.id.client, fn blocks ->
-                {idx, _} = BlockStore.find_block_index(blocks, loser.id.clock)
-                List.replace_at(blocks, idx, %{loser | deleted: true})
-              end)
-
-            %{store | clients: clients}
-            |> BlockStore.refresh_tuple_cache(loser.id.client)
+          true ->
+            {:cont, {found, remaining}}
         end
       end)
+
+    same_key_items =
+      positions
+      |> Enum.reverse()
+      |> Enum.with_index()
+      |> Enum.filter(fn {seq_id, _idx} ->
+        case BlockStore.get(store, seq_id) do
+          %Item{parent_sub: ^sub, deleted: false} -> true
+          _ -> false
+        end
+      end)
+
+    case same_key_items do
+      [] ->
+        # A candidate vanished from the sequence entirely (shouldn't
+        # happen — `map_index` only ever names ids from this same
+        # type_key — but fall back to a full scan rather than leave a
+        # stale/empty entry behind).
+        resolve_map_conflict_full_scan(store, type_key, sub)
+
+      items ->
+        settle_map_conflict(store, type_key, sub, items)
     end
+  end
+
+  # Shared settle step: highest-index item wins, everything else in
+  # the candidate set is tombstoned, and the winner alone is cached.
+  defp settle_map_conflict(store, type_key, sub, []) do
+    BlockStore.put_map_live_ids(store, type_key, sub, [])
+  end
+
+  defp settle_map_conflict(store, type_key, sub, indexed_items) do
+    {winner_id, winner_idx} = Enum.max_by(indexed_items, fn {_id, idx} -> idx end)
+
+    losers =
+      indexed_items
+      |> Enum.reject(fn {_id, idx} -> idx == winner_idx end)
+      |> Enum.map(fn {id, _idx} -> id end)
+
+    store = tombstone_losers(store, losers)
+    BlockStore.put_map_live_ids(store, type_key, sub, [winner_id])
+  end
+
+  # Tombstones every id in `loser_ids`. `BlockStore.tombstone/2` defers
+  # each into an overlay (O(log n)) rather than materializing the
+  # loser's client bucket and `List.replace_at/3`-ing it (O(n) per
+  # loser, unavoidably) — see its moduledoc. This matters most exactly
+  # where map-conflict resolution runs hottest: many sequential
+  # overwrites of the same key from one client, where every loser
+  # lives in the SAME (large, growing) client bucket.
+  defp tombstone_losers(store, loser_ids) do
+    Enum.reduce(loser_ids, store, fn loser_id, store ->
+      BlockStore.tombstone(store, loser_id)
+    end)
   end
 
   defp infer_type_ref(%Item{parent: {:id, %ID{} = id}}, %Doc{store: store}) do

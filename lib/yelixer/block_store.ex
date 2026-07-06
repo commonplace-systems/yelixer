@@ -132,14 +132,22 @@ defmodule Yelixer.BlockStore do
           client_tuples: %{non_neg_integer() => tuple()},
           client_pending: %{non_neg_integer() => :gb_trees.tree(integer(), Item.t())},
           sequence_pending: %{String.t() => [ID.t()]},
-          sequence_len: %{String.t() => non_neg_integer()}
+          sequence_len: %{String.t() => non_neg_integer()},
+          map_index: %{String.t() => %{term() => [ID.t()]}},
+          sequence_index: %{String.t() => %{ID.t() => non_neg_integer()}},
+          sequence_positions: %{String.t() => %{non_neg_integer() => ID.t()}},
+          deleted_overlay: %{non_neg_integer() => MapSet.t(non_neg_integer())}
         }
   defstruct clients: %{},
             sequences: %{},
             client_tuples: %{},
             client_pending: %{},
             sequence_pending: %{},
-            sequence_len: %{}
+            sequence_len: %{},
+            map_index: %{},
+            sequence_index: %{},
+            sequence_positions: %{},
+            deleted_overlay: %{}
 
   @doc "An empty BlockStore — no clients, no sequences, no cached tuples."
   def new, do: %__MODULE__{}
@@ -181,15 +189,28 @@ defmodule Yelixer.BlockStore do
   def get(%__MODULE__{} = store, %ID{client: client, clock: clock}) do
     case pending_floor(store.client_pending, client, clock) do
       %Item{} = item ->
-        item
+        apply_overlay(store, client, item)
 
       nil ->
         case get_tuple(store, client) do
           nil -> nil
-          tuple -> bsearch_item(tuple, clock)
+          tuple -> tuple |> bsearch_item(clock) |> then(&(&1 && apply_overlay(store, client, &1)))
         end
     end
   end
+
+  # CX-xes3 (E3): a block whose start clock is in `deleted_overlay`
+  # reads as tombstoned even though the canonical list/tuple still
+  # carries `deleted: false` — see `tombstone/3`'s moduledoc for why
+  # tombstoning is deferred like this instead of mutating the list.
+  defp apply_overlay(%__MODULE__{deleted_overlay: overlay}, client, %Item{deleted: false} = item) do
+    case Map.get(overlay, client) do
+      nil -> item
+      clocks -> if MapSet.member?(clocks, item.id.clock), do: %{item | deleted: true}, else: item
+    end
+  end
+
+  defp apply_overlay(_store, _client, item), do: item
 
   # Floor query on the pending tree: the pending block with the
   # largest start clock <= `clock`, if it covers `clock`. Keys are
@@ -231,8 +252,21 @@ defmodule Yelixer.BlockStore do
   splitting) must call `materialize_client/2` instead so the fold is
   persisted and the pending buffer is cleared before they write.
   """
-  def client_blocks(%__MODULE__{clients: clients, client_pending: pending}, client) do
-    Map.get(clients, client, []) ++ pending_items(pending, client)
+  def client_blocks(%__MODULE__{clients: clients, client_pending: pending} = store, client) do
+    case Map.get(store.deleted_overlay, client) do
+      nil ->
+        Map.get(clients, client, []) ++ pending_items(pending, client)
+
+      overlay_clocks ->
+        (Map.get(clients, client, []) ++ pending_items(pending, client))
+        |> Enum.map(fn
+          %Item{deleted: false} = item ->
+            if MapSet.member?(overlay_clocks, item.id.clock), do: %{item | deleted: true}, else: item
+
+          item ->
+            item
+        end)
+    end
   end
 
   @doc """
@@ -272,18 +306,37 @@ defmodule Yelixer.BlockStore do
   pre-mutation copy from pending.
   """
   def materialize_client(%__MODULE__{} = store, client) do
-    case pending_items(store.client_pending, client) do
-      [] ->
-        store
+    pending = pending_items(store.client_pending, client)
+    overlay = Map.get(store.deleted_overlay, client)
 
-      new_items ->
-        new_list = Map.get(store.clients, client, []) ++ new_items
+    if pending == [] and overlay == nil do
+      store
+    else
+      base = Map.get(store.clients, client, []) ++ pending
 
-        %{store |
-          clients: Map.put(store.clients, client, new_list),
-          client_pending: Map.delete(store.client_pending, client),
-          client_tuples: Map.put(store.client_tuples, client, List.to_tuple(new_list))
-        }
+      # CX-xes3 (E3): fold any deferred tombstones (`tombstone/3`) into
+      # the canonical list now, since we're rebuilding it anyway — the
+      # whole point of the overlay is to avoid this O(n) rewrite on
+      # every single delete, not to avoid it forever.
+      new_list =
+        if overlay do
+          Enum.map(base, fn
+            %Item{deleted: false} = item ->
+              if MapSet.member?(overlay, item.id.clock), do: %{item | deleted: true}, else: item
+
+            item ->
+              item
+          end)
+        else
+          base
+        end
+
+      %{store |
+        clients: Map.put(store.clients, client, new_list),
+        client_pending: Map.delete(store.client_pending, client),
+        client_tuples: Map.put(store.client_tuples, client, List.to_tuple(new_list)),
+        deleted_overlay: Map.delete(store.deleted_overlay, client)
+      }
     end
   end
 
@@ -328,8 +381,17 @@ defmodule Yelixer.BlockStore do
   `Yelixer.Doc.gc/1`.
   """
   def materialize_all(%__MODULE__{} = store) do
+    # CX-xes3 (E3): a client can have deferred tombstones
+    # (`deleted_overlay`) with no pending appends — `client_pending`
+    # alone would miss it, leaving `store.clients` stale for any caller
+    # (e.g. `Yelixer.Doc.gc/1`) that reads the canonical list directly
+    # instead of going through `get/2` / `client_blocks/2`.
+    clients_needing_materialize =
+      MapSet.new(Map.keys(store.client_pending))
+      |> MapSet.union(MapSet.new(Map.keys(store.deleted_overlay)))
+
     store =
-      Enum.reduce(Map.keys(store.client_pending), store, fn client, store ->
+      Enum.reduce(clients_needing_materialize, store, fn client, store ->
         materialize_client(store, client)
       end)
 
@@ -429,12 +491,16 @@ defmodule Yelixer.BlockStore do
     store =
       if index == len do
         pending = [id | Map.get(store.sequence_pending, type_name, [])]
+
         %{store | sequence_pending: Map.put(store.sequence_pending, type_name, pending)}
+        |> extend_sequence_index(type_name, id, len)
       else
         store = materialize_sequence(store, type_name)
         seq = Map.get(store.sequences, type_name, [])
         seq = List.insert_at(seq, index, id)
+
         %{store | sequences: Map.put(store.sequences, type_name, seq)}
+        |> invalidate_sequence_index(type_name)
       end
 
     %{store | sequence_len: Map.put(store.sequence_len, type_name, len + 1)}
@@ -509,7 +575,11 @@ defmodule Yelixer.BlockStore do
               end
           end
 
-        {%{store | clients: clients, sequences: sequences, client_tuples: ct, sequence_len: sequence_len}, right}
+        store = %{store | clients: clients, sequences: sequences, client_tuples: ct, sequence_len: sequence_len}
+        # Splicing `right.id` in after `item.id` shifts every later
+        # index — the cached reverse index (if any) is now stale.
+        store = invalidate_sequence_index(store, type_name)
+        {store, right}
     end
   end
 
@@ -637,6 +707,245 @@ defmodule Yelixer.BlockStore do
   @doc false
   def invalidate_tuple_cache(%__MODULE__{client_tuples: ct} = store, client) do
     %{store | client_tuples: Map.delete(ct, client)}
+  end
+
+  @doc """
+  CX-xes3 (E3): marks the block at `id` deleted in O(log n) — O(1)
+  `MapSet` insert into `deleted_overlay[id.client]` plus the `get/2`
+  lookup to confirm the id resolves to a real, not-yet-deleted block —
+  with NO list mutation and NO tuple-cache touch.
+
+  This replaces the `materialize_client/2` + `List.replace_at/3` +
+  `refresh_tuple_cache/2` (or `invalidate_tuple_cache/2`) pattern
+  previously used by `Yelixer.Integrate.mark_deleted/2`,
+  `Yelixer.Encoding`'s delete-range application, and map-conflict
+  tombstoning. That pattern's `List.replace_at/3` is unavoidably O(n)
+  — Erlang lists have no O(1) (or even O(log n)) point-mutation — so
+  a client whose bucket accumulates many items (a single long-lived
+  authoring session, or a replica walking a long history authored
+  under one client id) pays O(n) for *every single delete*: O(n²) for
+  n deletes against that client, no matter how cheap the tuple-cache
+  refresh itself is made. Deferring the tombstone into an overlay
+  (mirroring `client_pending`'s deferred-append strategy from CX-w1fw)
+  turns that into O(log n) per delete; `materialize_client/2` folds
+  the overlay into the canonical list — an O(n) rewrite — only when
+  something *else* already needs the canonical list rebuilt (a split,
+  or an explicit direct mutation), not once per delete.
+
+  `get/2`, `client_blocks/2`, `all_items/1`, and `get_sequence/2` all
+  see the tombstone immediately (they consult the overlay, or delegate
+  to something that does) — from a caller's perspective this is
+  indistinguishable from mutating the list directly; only the internal
+  cost profile changes. Returns `store` unchanged if `id` doesn't
+  resolve to a live block (mirrors the old code's `nil ->` no-op
+  branches).
+  """
+  @spec tombstone(t(), ID.t()) :: t()
+  def tombstone(%__MODULE__{} = store, %ID{client: client, clock: clock} = id) do
+    case get(store, id) do
+      nil ->
+        store
+
+      %Item{deleted: true} ->
+        store
+
+      %Item{} ->
+        overlay = Map.update(store.deleted_overlay, client, MapSet.new([clock]), &MapSet.put(&1, clock))
+        %{store | deleted_overlay: overlay}
+    end
+  end
+
+  @doc """
+  CX-xes3 (E4): per-`{type_key, parent_sub}` cache of the currently
+  *live* item id(s) for a YMap key. Without this, resolving a map-key
+  conflict (`Yelixer.Encoding.maybe_resolve_map_conflict/3`) has to
+  walk the whole type's sequence with a `get/2` per element on every
+  single map write — O(n) per write, O(k·n) for k writes to a
+  map-heavy document (schemas, presence, per-entity status docs).
+
+  Usually holds exactly one id (the current winner). Returns `nil`
+  when the entry is unknown — either never populated, or deliberately
+  dropped by `invalidate_map_index/2` after an edge case (a split
+  touching a map item) that could have made a cached list stale. `nil`
+  is the signal callers use to fall back to a one-time full scan,
+  which repopulates the entry for subsequent writes to the same key.
+
+  This is *derived* state: correctness never depends on it being
+  present or fully accurate. A missing/stale entry costs a slow-path
+  scan, not a wrong answer — see `invalidate_map_index/2`.
+  """
+  def map_live_ids(%__MODULE__{map_index: mi}, type_key, sub) do
+    case Map.get(mi, type_key) do
+      nil -> nil
+      subs -> Map.get(subs, sub)
+    end
+  end
+
+  @doc """
+  Records `ids` as the live item id(s) for `{type_key, sub}`. Called
+  after conflict resolution settles on a winner (and tombstones the
+  losers), so the next write to the same key finds a populated entry
+  and skips the full-sequence scan.
+  """
+  def put_map_live_ids(%__MODULE__{map_index: mi} = store, type_key, sub, ids) do
+    subs = Map.get(mi, type_key, %{})
+    %{store | map_index: Map.put(mi, type_key, Map.put(subs, sub, ids))}
+  end
+
+  @doc """
+  Drops the entire live-id index for `type_key` — every key's cached
+  entry, not just one. Used wherever a map item gets tombstoned or
+  reshaped through a path that doesn't itself maintain the index (the
+  generic delete-set walk in `Yelixer.Encoding.apply_delete_range/4`,
+  a mid-block split of a map item). Conservative: the next map write
+  under this `type_key` pays for one full-sequence scan to rebuild
+  the entry it needs, but every entry stays correct.
+  """
+  def invalidate_map_index(%__MODULE__{map_index: mi} = store, type_key) do
+    %{store | map_index: Map.delete(mi, type_key)}
+  end
+
+  @doc """
+  Drops just `{type_key, sub}`'s cached live-id list, leaving every
+  other key under `type_key` untouched.
+
+  CX-xes3 (E4): the generic delete-set path (`Yelixer.Encoding`'s
+  `mark_item_deleted/3`, driven by `apply_delete_range/4`) can tombstone
+  a map item outside `maybe_resolve_map_conflict/3`'s own bookkeeping
+  — e.g. `YMap.delete/3`'s standalone deletion. It needs to invalidate
+  *something* defensively for correctness, but `invalidate_map_index/2`
+  (whole `type_key`) is far too broad: a `YMap` with several keys
+  shares one `type_key`, and EVERY write encodes a delete-range for the
+  key's own previous value (see `YMap.set/4`) — so wiping the whole
+  `type_key` on every delete throws away the entry
+  `maybe_resolve_map_conflict/3` just correctly populated for every
+  OTHER key changed in the same batch (items integrate before the
+  delete set applies — see `integrate_batch/3` — so by the time a
+  delete lands, later writes to other keys have already updated their
+  own entries). That reintroduces the full-scan cost on every write to
+  a multi-key map — exactly the O(n) per-write blowup this issue set
+  out to remove.
+  """
+  def invalidate_map_index_key(%__MODULE__{map_index: mi} = store, type_key, sub) do
+    case Map.get(mi, type_key) do
+      nil -> store
+      subs -> %{store | map_index: Map.put(mi, type_key, Map.delete(subs, sub))}
+    end
+  end
+
+  @doc """
+  CX-xes3 (E4/YATA): returns `{index_or_nil, store}` — the position of
+  block-start id `id` within `type_name`'s materialized sequence, and
+  the (possibly newly-cached) store.
+
+  This is the position lookup `Yelixer.Integrate.find_insertion_index/3`
+  needs to bracket its two-set conflict scan around `origin` /
+  `right_origin`. Before this cache, `Integrate`'s `find_id_index/3`
+  did an `Enum.find_index/2` over the *entire* sequence — with a
+  `BlockStore.get/2` per element — every single time an item's anchor
+  wasn't the sequence's immediate last element. That's the overwhelming
+  common case for `YMap` writes: a `set/3` anchors its item's `origin`
+  at the *previous write to the same key*, which sits a few slots
+  behind the sequence's true last element (other keys' writes
+  interleave in between) — never the fast-append shape. The result
+  was an O(n) scan on every map write to a long-lived document
+  (schemas, presence, per-entity status: exactly the shape that
+  stalled a real replay for hours — see the CX-xes3 issue).
+
+  Builds the reverse map (`id -> index`) once per `type_name`, lazily,
+  from the already-materialized `sequences[type_name]` — callers here
+  always materialize first (see `find_insertion_index/3`). Kept valid
+  across pure appends by `extend_sequence_index/3` (O(1) per append);
+  dropped by `invalidate_sequence_index/2` wherever something splices
+  into the *middle* of the sequence (a mid-history insert, a block
+  split introducing a new id after an existing one), since that shifts
+  every later index and increment-in-place would cost as much as a
+  rebuild anyway.
+  """
+  @spec sequence_index_of(t(), String.t(), ID.t()) :: {non_neg_integer() | nil, t()}
+  def sequence_index_of(%__MODULE__{} = store, type_name, %ID{} = id) do
+    store = ensure_sequence_index(store, type_name)
+    idx_map = Map.get(store.sequence_index, type_name, %{})
+    {Map.get(idx_map, id), store}
+  end
+
+  @doc """
+  CX-xes3 (YATA): the companion lookup to `sequence_index_of/3` — id
+  at a given position instead of position of a given id. Used by
+  `Yelixer.Integrate`'s two-set conflict scan to read the sequence
+  entry at each scanned index.
+
+  Before this, the scan converted the *entire* materialized
+  `sequences[type_name]` list to a tuple on every call
+  (`List.to_tuple/1`, O(n)) just to get O(1) access to a handful of
+  slots inside a small bracket — same asymptotic cost as the O(n) scan
+  it replaced, just moved. This shares the same lazily-built,
+  incrementally-extended cache as `sequence_index_of/3` (built
+  together in one pass), so repeat calls for the same `type_name`
+  (the common case — one two-set scan makes several) are O(log n)
+  map lookups, and the O(n) build cost is paid at most once per
+  `type_name` between invalidations.
+  """
+  @spec sequence_id_at(t(), String.t(), non_neg_integer()) :: {ID.t() | nil, t()}
+  def sequence_id_at(%__MODULE__{} = store, type_name, index) when is_integer(index) do
+    store = ensure_sequence_index(store, type_name)
+    pos_map = Map.get(store.sequence_positions, type_name, %{})
+    {Map.get(pos_map, index), store}
+  end
+
+  # Builds both directions of the cache together from
+  # `sequences[type_name]` (already materialized by callers) if
+  # neither has been built yet since the last invalidation.
+  defp ensure_sequence_index(%__MODULE__{sequence_index: si, sequence_positions: sp} = store, type_name) do
+    if Map.has_key?(si, type_name) do
+      store
+    else
+      seq = Map.get(store.sequences, type_name, [])
+
+      {idx_map, pos_map} =
+        seq
+        |> Enum.with_index()
+        |> Enum.reduce({%{}, %{}}, fn {seq_id, idx}, {idx_acc, pos_acc} ->
+          {Map.put(idx_acc, seq_id, idx), Map.put(pos_acc, idx, seq_id)}
+        end)
+
+      %{store |
+        sequence_index: Map.put(si, type_name, idx_map),
+        sequence_positions: Map.put(sp, type_name, pos_map)
+      }
+    end
+  end
+
+  # O(1) incremental extension of the cached reverse index (both
+  # directions) when a new id is appended at the sequence's current
+  # end. No-op if the cache for `type_name` hasn't been built yet —
+  # it'll pick up this id (and everything else) the next time
+  # `sequence_index_of/3` or `sequence_id_at/3` builds it from
+  # `sequences[type_name]`.
+  @doc false
+  def extend_sequence_index(%__MODULE__{sequence_index: si, sequence_positions: sp} = store, type_name, id, at_index) do
+    case Map.get(si, type_name) do
+      nil ->
+        store
+
+      idx_map ->
+        pos_map = Map.get(sp, type_name, %{})
+
+        %{store |
+          sequence_index: Map.put(si, type_name, Map.put(idx_map, id, at_index)),
+          sequence_positions: Map.put(sp, type_name, Map.put(pos_map, at_index, id))
+        }
+    end
+  end
+
+  # Drops the cached reverse index (both directions) for `type_name`.
+  # Required before any mutation that inserts into the MIDDLE of
+  # `sequences[type_name]` (shifting every later element's index) —
+  # the append path (`extend_sequence_index/4`) is the only mutation
+  # cheap enough to maintain incrementally.
+  @doc false
+  def invalidate_sequence_index(%__MODULE__{sequence_index: si, sequence_positions: sp} = store, type_name) do
+    %{store | sequence_index: Map.delete(si, type_name), sequence_positions: Map.delete(sp, type_name)}
   end
 
   # Binary-search the clock-sorted tuple for the block covering `clock`.

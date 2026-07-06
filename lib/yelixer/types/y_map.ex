@@ -100,6 +100,19 @@ defmodule Yelixer.Types.YMap do
     origin = existing && existing.id
     item = Item.new(id, origin, nil, {:any, [value]}, {:named, type_name}, key)
     {:ok, store} = Integrate.integrate(doc.store, item, type_name)
+
+    # CX-xes3 (E4): `set/4` resolves conflicts itself (delete-then-insert)
+    # rather than going through `Yelixer.Encoding`'s post-hoc
+    # `maybe_resolve_map_conflict/3` — the only other place
+    # `BlockStore.map_index` gets written. Without this, a document
+    # built by calling `set/4` directly (the live-editing path, as
+    # opposed to replaying an already-encoded update) never populates
+    # the index, so `find_current_item/3`'s fast path above always
+    # misses and every `set/3`/`get/3`/`delete/3` call pays the full
+    # `get_sequence/2` scan — quadratic across N sequential edits to
+    # the same key. `item.id` is unambiguously the new (and only) live
+    # writer for this key immediately after integration here.
+    store = BlockStore.put_map_live_ids(store, type_name, key, [id])
     %{doc | store: store}
   end
 
@@ -226,7 +239,29 @@ defmodule Yelixer.Types.YMap do
     fn parent -> parent == {:named, name} end
   end
 
+  # CX-xes3 (E4): `BlockStore.get_sequence/2` + filter is O(n) in the
+  # *whole type's* sequence length — every key sharing this map pays
+  # for every other key's history on every `set/3`/`get/3`/`delete/3`
+  # call. `BlockStore.map_live_ids/3` (maintained by
+  # `Yelixer.Encoding`'s conflict resolution) already names the current
+  # live id for this exact key in O(log n); use it when available and
+  # unambiguous (exactly one live id), falling back to the full scan
+  # only when the index doesn't have (or isn't confident about) an
+  # answer — which self-heals the next time this key gets scanned.
   defp find_current_item(store, type_name, key) do
+    case BlockStore.map_live_ids(store, type_name, key) do
+      [%ID{} = id] ->
+        case BlockStore.get(store, id) do
+          %Item{parent_sub: ^key, deleted: false} = item -> item
+          _ -> find_current_item_scan(store, type_name, key)
+        end
+
+      _ ->
+        find_current_item_scan(store, type_name, key)
+    end
+  end
+
+  defp find_current_item_scan(store, type_name, key) do
     # YATA sequence order is deterministic; rightmost non-deleted Item wins.
     BlockStore.get_sequence(store, type_name)
     |> Enum.filter(fn %Item{parent_sub: sub} -> sub == key end)
@@ -240,6 +275,12 @@ defmodule Yelixer.Types.YMap do
 
       %Item{id: id} = item ->
         store = Integrate.mark_deleted(doc.store, id)
+        # Keep map_index in sync so `find_current_item/3`'s fast path
+        # doesn't hand back an id we just tombstoned (correct either
+        # way — it re-validates — but this keeps `delete/3` followed by
+        # `has_key?/3`/`get/3` on the same key O(log n) instead of
+        # falling back to the full scan).
+        store = BlockStore.put_map_live_ids(store, type_name, key, [])
         delete_set = DeleteSet.insert(doc.delete_set, id.client, id.clock, item.length)
         %{doc | store: store, delete_set: delete_set}
     end

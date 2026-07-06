@@ -115,6 +115,110 @@ defmodule Yelixer.DeleteSet do
   end
 
   @doc """
+  CX-xes3 (E3): builds a one-shot binary-search cache — `%{client =>
+  tuple_of_ranges}` — for callers that need `deleted?/3`-style checks
+  repeatedly against one *fixed* delete set (the same `ds`, not
+  mutated between calls). `Yelixer.Encoding.encode_diff/2` is exactly
+  this shape: it calls `deleted?/3` once per candidate item while
+  diffing a client's blocks, against the same delete set throughout.
+  `deleted?/3` itself stays a linear scan (documented above) since its
+  callers don't reuse `ds` across many lookups — building a cache for
+  a single check would cost more than it saves. This does NOT change
+  what's stored or encoded; `clients` — and its sorted-disjoint
+  invariant — is exactly what `encode_delete_set/1` reads, so wire
+  bytes are untouched. See the module CONSTRAINT note on `insert/4`
+  regarding byte-determinism.
+  """
+  @spec range_cache(t()) :: %{non_neg_integer() => tuple()}
+  def range_cache(%__MODULE__{clients: clients}) do
+    Map.new(clients, fn {client, ranges} -> {client, List.to_tuple(ranges)} end)
+  end
+
+  @doc """
+  Binary-search membership check against a cache built by
+  `range_cache/1`. `ranges` are sorted-disjoint by construction
+  (`add_range/2`'s invariant), so a binary search is directly
+  applicable — O(log n) instead of `deleted?/3`'s O(n) linear scan.
+  """
+  @spec deleted_in_cache?(%{non_neg_integer() => tuple()}, non_neg_integer(), non_neg_integer()) ::
+          boolean()
+  def deleted_in_cache?(cache, client, clock) do
+    case Map.get(cache, client) do
+      nil -> false
+      tuple -> bsearch_range(tuple, clock, 0, tuple_size(tuple) - 1)
+    end
+  end
+
+  @doc """
+  CX-xes3 (E3): returns the largest `k >= start` such that `[start, k)`
+  is already covered by an EXISTING range in this delete set — i.e.
+  how much of `[start, stop)`'s left edge is redundant to re-delete.
+
+  Why this matters: `Yelixer.Encoding.encode_diff/2` encodes a peer's
+  *entire accumulated* `delete_set` on every call — not a diff since
+  the peer's state vector (there's no per-range provenance to diff
+  against). Replaying a long edit history one small update at a time
+  therefore re-presents the SAME, ever-growing delete-set range on
+  every single `apply_update/2` call. Before this, `apply_delete_range/4`
+  walked that whole range one block at a time regardless of whether
+  each block was already tombstoned from a previous call — O(already-
+  deleted history) of *redundant* work on every update, O(n²) across
+  n updates. Real edit histories are heavily self-adjacent (deletes
+  and their replacements interleave in clock order — see
+  `Yelixer.Types.YMap.set/4`), so `add_range/2`'s coalescing keeps the
+  accumulated range list tiny (often one entry); a caller can check
+  "is `start` already inside a known range, and if so how far does it
+  reach" in O(log range count) and skip straight past it, leaving only
+  the genuinely NEW portion of `[start, stop)` for `apply_delete_range/4`
+  to actually walk.
+
+  Returns `start` unchanged (skip nothing) if `start` isn't covered by
+  any existing range, or if `client` has no ranges recorded yet.
+  """
+  @spec skip_known_prefix(t(), non_neg_integer(), non_neg_integer(), non_neg_integer()) ::
+          non_neg_integer()
+  def skip_known_prefix(%__MODULE__{clients: clients}, client, start, stop) do
+    case Map.get(clients, client) do
+      nil ->
+        start
+
+      ranges ->
+        tuple = List.to_tuple(ranges)
+
+        case bsearch_covering(tuple, start, 0, tuple_size(tuple) - 1) do
+          nil -> start
+          range_stop -> min(range_stop, stop)
+        end
+    end
+  end
+
+  defp bsearch_covering(_tuple, _clock, low, high) when low > high, do: nil
+
+  defp bsearch_covering(tuple, clock, low, high) do
+    mid = div(low + high, 2)
+    {s, e} = elem(tuple, mid)
+
+    cond do
+      clock < s -> bsearch_covering(tuple, clock, low, mid - 1)
+      clock >= e -> bsearch_covering(tuple, clock, mid + 1, high)
+      true -> e
+    end
+  end
+
+  defp bsearch_range(_tuple, _clock, low, high) when low > high, do: false
+
+  defp bsearch_range(tuple, clock, low, high) do
+    mid = div(low + high, 2)
+    {start, stop} = elem(tuple, mid)
+
+    cond do
+      clock < start -> bsearch_range(tuple, clock, low, mid - 1)
+      clock >= stop -> bsearch_range(tuple, clock, mid + 1, high)
+      true -> true
+    end
+  end
+
+  @doc """
   Returns a delete set whose tombstones are the union of both inputs.
 
   The merge operates in two layers:
