@@ -41,7 +41,7 @@ defmodule Yelixer.Types.XMLElement do
       YATA mechanics and storage.
   """
 
-  alias Yelixer.{Doc, ID, Item, BlockStore, DeleteSet, Integrate, StateVector}
+  alias Yelixer.{Doc, ID, Item, BlockStore, DeleteSet, Integrate}
 
   @doc "Register a new XML element under `type_name` with the given tag."
   def new_element(%Doc{} = doc, type_name, tag) when is_binary(tag) do
@@ -72,7 +72,7 @@ defmodule Yelixer.Types.XMLElement do
     existing = find_current_attr(doc.store, type_name, key)
     doc = delete_existing_attr(doc, type_name, key)
 
-    clock = StateVector.get(BlockStore.state_vector(doc.store), doc.client_id)
+    clock = Doc.mint_clock(doc)
     id = ID.new(doc.client_id, clock)
     origin = existing && existing.id
     item = Item.new(id, origin, nil, {:any, [value]}, {:named, type_name}, key)
@@ -117,7 +117,7 @@ defmodule Yelixer.Types.XMLElement do
     {child_type_ref, doc, child_name} = register_child(doc, type_name, child_spec)
 
     {origin, right_origin} = find_child_origins(doc.store, children_key, index)
-    clock = StateVector.get(BlockStore.state_vector(doc.store), doc.client_id)
+    clock = Doc.mint_clock(doc)
     id = ID.new(doc.client_id, clock)
     item = Item.new(id, origin, right_origin, {:type, child_type_ref}, {:named, children_key}, nil)
     {:ok, store} = Integrate.integrate(doc.store, item, children_key)
@@ -212,7 +212,7 @@ defmodule Yelixer.Types.XMLElement do
   end
 
   defp register_child(doc, parent_name, {:element, tag}) do
-    clock = StateVector.get(BlockStore.state_vector(doc.store), doc.client_id)
+    clock = Doc.mint_clock(doc)
     child_name = child_name_from_id(parent_name, ID.new(doc.client_id, clock))
     type_ref = {:xml_element, tag}
     {doc, _} = Doc.get_or_create_type(doc, child_name, type_ref)
@@ -220,7 +220,7 @@ defmodule Yelixer.Types.XMLElement do
   end
 
   defp register_child(doc, parent_name, :text) do
-    clock = StateVector.get(BlockStore.state_vector(doc.store), doc.client_id)
+    clock = Doc.mint_clock(doc)
     child_name = child_name_from_id(parent_name, ID.new(doc.client_id, clock))
     type_ref = :xml_text
     {doc, _} = Doc.get_or_create_type(doc, child_name, type_ref)
@@ -228,7 +228,7 @@ defmodule Yelixer.Types.XMLElement do
   end
 
   defp register_child(doc, parent_name, {:fragment}) do
-    clock = StateVector.get(BlockStore.state_vector(doc.store), doc.client_id)
+    clock = Doc.mint_clock(doc)
     child_name = child_name_from_id(parent_name, ID.new(doc.client_id, clock))
     type_ref = :xml_fragment
     {doc, _} = Doc.get_or_create_type(doc, child_name, type_ref)

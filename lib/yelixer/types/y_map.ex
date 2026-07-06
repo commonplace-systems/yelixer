@@ -74,7 +74,7 @@ defmodule Yelixer.Types.YMap do
   - Sibling facades: `Yelixer.Types.Text`, `Yelixer.Types.Array`.
   """
 
-  alias Yelixer.{Doc, ID, Item, BlockStore, DeleteSet, StateVector, Integrate}
+  alias Yelixer.{Doc, ID, Item, BlockStore, DeleteSet, Integrate}
 
   @doc """
   Binds `key` to `value` in `type_name`'s map, overwriting any prior binding.
@@ -95,7 +95,7 @@ defmodule Yelixer.Types.YMap do
     existing = find_current_item(doc.store, type_name, key)
     doc = delete_existing(doc, type_name, key)
 
-    clock = StateVector.get(BlockStore.state_vector(doc.store), doc.client_id)
+    clock = Doc.mint_clock(doc)
     id = ID.new(doc.client_id, clock)
     origin = existing && existing.id
     item = Item.new(id, origin, nil, {:any, [value]}, {:named, type_name}, key)

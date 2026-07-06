@@ -26,12 +26,12 @@ defmodule Yelixer.Types.XMLText do
   tombstone filtering, codepoint vs. grapheme handling.
   """
 
-  alias Yelixer.{Doc, ID, Item, BlockStore, DeleteSet, Integrate, StateVector}
+  alias Yelixer.{Doc, ID, Item, BlockStore, DeleteSet, Integrate}
 
   @doc "Splice `text` into the sequence at character offset `index`."
   def insert(%Doc{} = doc, type_name, index, text) when is_binary(text) and byte_size(text) > 0 do
     {store, origin, right_origin} = find_origins_with_split(doc.store, type_name, index)
-    clock = StateVector.get(BlockStore.state_vector(store), doc.client_id)
+    clock = Doc.mint_clock(%{doc | store: store})
     id = ID.new(doc.client_id, clock)
     item = Item.new(id, origin, right_origin, {:string, text}, {:named, type_name}, nil)
     {:ok, store} = Integrate.integrate(store, item, type_name)

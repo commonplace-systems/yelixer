@@ -92,7 +92,7 @@ defmodule Yelixer.Types.Text do
     several type facades that operate on a `%Doc{}`.
   """
 
-  alias Yelixer.{Doc, ID, Item, BlockStore, DeleteSet, Integrate, StateVector}
+  alias Yelixer.{Doc, ID, Item, BlockStore, DeleteSet, Integrate}
 
   @doc """
   Inserts `text` into `type_name`'s sequence at character offset
@@ -101,8 +101,11 @@ defmodule Yelixer.Types.Text do
     1. Resolve `index` to a YATA anchor pair (`origin`, `right_origin`)
        via `find_origins_with_split/3`, splitting a run-length block if
        `index` falls in its interior.
-    2. Read the caller's current clock from `BlockStore.state_vector/1`
-       — this becomes the new Item's starting clock.
+    2. Read the caller's current clock via `Yelixer.Doc.mint_clock/1`
+       — this becomes the new Item's starting clock. (Centralizes what
+       used to be an inline `StateVector.get(BlockStore.state_vector(store),
+       doc.client_id)` read; see that function's moduledoc for the
+       `clock_floor` continuation mechanism it also serves.)
     3. Build one Item with `content: {:string, text}`. The entire
        insertion is one block regardless of length.
     4. Pass the Item to `Yelixer.Integrate.integrate/3` for YATA
@@ -113,7 +116,7 @@ defmodule Yelixer.Types.Text do
   """
   def insert(%Doc{} = doc, type_name, index, text) when is_binary(text) and byte_size(text) > 0 do
     {store, origin, right_origin} = find_origins_with_split(doc.store, type_name, index)
-    clock = StateVector.get(BlockStore.state_vector(store), doc.client_id)
+    clock = Doc.mint_clock(%{doc | store: store})
     id = ID.new(doc.client_id, clock)
     item = Item.new(id, origin, right_origin, {:string, text}, {:named, type_name}, nil)
     {:ok, store} = Integrate.integrate(store, item, type_name)

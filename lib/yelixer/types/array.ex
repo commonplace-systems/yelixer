@@ -94,7 +94,7 @@ defmodule Yelixer.Types.Array do
   - Document container: `Yelixer.Doc`.
   """
 
-  alias Yelixer.{Doc, ID, Item, BlockStore, DeleteSet, Integrate, StateVector}
+  alias Yelixer.{Doc, ID, Item, BlockStore, DeleteSet, Integrate}
 
   @doc """
   Splices `values` into `type_name`'s sequence starting at element
@@ -116,7 +116,7 @@ defmodule Yelixer.Types.Array do
     Enum.with_index(values)
     |> Enum.reduce(doc, fn {value, i}, doc ->
       {origin, right_origin} = find_origins(doc.store, type_name, index + i)
-      clock = StateVector.get(BlockStore.state_vector(doc.store), doc.client_id)
+      clock = Doc.mint_clock(doc)
       id = ID.new(doc.client_id, clock)
       item = Item.new(id, origin, right_origin, {:any, [value]}, {:named, type_name}, nil)
       {:ok, store} = Integrate.integrate(doc.store, item, type_name)

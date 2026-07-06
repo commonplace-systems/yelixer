@@ -89,7 +89,7 @@ defmodule Yelixer.Doc do
       `doc.delete_set`.
   """
 
-  alias Yelixer.{BlockStore, DeleteSet, Item}
+  alias Yelixer.{BlockStore, DeleteSet, Item, StateVector}
   alias Yelixer.Types.{YMap, Text, Array, XMLFragment, XMLElement, XMLText}
 
   @type t :: %__MODULE__{
@@ -99,11 +99,12 @@ defmodule Yelixer.Doc do
           types: %{String.t() => atom()},
           client_namespaces: %{non_neg_integer() => binary()},
           pending: [binary()],
-          pending_bytes: non_neg_integer()
+          pending_bytes: non_neg_integer(),
+          clock_floor: non_neg_integer()
         }
 
   defstruct [:client_id, :store, :delete_set, :types,
-             client_namespaces: %{}, pending: [], pending_bytes: 0]
+             client_namespaces: %{}, pending: [], pending_bytes: 0, clock_floor: 0]
 
   @doc """
   Allocates a fresh document replica.
@@ -113,11 +114,52 @@ defmodule Yelixer.Doc do
   it, a random integer in the billion-element range is chosen;
   collisions between live peers are vanishingly rare.
 
+  Pass `clock_floor: n` to force this replica's own mint clock to start
+  no lower than `n` (default `0`, meaning "use the store's own state
+  vector clock" — the historical behavior). See `mint_clock/1` for the
+  mechanics and the CX-b0ow.9 usage contract below.
+
   Store, delete set, and type registry all start empty. Type facades
   register types lazily on first use.
+
+  ## The `clock_floor` usage contract
+
+  `clock_floor` exists for **derived/throwaway replicas** reconstructed
+  at a past point in a chain (e.g. `DocBuilder.reconstruct_doc_at/3`)
+  under a *reused* `client_id` (a bridge's stable writer hand) that may
+  have minted further ops later in the chain, past the reconstruction
+  point. Without a floor, new local mints on the replica would restart
+  at the replica's local (stale) state-vector clock and collide with
+  — silently duplicate — those later ops' `(client, clock)` ids once
+  both are seen by a peer that has the full chain.
+
+  The floor sidesteps that by forcing new mints to start at
+  `max(local_sv_clock, clock_floor)` (see `mint_clock/1`), typically set
+  to the writer hand's clock at `:latest` before replaying forward from
+  the anchor.
+
+  **This is only safe when the replica's output is diff-encoded, never
+  shipped whole.** A floored doc's FULL state (`Encoding.encode_update/1`)
+  must never be sent as an update to a peer that lacks the gap blocks
+  between the replica's own last-known op and `clock_floor` — the
+  receiver has no way to know those clocks are intentionally absent, and
+  would buffer everything past the gap in its pending buffer forever
+  (see the `pending_info/1` moduledoc). Callers must instead compute
+  `Yelixer.Encoding.encode_diff(replica, pre_edit_state_vector)` — which
+  contains only the newly minted blocks (plus the delete set, safe to
+  re-apply) — and apply that diff to a doc that DOES own the gap range
+  (e.g. the chain's `:latest` reconstruction). See
+  `Commonplace.GitBridge.Inbound` for the concrete flow this backs.
+
+  Floors are purely local bookkeeping: nothing about the wire format
+  changes, and non-floored docs (`clock_floor: 0`, the default) are
+  byte-for-byte unaffected — `mint_clock/1` degrades to the historical
+  `StateVector.get(...)` read whenever the local clock is already `>=`
+  the floor, which is always true when the floor is `0`.
   """
   def new(opts \\ []) do
     client_id = Keyword.get(opts, :client_id, :rand.uniform(1_000_000_000))
+    clock_floor = Keyword.get(opts, :clock_floor, 0)
 
     %__MODULE__{
       client_id: client_id,
@@ -126,8 +168,26 @@ defmodule Yelixer.Doc do
       types: %{},
       client_namespaces: %{},
       pending: [],
-      pending_bytes: 0
+      pending_bytes: 0,
+      clock_floor: clock_floor
     }
+  end
+
+  @doc """
+  Returns the clock this doc's `client_id` should use for its NEXT
+  locally-minted item.
+
+  Centralizes the mint-clock read that every type module (`Text`,
+  `YMap`, `Array`, the XML modules) previously performed inline as
+  `StateVector.get(BlockStore.state_vector(store), doc.client_id)`.
+  Returns `max(local_state_vector_clock, doc.clock_floor)` — a pure
+  refactor for non-floored docs (`clock_floor` defaults to `0`, and
+  `max(n, 0) == n` for any `n >= 0`), and the floor-respecting behavior
+  described in `new/1`'s moduledoc for floored replicas.
+  """
+  @spec mint_clock(t()) :: non_neg_integer()
+  def mint_clock(%__MODULE__{store: store, client_id: client_id, clock_floor: floor}) do
+    max(StateVector.get(BlockStore.state_vector(store), client_id), floor)
   end
 
   @doc """

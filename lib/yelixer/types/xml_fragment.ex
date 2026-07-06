@@ -85,7 +85,7 @@ defmodule Yelixer.Types.XMLFragment do
   - Character-stream text nodes: `Yelixer.Types.XMLText`.
   """
 
-  alias Yelixer.{Doc, ID, Item, BlockStore, DeleteSet, Integrate, StateVector}
+  alias Yelixer.{Doc, ID, Item, BlockStore, DeleteSet, Integrate}
 
   @doc "Register a new, empty XML fragment under `type_name`."
   def new_fragment(%Doc{} = doc, type_name) do
@@ -105,7 +105,7 @@ defmodule Yelixer.Types.XMLFragment do
     {child_type_ref, doc, child_name} = register_child(doc, type_name, child_spec)
 
     {origin, right_origin} = find_child_origins(doc.store, children_key, index)
-    clock = StateVector.get(BlockStore.state_vector(doc.store), doc.client_id)
+    clock = Doc.mint_clock(doc)
     id = ID.new(doc.client_id, clock)
     item = Item.new(id, origin, right_origin, {:type, child_type_ref}, {:named, children_key}, nil)
     {:ok, store} = Integrate.integrate(doc.store, item, children_key)
@@ -188,7 +188,7 @@ defmodule Yelixer.Types.XMLFragment do
   end
 
   defp register_child(doc, parent_name, {:element, tag}) do
-    clock = StateVector.get(BlockStore.state_vector(doc.store), doc.client_id)
+    clock = Doc.mint_clock(doc)
     child_name = child_name_from_id(parent_name, ID.new(doc.client_id, clock))
     type_ref = {:xml_element, tag}
     {doc, _} = Doc.get_or_create_type(doc, child_name, type_ref)
@@ -196,7 +196,7 @@ defmodule Yelixer.Types.XMLFragment do
   end
 
   defp register_child(doc, parent_name, :text) do
-    clock = StateVector.get(BlockStore.state_vector(doc.store), doc.client_id)
+    clock = Doc.mint_clock(doc)
     child_name = child_name_from_id(parent_name, ID.new(doc.client_id, clock))
     type_ref = :xml_text
     {doc, _} = Doc.get_or_create_type(doc, child_name, type_ref)
