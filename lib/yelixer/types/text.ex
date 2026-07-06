@@ -123,6 +123,10 @@ defmodule Yelixer.Types.Text do
     %{doc | store: store}
   end
 
+  def insert(%Doc{} = doc, _type_name, _index, <<>>) do
+    doc
+  end
+
   @doc """
   Tombstones `len` characters starting at character offset `index`.
 

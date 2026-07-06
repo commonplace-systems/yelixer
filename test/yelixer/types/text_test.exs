@@ -77,6 +77,19 @@ defmodule Yelixer.Types.TextTest do
     assert Text.length(doc, "text") == 0
   end
 
+  # CX-gq7a: insert/4's moduledoc claims empty text is a no-op, but the
+  # only clause guarded `byte_size(text) > 0` — insert(doc, name, idx, "")
+  # raised FunctionClauseError instead. This was the crash locus for the
+  # MUD @verb editor's empty/'.' save (see
+  # Commonplace.MUD.PlayerSession's save_verb / VerbSource.save_verb).
+  test "insert with empty text is a no-op (moduledoc contract)" do
+    doc = new_doc(1)
+    doc = Text.insert(doc, "text", 0, "hello")
+
+    assert Text.insert(doc, "text", 0, "") == doc
+    assert Text.to_string(doc, "text") == "hello"
+  end
+
   test "multi-char insert creates single item" do
     doc = new_doc(1)
     doc = Text.insert(doc, "text", 0, "hello")
