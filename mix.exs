@@ -22,7 +22,8 @@ defmodule Yelixer.MixProject do
   defp deps do
     [
       {:stream_data, "~> 1.0", only: [:test]},
-      {:jason, "~> 1.4"}
+      {:jason, "~> 1.4"},
+      {:telemetry, "~> 1.2"}
     ]
   end
 end

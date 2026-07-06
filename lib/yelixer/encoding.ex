@@ -129,6 +129,15 @@ defmodule Yelixer.Encoding do
   # range. Reject at decode time instead of letting either happen.
   @max_safe_clock 9_007_199_254_740_991
 
+  # CX-cdyi (H1): default byte cap on the total size of `doc.pending`
+  # (all currently-buffered un-integratable update binaries, summed).
+  # Config-overridable via `config :yelixer, max_pending_bytes: n`.
+  # Updates arrive as commits, so H2b's varint sanity bounds plus
+  # commit size already bound any single blob; this cap bounds the
+  # *total* a hostile or badly-ordered peer can pile up before we
+  # start rejecting applies outright (see `apply_update/2`).
+  @default_max_pending_bytes 10_485_760
+
   # --- Varint (unsigned LEB128) ---
   #
   # The default integer encoding in the Yjs wire format. Each byte
@@ -835,62 +844,251 @@ defmodule Yelixer.Encoding do
   # walking the origin chain via resolve_parent/2. Items whose
   # origin/right_origin hasn't arrived yet are deferred to a pending
   # list and retried after the rest of the batch is processed.
+  #
+  # CX-cdyi (H1): a batch that STILL has un-integratable items after
+  # every within-batch retry is exhausted is no longer pushed into the
+  # store raw. The store must only ever hold sequence-integrated
+  # items — every derived state vector, encode_update/encode_diff, and
+  # snapshot walks the store, so anything that lands there is
+  # unconditionally treated as "fully seen." An un-integrated item in
+  # the store therefore poisons the SV permanently (no future sync can
+  # ever re-request its missing dependency) and makes encoded bytes
+  # depend on delivery order (arrival-order-dependent CIDs). See
+  # `Yelixer.Doc.pending_info/1` and the design doc at
+  # docs/plans/2026-07-04-yelixer-h1-pending-buffer.md (commonplace-plan
+  # repo) for the full writeup.
 
   @doc """
   Decodes a binary update (from `encode_update` or `encode_diff`),
   integrates the items into `doc`, and applies the delete set.
 
-  Returns `{:ok, doc}` on success or `{:error, reason}` for a
-  malformed payload. After a successful apply:
+  Returns `{:ok, doc}` on success, `{:error, reason}` for a malformed
+  payload, or `{:error, :pending_overflow}` if buffering this update's
+  un-integratable remainder would exceed the pending-bytes cap (see
+  below) — in the overflow case `doc` is returned to the caller
+  UNCHANGED: nothing from this update is stored or buffered, and any
+  previously-buffered blobs are untouched.
+
+  After a successful apply:
 
     - new items are reachable via `Yelixer.BlockStore.get/2`
     - tombstones are present in `doc.delete_set`
     - the doc's state vector has advanced for each contributing client
+    - any update content that couldn't fully integrate is parked in
+      `doc.pending` (see `Yelixer.Doc.pending_info/1`) rather than
+      being stored — the SV never advances past it
 
-  ## Two-phase integration
+  ## Two-phase integration, then bounded blob buffering (H1)
 
   1. **First pass** — items are integrated in arrival order. Any item
      whose origin or right_origin hasn't been seen yet is deferred to
      a pending list rather than failing the entire apply.
-  2. **Retry** — after the first pass, pending items are retried; by
-     then their dependencies may have arrived elsewhere in the batch.
+  2. **Within-batch retry** — pending items are retried to a fixpoint;
+     by then their dependencies may have arrived elsewhere in the
+     batch.
+  3. **Blob buffering** — if items remain un-integratable even after
+     the within-batch retry, the ORIGINAL update binary (not the
+     leftover items) is appended to `doc.pending`, bounded by
+     `Application.get_env(:yelixer, :max_pending_bytes, 10_485_760)`
+     total bytes. The items that DID integrate in this pass stay
+     integrated; re-applying the whole blob later is idempotent via
+     the existing fully-known-skip and partial-overlap-trim paths, so
+     buffering the coarse original bytes (rather than a decoded
+     remainder) costs nothing extra on retry.
+  4. **Level-triggered retry** — at the end of every `apply_update/2`
+     call (success or blob-buffered), every currently-pending blob is
+     replayed through the same decode+integrate path. A blob that
+     fully integrates (or whose remainder is now fully-known) leaves
+     the buffer. This repeats to a fixpoint — integrating one blob can
+     unlock another — stopping once a full pass advances no client's
+     state vector.
 
-  ## Delete-set merging (CX-w62)
+  ## Delete-set merging (CX-w62) and the delete rider (H1)
 
   The decoded delete set is merged into `doc.delete_set`, not
   overwritten. Without this, a round-tripped doc would lose tombstones
   on re-encode, breaking byte-determinism and causing peers to
   "re-revive" deleted items on subsequent syncs.
+
+  A delete for an item can arrive in an *earlier* update than the item
+  itself — the delete merges into `doc.delete_set` unconditionally
+  (CX-w62), so nothing rejects it just because its target isn't
+  integrated yet. Without a rider, that item would RESURRECT the
+  moment it later integrates (the two-phase integrator has no reason
+  to consult old delete-set ranges for content it's only just
+  learning about). So after every item newly integrates — whether in
+  this batch's first pass, its within-batch retry, or a later pending
+  retry — `doc.delete_set` is consulted for ranges covering it and
+  `mark_deleted` is applied immediately if it's already tombstoned.
   """
   def apply_update(%Doc{} = doc, binary) do
     case decode_update(binary) do
       {:ok, {items, ds, _rest}} ->
-        sv = BlockStore.state_vector(doc.store)
+        {new_doc, still_pending} = integrate_batch(doc, items, ds)
 
-        {doc, sv, pending} = integrate_items(items, doc, sv, [])
+        if still_pending == [] do
+          {:ok, retry_all_pending(new_doc)}
+        else
+          max_pending_bytes =
+            Application.get_env(:yelixer, :max_pending_bytes, @default_max_pending_bytes)
 
-        # Retry items deferred in the first pass — dependencies may now be present
-        {doc, _sv} = retry_pending(doc, sv, pending)
+          candidate_bytes = new_doc.pending_bytes + byte_size(binary)
 
-        # Apply delete set: walk ranges, splitting blocks at deletion boundaries
-        doc =
-          Enum.reduce(Map.to_list(ds.clients), doc, fn {client, ranges}, doc ->
-            Enum.reduce(ranges, doc, fn {start, stop}, doc ->
-              store = apply_delete_range(doc.store, client, start, stop - start)
-              %{doc | store: store}
-            end)
-          end)
+          if candidate_bytes > max_pending_bytes do
+            :telemetry.execute([:yelixer, :pending, :rejected], %{bytes: byte_size(binary)}, %{})
+            {:error, :pending_overflow}
+          else
+            :telemetry.execute([:yelixer, :pending, :deferred], %{bytes: byte_size(binary)}, %{})
 
-        # Merge incoming delete set into doc.delete_set so it survives re-encode.
-        # Without this, a round-tripped doc loses its tombstones, breaking
-        # byte-determinism across peers (CX-w62).
-        doc = %{doc | delete_set: DeleteSet.merge(doc.delete_set, ds)}
+            new_doc = %{
+              new_doc
+              | pending: new_doc.pending ++ [binary],
+                pending_bytes: candidate_bytes
+            }
 
-        {:ok, doc}
+            {:ok, retry_all_pending(new_doc)}
+          end
+        end
 
       {:error, reason} ->
         {:error, reason}
     end
+  end
+
+  # Integrates one decoded batch (items + delete set) into `doc`,
+  # returning `{doc, still_pending_items}`. `doc` is a value — nothing
+  # is mutated in place — so callers that decide NOT to keep the
+  # result (the pending_overflow path in `apply_update/2`) simply
+  # discard it and the caller's original `doc` is untouched.
+  defp integrate_batch(doc, items, ds) do
+    sv = BlockStore.state_vector(doc.store)
+
+    {doc, sv, pending_items} = integrate_items(items, doc, sv, [])
+
+    # Retry within this batch to a fixpoint — dependencies may have
+    # arrived elsewhere in the same update. Unlike the old
+    # `retry_pending/3`, this NEVER pushes leftover items into the
+    # store: whatever's still pending after the fixpoint is returned
+    # to the caller, which either buffers the original blob (bounded)
+    # or — for a retry-of-an-already-buffered-blob — leaves it be.
+    {doc, _sv, still_pending} = retry_within_batch(doc, sv, pending_items)
+
+    # Apply delete set: walk ranges, splitting blocks at deletion boundaries
+    doc =
+      Enum.reduce(Map.to_list(ds.clients), doc, fn {client, ranges}, doc ->
+        Enum.reduce(ranges, doc, fn {start, stop}, doc ->
+          store = apply_delete_range(doc.store, client, start, stop - start)
+          %{doc | store: store}
+        end)
+      end)
+
+    # Merge incoming delete set into doc.delete_set so it survives re-encode.
+    # Without this, a round-tripped doc loses its tombstones, breaking
+    # byte-determinism across peers (CX-w62).
+    doc = %{doc | delete_set: DeleteSet.merge(doc.delete_set, ds)}
+
+    # The delete rider (H1, CX-cdyi): items that just integrated in
+    # THIS pass may be covered by a delete that arrived in an earlier
+    # update (already folded into doc.delete_set above). Consult it now
+    # so late-arriving items don't resurrect. Items still in
+    # `still_pending` never integrated, so they're excluded — walking
+    # their clock range against the store would be unsafe (nothing to
+    # find, or worse, a same-client block that happens to occupy that
+    # id-space from an unrelated later item).
+    pending_ids = MapSet.new(still_pending, & &1.id)
+    integrated_items = Enum.reject(items, fn item -> MapSet.member?(pending_ids, item.id) end)
+    doc = apply_delete_rider(doc, integrated_items)
+
+    {doc, still_pending}
+  end
+
+  # Consults `doc.delete_set` for ranges covering each just-integrated
+  # `item` and marks the overlap deleted. Safe to call redundantly —
+  # `apply_delete_range/4` marking an already-deleted item is a no-op
+  # in effect (idempotent), and a range with no overlap contributes
+  # nothing (`Enum.filter` drops it before `apply_delete_range/4` is
+  # ever called).
+  defp apply_delete_rider(doc, items) do
+    Enum.reduce(items, doc, fn item, doc ->
+      case item.content do
+        {:gc, _} ->
+          doc
+
+        _ ->
+          ranges = Map.get(doc.delete_set.clients, item.id.client, [])
+          item_start = item.id.clock
+          item_end = item.id.clock + item.length
+
+          ranges
+          |> Enum.map(fn {s, e} -> {max(s, item_start), min(e, item_end)} end)
+          |> Enum.filter(fn {s, e} -> s < e end)
+          |> Enum.reduce(doc, fn {s, e}, doc ->
+            store = apply_delete_range(doc.store, item.id.client, s, e - s)
+            %{doc | store: store}
+          end)
+      end
+    end)
+  end
+
+  # Replays every currently-buffered blob through `integrate_batch/3`
+  # to a fixpoint. Level-triggered: a full pass over `doc.pending` that
+  # advances no client's state vector means nothing more can happen
+  # without new data, so we stop. A blob that fully integrates (no
+  # items left pending) is dropped from the buffer; one that only
+  # partially integrates stays — its progress is still committed to
+  # `doc`, since re-applying it again later is idempotent (fully-known
+  # items skip, partial overlaps trim).
+  defp retry_all_pending(%Doc{pending: []} = doc), do: doc
+
+  defp retry_all_pending(%Doc{pending: pending} = doc) do
+    sv_before = BlockStore.state_vector(doc.store)
+
+    {doc, remaining, integrated_bytes, integrated_count} = pending_pass(doc, pending)
+
+    if integrated_count > 0 do
+      :telemetry.execute(
+        [:yelixer, :pending, :integrated],
+        %{bytes: integrated_bytes},
+        %{count: integrated_count}
+      )
+    end
+
+    doc = %{
+      doc
+      | pending: remaining,
+        pending_bytes: Enum.reduce(remaining, 0, &(byte_size(&1) + &2))
+    }
+
+    sv_after = BlockStore.state_vector(doc.store)
+
+    if remaining != [] and sv_after != sv_before do
+      retry_all_pending(doc)
+    else
+      doc
+    end
+  end
+
+  defp pending_pass(doc, blobs) do
+    {doc, remaining, cleared_bytes, cleared_count} =
+      Enum.reduce(blobs, {doc, [], 0, 0}, fn blob, {doc, remaining, cleared_bytes, cleared_count} ->
+        case decode_update(blob) do
+          {:ok, {items, ds, _rest}} ->
+            {doc, still_pending} = integrate_batch(doc, items, ds)
+
+            if still_pending == [] do
+              {doc, remaining, cleared_bytes + byte_size(blob), cleared_count + 1}
+            else
+              {doc, [blob | remaining], cleared_bytes, cleared_count}
+            end
+
+          {:error, _reason} ->
+            # A blob we ourselves buffered should always decode; if it
+            # somehow doesn't, drop it rather than looping on it forever.
+            {doc, remaining, cleared_bytes, cleared_count}
+        end
+      end)
+
+    {doc, Enum.reverse(remaining), cleared_bytes, cleared_count}
   end
 
   @doc """
@@ -1230,24 +1428,25 @@ defmodule Yelixer.Encoding do
 
   defp maybe_register_xml_child_type(doc, _item, _key), do: doc
 
-  defp retry_pending(doc, sv, []), do: {doc, sv}
+  # CX-cdyi (H1): retries pending items to a fixpoint WITHOUT ever
+  # pushing a no-progress remainder into the store. The old
+  # `retry_pending/3` did exactly that in its "no progress" branch —
+  # items that still couldn't integrate were `BlockStore.push`ed raw
+  # and the state vector advanced past them, which is the defect this
+  # rewrite closes (see the moduledoc above `apply_update/2`). Callers
+  # now own the decision of what to do with a non-empty remainder:
+  # `integrate_batch/3` returns it so `apply_update/2` can buffer the
+  # original blob instead.
+  defp retry_within_batch(doc, sv, []), do: {doc, sv, []}
 
-  defp retry_pending(doc, sv, pending) do
+  defp retry_within_batch(doc, sv, pending) do
     {doc, sv, still_pending} = integrate_items(pending, doc, sv, [])
 
     if length(still_pending) < length(pending) do
       # Progress made — retry the remainder
-      retry_pending(doc, sv, still_pending)
+      retry_within_batch(doc, sv, still_pending)
     else
-      # No progress — push remaining items into the store without sequence integration
-      {doc, sv} =
-        Enum.reduce(still_pending, {doc, sv}, fn item, {doc, sv} ->
-          store = BlockStore.push(doc.store, item)
-          sv = StateVector.advance(sv, item.id.client, item.id.clock + item.length)
-          {%{doc | store: store}, sv}
-        end)
-
-      {doc, sv}
+      {doc, sv, still_pending}
     end
   end
 

@@ -97,10 +97,13 @@ defmodule Yelixer.Doc do
           store: BlockStore.t(),
           delete_set: DeleteSet.t(),
           types: %{String.t() => atom()},
-          client_namespaces: %{non_neg_integer() => binary()}
+          client_namespaces: %{non_neg_integer() => binary()},
+          pending: [binary()],
+          pending_bytes: non_neg_integer()
         }
 
-  defstruct [:client_id, :store, :delete_set, :types, client_namespaces: %{}]
+  defstruct [:client_id, :store, :delete_set, :types,
+             client_namespaces: %{}, pending: [], pending_bytes: 0]
 
   @doc """
   Allocates a fresh document replica.
@@ -121,8 +124,49 @@ defmodule Yelixer.Doc do
       store: BlockStore.new(),
       delete_set: DeleteSet.new(),
       types: %{},
-      client_namespaces: %{}
+      client_namespaces: %{},
+      pending: [],
+      pending_bytes: 0
     }
+  end
+
+  @doc """
+  Observability-only view of the bounded pending buffer (H1 — CX-cdyi).
+
+  `apply_update/2` never lets an un-integratable update binary poison
+  the store: when a batch ends with items that still can't integrate
+  (a missing origin/right_origin dependency), the ORIGINAL update
+  binary is buffered in `doc.pending` rather than being pushed into
+  the block store without sequence integration. Because `pending` is
+  never consulted by `encode_update`/`encode_diff`/the derived state
+  vector, its contents are excluded from every wire-visible view of
+  the doc *by construction* — this exclusion is required for the
+  same-content-same-bytes property (two replicas that received the
+  same content in different orders must emit identical bytes), not an
+  optimization.
+
+  Buffered blobs are retried on every subsequent `apply_update/2` call
+  (level-triggered — new data is the only wake-up this layer needs) and
+  are removed once they fully integrate or their remainder becomes
+  fully-known. A blob whose dependency never arrives stays here
+  indefinitely; that's a re-request opportunity for upper layers
+  (commit replay, federation catch-up), not a bug at this layer.
+
+  Returns `%{count: non_neg_integer(), bytes: non_neg_integer()}`.
+
+  ## Forward-only migration
+
+  Docs that accumulated orphan items under the pre-H1 behavior (items
+  pushed into the store without sequence integration, state vector
+  advanced past them) are NOT repaired by this change — the poisoning
+  is already baked into their store. A detector (store items whose
+  clocks appear in no sequence) could identify such docs later if a
+  real artifact surfaces; per the LWW-audit precedent, writing one
+  speculatively isn't justified by dev data alone.
+  """
+  @spec pending_info(t()) :: %{count: non_neg_integer(), bytes: non_neg_integer()}
+  def pending_info(%__MODULE__{pending: pending, pending_bytes: bytes}) do
+    %{count: length(pending), bytes: bytes}
   end
 
   @doc """
