@@ -126,6 +126,23 @@ defmodule Yelixer.DocTest do
     end
   end
 
+  describe "state_vector/1 (CX-pb23)" do
+    test "delegates to BlockStore.state_vector(doc.store)" do
+      doc = Doc.new(client_id: 3)
+      doc = Text.insert(doc, "t", 0, "hi")
+
+      assert Doc.state_vector(doc) == BlockStore.state_vector(doc.store)
+    end
+
+    test "reflects the doc's own client_id and clock after edits" do
+      doc = Doc.new(client_id: 99)
+      doc = Text.insert(doc, "t", 0, "hello")
+
+      sv = Doc.state_vector(doc)
+      assert Yelixer.StateVector.get(sv, 99) == 5
+    end
+  end
+
   describe "snapshot_update/1 (CX-u7p)" do
     test "produces an update with state vector size 1 for a YMap-only doc" do
       # Simulate a presence-style doc that's accumulated many client_ids
@@ -175,6 +192,36 @@ defmodule Yelixer.DocTest do
       {:ok, rebuilt} = Encoding.apply_update(Doc.new(), snapshot_bin)
 
       assert Map.keys(BlockStore.state_vector(rebuilt.store).clocks) == [4242]
+    end
+
+    test "refuses to snapshot a doc carrying __sub: nested sub-types (CX-oh9z)" do
+      base = Doc.new(client_id: 7)
+      doc = %Doc{base | types: Map.merge(base.types, %{"__sub:5:3" => :map})}
+
+      assert Doc.snapshot_update(doc) == {:error, {:lossy_nested_subtypes, ["__sub:5:3"]}}
+    end
+
+    test "force: true bypasses the refusal and preserves the old lossy behavior" do
+      base = Doc.new(client_id: 7)
+      {base, _} = Doc.get_or_create_type(base, "m", :map)
+      base = YMap.set(base, "m", "k", "v")
+      doc = %Doc{base | types: Map.merge(base.types, %{"__sub:5:3" => :map})}
+
+      assert {bytes, _dm} = Doc.snapshot_update(doc, force: true)
+      {:ok, rebuilt} = Encoding.apply_update(Doc.new(), bytes)
+
+      # The top-level map survives; the __sub: type's own state is
+      # dropped by design (replay_named_type/3 short-circuits on it) —
+      # force: true just means the caller has accepted that loss.
+      assert YMap.to_map(rebuilt, "m") == %{"k" => "v"}
+      refute Doc.has_type?(rebuilt, "__sub:5:3")
+    end
+
+    test "force: false (the default) is equivalent to omitting the option" do
+      base = Doc.new(client_id: 7)
+      doc = %Doc{base | types: Map.merge(base.types, %{"__sub:5:3" => :map})}
+
+      assert Doc.snapshot_update(doc, force: false) == Doc.snapshot_update(doc)
     end
 
     # Build a YMap doc with many distinct client_ids by repeatedly

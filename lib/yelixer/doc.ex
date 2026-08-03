@@ -263,6 +263,20 @@ defmodule Yelixer.Doc do
   def has_type?(%__MODULE__{types: types}, name), do: Map.has_key?(types, name)
 
   @doc """
+  Returns this doc's state vector — the per-`client_id` map of "highest
+  clock seen" that summarizes what content the doc holds without
+  encoding the content itself.
+
+  Thin delegate to `Yelixer.BlockStore.state_vector/1`. This is the
+  consumer-facing accessor: callers outside the library should reach
+  for `Doc.state_vector(doc)` rather than poking through the `store`
+  field directly (`BlockStore.state_vector(doc.store)`), which leaks
+  `Doc`'s internal field layout across the library boundary.
+  """
+  @spec state_vector(t()) :: StateVector.t()
+  def state_vector(%__MODULE__{store: store}), do: BlockStore.state_vector(store)
+
+  @doc """
   Returns the synthetic names of CRDT sub-types nested inside maps and
   arrays — the `"__sub:CLIENT:CLOCK"`-keyed types that `snapshot_update/1`
   does **not** replay structurally (`replay_named_type/3` short-circuits on
@@ -411,6 +425,25 @@ defmodule Yelixer.Doc do
   `Commonplace.Store.Snapshotter` for the calling convention that
   determinizes `source.client_id` before invoking this.
 
+  ## Refusing lossy compaction (CX-oh9z)
+
+  If `source` carries any `__sub:CLIENT:CLOCK` nested sub-type (see
+  `nested_subtype_names/1`), this function returns `{:error,
+  {:lossy_nested_subtypes, names}}` instead of silently dropping that
+  sub-type's CRDT state. This makes the guard load-bearing at the
+  library boundary itself, rather than relying on every caller to
+  remember to pre-check `nested_subtype_names/1` (exactly one caller,
+  `Commonplace.Store.Snapshotter.build_payload/2`, did before this
+  guard existed here — the refusal below is now redundant for that
+  caller but protects every other/future one).
+
+  Pass `force: true` to bypass the refusal and get the old
+  (lossy-if-nested) behavior — `{bytes, derivation_map}` unconditionally.
+  Only use `force: true` when the caller has already decided the loss
+  is acceptable (e.g. it pre-checked `nested_subtype_names/1` itself
+  for a different reason, or the doc shape is known never to carry
+  sub-types).
+
   ## Sub-types and the `__sub:CLIENT:CLOCK` naming
 
   Nested CRDT types — a `YArray` value inside a `YMap` entry, an
@@ -435,7 +468,19 @@ defmodule Yelixer.Doc do
   `replay_xml_*` helpers, because XML's tree shape is the whole point
   of the type.
   """
-  def snapshot_update(%__MODULE__{} = source) do
+  @spec snapshot_update(t(), force: boolean()) ::
+          {binary(), %{optional(tuple()) => tuple()}}
+          | {:error, {:lossy_nested_subtypes, [String.t()]}}
+  def snapshot_update(%__MODULE__{} = source, opts \\ []) do
+    force = Keyword.get(opts, :force, false)
+
+    case {force, nested_subtype_names(source)} do
+      {false, [_ | _] = names} -> {:error, {:lossy_nested_subtypes, names}}
+      _ -> do_snapshot_update(source)
+    end
+  end
+
+  defp do_snapshot_update(source) do
     fresh = new(client_id: source.client_id)
 
     # CX-hzdc: replay in source-clock order, not `source.types` map
