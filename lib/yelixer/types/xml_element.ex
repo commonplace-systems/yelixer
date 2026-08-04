@@ -42,6 +42,7 @@ defmodule Yelixer.Types.XMLElement do
   """
 
   alias Yelixer.{Doc, ID, Item, BlockStore, DeleteSet, Integrate}
+  alias Yelixer.Types.XMLEscape
 
   @doc "Register a new XML element under `type_name` with the given tag."
   def new_element(%Doc{} = doc, type_name, tag) when is_binary(tag) do
@@ -175,7 +176,15 @@ defmodule Yelixer.Types.XMLElement do
     |> Enum.count()
   end
 
-  @doc "Render the element as `<tag attrs>children</tag>`."
+  @doc """
+  Render the element as `<tag attrs>children</tag>`.
+
+  Text content and attribute values are XML/XHTML-escaped (`&`, `<`, `>`,
+  and additionally `"`/`'` for attributes) so the result is safe to
+  raw-render on a web page (CX-n3i7). The CRDT text store itself is never
+  mutated — see `Yelixer.Types.XMLEscape` for the STORE-RAW +
+  ESCAPE-ON-OUTPUT discipline this follows.
+  """
   def to_string(%Doc{} = doc, type_name) do
     tag = tag_name(doc, type_name)
     attrs = get_attributes(doc, type_name)
@@ -183,7 +192,7 @@ defmodule Yelixer.Types.XMLElement do
     attr_str =
       attrs
       |> Enum.sort()
-      |> Enum.map(fn {k, v} -> ~s( #{k}="#{v}") end)
+      |> Enum.map(fn {k, v} -> ~s( #{k}="#{XMLEscape.attribute(Kernel.to_string(v))}") end)
       |> Enum.join()
 
     child_str =
@@ -193,7 +202,7 @@ defmodule Yelixer.Types.XMLElement do
           __MODULE__.to_string(doc, child_name)
 
         {:text, child_name} ->
-          Yelixer.Types.XMLText.to_string(doc, child_name)
+          XMLEscape.text(Yelixer.Types.XMLText.to_string(doc, child_name))
 
         {:fragment, child_name} ->
           Yelixer.Types.XMLFragment.to_string(doc, child_name)

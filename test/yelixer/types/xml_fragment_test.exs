@@ -126,4 +126,20 @@ defmodule Yelixer.Types.XMLFragmentTest do
       assert [{:element, "b", _}] = children
     end
   end
+
+  describe "to_string XSS-escaping (CX-n3i7)" do
+    test "escapes text content in a top-level fragment (no wrapper tag)" do
+      doc = new_doc()
+      doc = XMLFragment.new_fragment(doc, "frag")
+      doc = XMLFragment.insert_child(doc, "frag", 0, :text)
+      [{:text, child_name}] = XMLFragment.to_list(doc, "frag")
+      doc = XMLText.insert(doc, child_name, 0, "<script>alert(1)</script> & \"q\"")
+
+      assert XMLFragment.to_string(doc, "frag") ==
+               ~s[&lt;script&gt;alert(1)&lt;/script&gt; &amp; "q"]
+
+      # store-raw: the underlying text is untouched
+      assert XMLText.to_string(doc, child_name) == "<script>alert(1)</script> & \"q\""
+    end
+  end
 end

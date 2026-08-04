@@ -86,6 +86,7 @@ defmodule Yelixer.Types.XMLFragment do
   """
 
   alias Yelixer.{Doc, ID, Item, BlockStore, DeleteSet, Integrate}
+  alias Yelixer.Types.XMLEscape
 
   @doc "Register a new, empty XML fragment under `type_name`."
   def new_fragment(%Doc{} = doc, type_name) do
@@ -163,7 +164,13 @@ defmodule Yelixer.Types.XMLFragment do
     |> Enum.count()
   end
 
-  @doc "Render the fragment's children as a string (no wrapper tag)."
+  @doc """
+  Render the fragment's children as a string (no wrapper tag).
+
+  Text content is XML/XHTML-escaped (`&`, `<`, `>`) so the result is safe
+  to raw-render on a web page (CX-n3i7) — see `Yelixer.Types.XMLEscape`
+  for the STORE-RAW + ESCAPE-ON-OUTPUT discipline this follows.
+  """
   def to_string(%Doc{} = doc, type_name) do
     to_list(doc, type_name)
     |> Enum.map(fn
@@ -171,7 +178,7 @@ defmodule Yelixer.Types.XMLFragment do
         Yelixer.Types.XMLElement.to_string(doc, child_name)
 
       {:text, child_name} ->
-        Yelixer.Types.XMLText.to_string(doc, child_name)
+        XMLEscape.text(Yelixer.Types.XMLText.to_string(doc, child_name))
 
       {:fragment, child_name} ->
         __MODULE__.to_string(doc, child_name)

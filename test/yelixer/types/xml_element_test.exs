@@ -203,4 +203,61 @@ defmodule Yelixer.Types.XMLElementTest do
       assert XMLElement.to_string(doc, "root") == "<div><a></a><c></c></div>"
     end
   end
+
+  describe "to_string XSS-escaping (CX-n3i7)" do
+    test "escapes <script> tags and & in text content" do
+      doc = new_doc()
+      doc = XMLElement.new_element(doc, "root", "p")
+      doc = XMLElement.insert_child(doc, "root", 0, :text)
+      [{:text, child_name}] = XMLElement.children(doc, "root")
+      doc = XMLText.insert(doc, child_name, 0, ~s[<script>alert(1)</script> & "quoted" 'single'])
+
+      assert XMLElement.to_string(doc, "root") ==
+               ~s[<p>&lt;script&gt;alert(1)&lt;/script&gt; &amp; "quoted" 'single'</p>]
+    end
+
+    test "escapes &, <, >, \", ' in attribute values" do
+      doc = new_doc()
+      doc = XMLElement.new_element(doc, "root", "div")
+      doc = XMLElement.set_attribute(doc, "root", "data-x", ~s(1 & "2" <3> '4'))
+
+      assert XMLElement.to_string(doc, "root") ==
+               ~s(<div data-x="1 &amp; &quot;2&quot; &lt;3&gt; &#39;4&#39;"></div>)
+    end
+
+    test "the underlying stored text is NOT mutated — store-raw discipline" do
+      doc = new_doc()
+      doc = XMLElement.new_element(doc, "root", "p")
+      doc = XMLElement.insert_child(doc, "root", 0, :text)
+      [{:text, child_name}] = XMLElement.children(doc, "root")
+      doc = XMLText.insert(doc, child_name, 0, "<b>raw</b>")
+
+      # Escaping is a serialization-time concern only — the CRDT text
+      # store still holds exactly what was typed.
+      assert XMLText.to_string(doc, child_name) == "<b>raw</b>"
+      assert XMLElement.to_string(doc, "root") == "<p>&lt;b&gt;raw&lt;/b&gt;</p>"
+    end
+
+    test "escaped output survives a fork/copy round-trip (snapshot_update) without double-escaping" do
+      doc = new_doc()
+      doc = XMLElement.new_element(doc, "root", "div")
+      doc = XMLElement.set_attribute(doc, "root", "title", ~s(a & b))
+      doc = XMLElement.insert_child(doc, "root", 0, :text)
+      [{:text, child_name}] = XMLElement.children(doc, "root")
+      doc = XMLText.insert(doc, child_name, 0, "x & y <z>")
+
+      expected = ~s(<div title="a &amp; b">x &amp; y &lt;z&gt;</div>)
+      assert XMLElement.to_string(doc, "root") == expected
+
+      {snapshot_bin, _dm} = Yelixer.Doc.snapshot_update(doc)
+      receiver = XMLElement.new_element(Yelixer.Doc.new(), "root", "div")
+      {:ok, rebuilt} = Yelixer.Encoding.apply_update(receiver, snapshot_bin)
+
+      # Same escaped output, not double-escaped (&amp;amp;) — this proves
+      # the internal doc-copy/replay path (Doc.snapshot_update ->
+      # XMLText.to_string -> XMLText.insert) reads and writes RAW text,
+      # not the escaped `to_string/2` serialization.
+      assert XMLElement.to_string(rebuilt, "root") == expected
+    end
+  end
 end
