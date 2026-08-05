@@ -592,10 +592,26 @@ defmodule Yelixer.Doc do
     # can dispatch to the correct type API for reading and replay.
     effective_ref = if ref == :unknown, do: infer_type_from_sequence(source, name), else: ref
 
+    # CX-2xn1: a named type has two storage planes — the MAP plane
+    # (items with parent_sub != nil) and the SEQUENCE plane (items
+    # with parent_sub == nil, read as text/array/xml). Both can be
+    # populated under the same name (e.g. a doc that both
+    # `YMap.set/4`s and `Text.insert/4`s the same name). `ref` /
+    # `effective_ref` only ever names ONE of them, so whichever branch
+    # below matches replays its plane first via `get_or_create_type` —
+    # that first call wins and decides the rebuilt type's registered
+    # kind, exactly as it did before this fix. We then also replay the
+    # *other* plane, if it has content, into the same rebuilt type.
+    # `get_or_create_type` is a documented no-op on a name that is
+    # already registered, so the second plane's replay never changes
+    # which kind the type carries — it only adds the data. When a doc
+    # has only one plane populated, the other plane's replay is a
+    # no-op (empty map / empty sequence), so single-plane snapshot
+    # bytes are unchanged from today.
     case effective_ref do
-      :text -> replay_text(doc, source, name)
-      :map -> replay_map(doc, source, name)
-      :array -> replay_array(doc, source, name)
+      :text -> doc |> replay_text(source, name) |> replay_map_plane(source, name)
+      :map -> doc |> replay_map(source, name) |> replay_sequence_plane(source, name)
+      :array -> doc |> replay_array(source, name) |> replay_map_plane(source, name)
       :xml_fragment -> replay_xml_fragment(doc, source, name, name)
       {:xml_element, tag} -> replay_xml_element(doc, source, name, name, tag)
       :xml_text -> replay_xml_text(doc, source, name, name)
@@ -624,6 +640,42 @@ defmodule Yelixer.Doc do
     {doc, _} = get_or_create_type(doc, name, :array)
     values = Array.to_list(source, name)
     if values == [], do: doc, else: Array.insert(doc, name, 0, values)
+  end
+
+  # CX-2xn1: replays the MAP plane on top of an already-replayed
+  # SEQUENCE plane, but only if the source actually has keyed
+  # (parent_sub != nil) content under `name`. On a sequence-only doc
+  # this is a no-op — `YMap.to_map/2` returns `%{}` and `replay_map/3`
+  # is never called — so it cannot perturb the single-plane snapshot.
+  defp replay_map_plane(doc, source, name) do
+    case YMap.to_map(source, name) do
+      map when map_size(map) == 0 -> doc
+      _ -> replay_map(doc, source, name)
+    end
+  end
+
+  # CX-2xn1: replays the SEQUENCE plane on top of an already-replayed
+  # MAP plane, but only if the source has plain (parent_sub == nil)
+  # items under `name`. On a map-only doc this is a no-op, so it
+  # cannot perturb the single-plane snapshot. The sequence's own kind
+  # is inferred independently of the type's declared/registered ref —
+  # a doc explicitly registered as `:map` can still carry a `:text` or
+  # `:array` sequence plane (that's the whole bug).
+  defp replay_sequence_plane(doc, source, name) do
+    plain_items =
+      source.store
+      |> Yelixer.BlockStore.get_sequence(name)
+      |> Enum.filter(&(&1.parent_sub == nil))
+
+    if plain_items == [] do
+      doc
+    else
+      case infer_type_from_sequence(source, name) do
+        :text -> replay_text(doc, source, name)
+        :xml_fragment -> replay_xml_fragment(doc, source, name, name)
+        _ -> replay_array(doc, source, name)
+      end
+    end
   end
 
   # XML replay: walk the source's observable structure (tombstones are
@@ -718,12 +770,24 @@ defmodule Yelixer.Doc do
   # sequence. Required because `apply_update` stores decoded top-level
   # types as `:unknown`.
   #
-  # Heuristics, in order:
+  # CX-2xn1: this function's job is now to infer the SEQUENCE plane's
+  # kind only — the MAP plane (parent_sub != nil items) is replayed
+  # independently by `replay_map_plane/3` / `replay_top_level_type/4`,
+  # so it must not influence this inference. We therefore look only at
+  # *plain* items (parent_sub == nil); the old `parent_sub != nil ->
+  # :map` clause is gone because a plain item can never match it.
+  #
+  # Heuristics, in order (plain items only):
   #   - Any item with string content    → :text
-  #   - Any item with a `parent_sub`    → :map  (entries keyed by parent_sub)
   #   - Any item with a nested XML type → :xml_fragment
-  #   - Empty sequence                  → :map  (safe default)
+  #   - No plain items at all           → :map  (safe default)
   #   - Otherwise                       → :array
+  #
+  # The "no plain items" case covers a genuinely map-only doc: there
+  # is no sequence plane to speak of, so we fall back to :map exactly
+  # as before. That still routes the caller (`replay_top_level_type`)
+  # into the `:map` branch, which replays the map plane via
+  # `replay_map/3` — the map-only path is unchanged by this fix.
   #
   # Top-level `XMLElement` and `XMLText` cannot be inferred: the
   # element tag is not carried on the wire, and a top-level xml_text
@@ -732,12 +796,12 @@ defmodule Yelixer.Doc do
   # as Y.js `ydoc.get(name, Y.XmlElement)`.
   defp infer_type_from_sequence(%__MODULE__{store: store}, name) do
     items = Yelixer.BlockStore.get_sequence(store, name)
+    plain_items = Enum.filter(items, &(&1.parent_sub == nil))
 
     cond do
-      Enum.any?(items, &match?(%Item{content: {:string, _}}, &1)) -> :text
-      Enum.any?(items, &(&1.parent_sub != nil)) -> :map
-      xml_fragment_like?(items) -> :xml_fragment
-      items == [] -> :map
+      Enum.any?(plain_items, &match?(%Item{content: {:string, _}}, &1)) -> :text
+      xml_fragment_like?(plain_items) -> :xml_fragment
+      plain_items == [] -> :map
       true -> :array
     end
   end
