@@ -180,14 +180,17 @@ defmodule Yelixer.Types.Text do
   construction by `Yelixer.Item.new/6`. Summing live blocks gives the
   total.
 
-  Counts all live blocks, not just `:string` ones. In a pure-text
-  sequence this equals `String.length(to_string(doc, name))`; if the
-  sequence contains embeds or sub-types, the two values diverge
-  because those blocks contribute length but no characters.
+  Counts all live *plain-sequence* blocks, not just `:string` ones —
+  embeds and sub-types contribute length but no characters. Y.Map
+  keyed items sharing this name (`parent_sub != nil`) are excluded:
+  they live in the map's key-space, not the text's positional
+  sequence, so they must not contribute to offsets (see
+  `plain_sequence/2`). In a pure-text sequence this equals
+  `String.length(to_string(doc, name))`.
   """
   def length(%Doc{} = doc, type_name) do
     doc.store
-    |> BlockStore.get_sequence(type_name)
+    |> plain_sequence(type_name)
     |> Enum.reduce(0, fn %Item{length: len}, acc -> acc + len end)
   end
 
@@ -203,8 +206,38 @@ defmodule Yelixer.Types.Text do
   # a single insertion point. `find_items_in_range_with_split/4`
   # returns the list of whole-block IDs that cover a deletion range.
 
+  # Filters a named type's block sequence down to the members of the
+  # PLAIN (Text) sequence, excluding Y.Map keyed items.
+  #
+  # A named type can hold a mixed sequence: Y.Map keyed items
+  # (`parent_sub != nil`) alongside plain Text items
+  # (`parent_sub == nil`), left behind by migration residue (a
+  # per-field -> single-blob schema change stranding a key item under
+  # a name that a later Text also writes to). Text's positional model
+  # — insert/delete offsets, YATA origin/right_origin anchors — is
+  # defined over the plain sequence only. A keyed item is not a
+  # member of that sequence; it lives in the map's key-space and
+  # merely happens to share a name. Anchoring a Text insert's
+  # origin/right_origin across that boundary lets
+  # `Yelixer.Encoding.resolve_parent/2` misread positional adjacency
+  # as key ownership on decode, silently discarding the text (Y.Map
+  # rightmost-wins). An insert whose only live neighbour is a keyed
+  # item must therefore see no neighbour at all and encode
+  # `origin=nil`/`right_origin=nil` — exactly what canonical yjs
+  # would author, since yjs keeps `_map` and `_start` structurally
+  # separate and this situation cannot arise there.
+  #
+  # Filtered on `parent_sub != nil`, NOT on content type: embeds and
+  # sub-types have `parent_sub == nil`, are legitimate plain-sequence
+  # members, and must remain anchorable.
+  defp plain_sequence(store, type_name) do
+    store
+    |> BlockStore.get_sequence(type_name)
+    |> Enum.filter(fn %Item{parent_sub: parent_sub} -> is_nil(parent_sub) end)
+  end
+
   defp find_origins_with_split(store, type_name, index) do
-    seq = BlockStore.get_sequence(store, type_name)
+    seq = plain_sequence(store, type_name)
 
     if index == 0 and seq == [] do
       {store, nil, nil}
@@ -257,7 +290,7 @@ defmodule Yelixer.Types.Text do
 
   # Collect whole-block IDs covering [index, index+len), splitting at range boundaries.
   defp find_items_in_range_with_split(store, type_name, index, len) do
-    seq = BlockStore.get_sequence(store, type_name)
+    seq = plain_sequence(store, type_name)
     do_collect_ids(store, seq, type_name, index, len, 0, [])
   end
 

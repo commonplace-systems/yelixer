@@ -127,7 +127,28 @@ defmodule Yelixer.CxMchnDeleteSetReproTest do
     assert result == "World"
   end
 
-  @tag :cx_mchn_red
+  test "FIX: a plain Text insert in a named type that also holds a Y.Map keyed item does not anchor across the keyed/plain boundary, and both survive encode/decode" do
+    # Minimal 2-item repro from the CX-mchn layer-1 fix spec: a single
+    # doc where "content" holds BOTH a Y.Map keyed entry ("description")
+    # and a plain Text sequence. Before the fix, Text.insert's neighbor
+    # search treated the keyed item as a plain-sequence member and
+    # anchored right_origin at it; on decode, resolve_parent inherited
+    # parent_sub from that anchor, turning the fresh text item into a
+    # same-key map write that Y.Map rightmost-wins silently discarded.
+    d = Doc.new(client_id: 1)
+    {d, _} = Doc.get_or_create_type(d, "content", :map)
+    d = YMap.set(d, "content", "description", "LEGACY KEY VALUE")
+    d = Text.insert(d, "content", 0, "PLAIN TEXT BLOB")
+
+    {:ok, wire} = Encoding.apply_update(Doc.new(), Encoding.encode_update(d))
+
+    assert Text.to_string(wire, "content") == "PLAIN TEXT BLOB",
+           "CX-mchn fix regressed: plain text was silently discarded across encode/decode"
+
+    assert YMap.to_map(wire, "content") == %{"description" => "LEGACY KEY VALUE"},
+           "CX-mchn fix regressed: legacy map key was disturbed by the text insert"
+  end
+
   test "MINIMAL PURE-YELIXER: fresh Text insert anchored (right_origin) against an unrelated stray YMap-key item in the SAME named type is silently tombstoned on decode re-fold" do
     # This is the mechanism actually observed on the real cx_k20z fixture:
     # NOT delete-set range coalescing (suspect i), NOT position-resolved
@@ -194,7 +215,6 @@ defmodule Yelixer.CxMchnDeleteSetReproTest do
              "spurious map-conflict resolution) on decode re-fold. Got #{inspect(text)}"
   end
 
-  @tag :cx_mchn_red
   test "REAL FIXTURE: cx_k20z_start_meta_precorruption.bin at pure-Yelixer level" do
     fixture =
       Path.join([__DIR__, "..", "..", "commonplace", "test", "fixtures", "cx_k20z_start_meta_precorruption.bin"])
