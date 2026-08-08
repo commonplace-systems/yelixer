@@ -41,9 +41,11 @@ defmodule Yelixer.CXXes3DequadraticTest do
     end)
   end
 
-  defp time_replay(updates) do
-    {us, _doc} = :timer.tc(fn -> replay(updates) end)
-    us
+  defp replay_reductions(updates) do
+    {:reductions, before_replay} = Process.info(self(), :reductions)
+    _doc = replay(updates)
+    {:reductions, after_replay} = Process.info(self(), :reductions)
+    after_replay - before_replay
   end
 
   # N sequential `YMap.set/4` writes, round-robined across M keys — the
@@ -65,21 +67,28 @@ defmodule Yelixer.CXXes3DequadraticTest do
   end
 
   describe "(a) map-heavy replay scaling" do
-    @tag timeout: 120_000
-    test "N sequential YMap.set updates on one key + M keys: 10k replay < 3x the 5k replay" do
+    # 10 minutes, not :infinity. Raising it was RIGHT — this test took 135s
+    # under deliberate CPU load, and a 120s cap would have reintroduced exactly
+    # the load-dependent failure the reductions counter removes. But
+    # `:infinity` means a genuinely hung replay never fails; it hangs CI until
+    # somebody notices, which is the one failure mode worse than a flake.
+    # A bound well above the loaded runtime keeps both properties.
+    @tag timeout: 600_000
+    test "N sequential YMap.set updates on one key + M keys: doubling replay grows work by < 3x" do
       m = 8
 
       small_updates = map_heavy_updates(5_000, m)
       large_updates = map_heavy_updates(10_000, m)
 
-      small_us = time_replay(small_updates)
-      large_us = time_replay(large_updates)
+      small_reductions = replay_reductions(small_updates)
+      large_reductions = replay_reductions(large_updates)
 
-      ratio = large_us / max(small_us, 1)
+      ratio = large_reductions / max(small_reductions, 1)
 
       assert ratio < 3,
-        "map-heavy replay scaling ratio #{Float.round(ratio, 2)}x (5k=#{small_us}us, " <>
-          "10k=#{large_us}us) suggests quadratic behavior reintroduced"
+             "map-heavy replay work-growth ratio #{Float.round(ratio, 2)}x " <>
+               "(5k=#{small_reductions} reductions, 10k=#{large_reductions} reductions) " <>
+               "suggests quadratic behavior reintroduced"
     end
   end
 
@@ -190,19 +199,26 @@ defmodule Yelixer.CXXes3DequadraticTest do
       incremental_updates(doc, steps)
     end
 
-    @tag timeout: 120_000
-    test "N sequential single-element deletes: 10k replay < 3x the 5k replay" do
+    # 10 minutes, not :infinity. Raising it was RIGHT — this test took 135s
+    # under deliberate CPU load, and a 120s cap would have reintroduced exactly
+    # the load-dependent failure the reductions counter removes. But
+    # `:infinity` means a genuinely hung replay never fails; it hangs CI until
+    # somebody notices, which is the one failure mode worse than a flake.
+    # A bound well above the loaded runtime keeps both properties.
+    @tag timeout: 600_000
+    test "N sequential single-element deletes: doubling replay grows work by < 3x" do
       small_updates = delete_heavy_updates(5_000)
       large_updates = delete_heavy_updates(10_000)
 
-      small_us = time_replay(small_updates)
-      large_us = time_replay(large_updates)
+      small_reductions = replay_reductions(small_updates)
+      large_reductions = replay_reductions(large_updates)
 
-      ratio = large_us / max(small_us, 1)
+      ratio = large_reductions / max(small_reductions, 1)
 
       assert ratio < 3,
-        "delete-heavy replay scaling ratio #{Float.round(ratio, 2)}x (5k=#{small_us}us, " <>
-          "10k=#{large_us}us) suggests quadratic behavior reintroduced"
+             "delete-heavy replay work-growth ratio #{Float.round(ratio, 2)}x " <>
+               "(5k=#{small_reductions} reductions, 10k=#{large_reductions} reductions) " <>
+               "suggests quadratic behavior reintroduced"
     end
 
     test "deletes are actually applied (sanity check alongside the scaling assertion)" do

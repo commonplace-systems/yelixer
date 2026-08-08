@@ -1,1 +1,9 @@
 node_modules/
+
+# Scratch output, not fixtures. oracle_test.exs WRITES these on every run
+# (File.write! at :125, :142, :158) to prove yelixer can decode its own
+# encoding. They have never been tracked, and the name is the trap: they sit
+# beside real committed fixtures and read as inputs.
+# Ignored so a blanket `git add apps/yelixer/test` cannot sweep them in —
+# which is exactly how they nearly landed on 2026-08-08.
+yelixer_oracle_*.bin
