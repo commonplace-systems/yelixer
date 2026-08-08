@@ -89,7 +89,7 @@ defmodule Yelixer.Doc do
       `doc.delete_set`.
   """
 
-  alias Yelixer.{BlockStore, DeleteSet, Item, StateVector}
+  alias Yelixer.{BlockStore, DeleteSet, ID, Item, StateVector}
   alias Yelixer.Types.{YMap, Text, Array, XMLFragment, XMLElement, XMLText}
 
   @type t :: %__MODULE__{
@@ -277,6 +277,27 @@ defmodule Yelixer.Doc do
   def state_vector(%__MODULE__{store: store}), do: BlockStore.state_vector(store)
 
   @doc """
+  Returns every client id represented in the document's block store.
+
+  This includes clients whose only blocks are still in `client_pending`.
+  Reading `Map.keys(store.clients)` alone would miss them (CX-w1fw).
+  """
+  def client_ids(%__MODULE__{store: store}), do: BlockStore.client_ids(store)
+
+  @doc "Returns all items in the document's block store."
+  def all_items(%__MODULE__{store: store}), do: BlockStore.all_items(store)
+
+  @doc "Returns the item containing `id`, or `nil` when it is not present."
+  def get_item(%__MODULE__{store: store}, %ID{} = id), do: BlockStore.get(store, id)
+
+  @doc "Returns the ordered item sequence for the named type."
+  def sequence(%__MODULE__{store: store}, type_name),
+    do: BlockStore.get_sequence(store, type_name)
+
+  @doc "Returns the document's named type registry."
+  def types(%__MODULE__{types: types}), do: types
+
+  @doc """
   Returns the synthetic names of CRDT sub-types nested inside maps and
   arrays — the `"__sub:CLIENT:CLOCK"`-keyed types that `snapshot_update/1`
   does **not** replay structurally (`replay_named_type/3` short-circuits on
@@ -315,6 +336,19 @@ defmodule Yelixer.Doc do
       {doc, type_ref}
     end
   end
+
+  @doc """
+  Force-registers `name` → `type_ref`, overwriting any existing entry.
+
+  Unlike `get_or_create_type/3`, this overwrites an existing registration.
+  A top-level named XML element's own tag registration is set locally and is
+  never encoded onto the wire. Replay can therefore register the named root as
+  `:unknown`, and `get_or_create_type/3` deliberately will not replace it. A
+  fixed root tag must be force-registered after replay or `to_string/2`
+  silently emits the wrong open/close tags.
+  """
+  def put_type(%__MODULE__{types: types} = doc, name, type_ref),
+    do: %{doc | types: Map.put(types, name, type_ref)}
 
   @doc """
   Strips content from tombstoned items by rewriting them as `:gc`

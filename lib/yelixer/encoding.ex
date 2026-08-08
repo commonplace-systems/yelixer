@@ -397,6 +397,7 @@ defmodule Yelixer.Encoding do
   defp decode_ds_ranges(binary, remaining, ds, client) do
     {clock, rest} = decode_uint(binary)
     {len, rest} = decode_uint(rest)
+
     assert_clock_bound!(clock + len, "delete set range (client #{client}, start #{clock}, len #{len})")
     ds = DeleteSet.insert(ds, client, clock, len)
     decode_ds_ranges(rest, remaining - 1, ds, client)
@@ -464,6 +465,35 @@ defmodule Yelixer.Encoding do
   """
   def encode_update(%Doc{} = doc) do
     encode_diff(doc, StateVector.new())
+  end
+
+  @doc """
+  Re-encodes decoded items and their delete set as a Yjs V1 update.
+
+  We build a minimal `%Doc{}` whose BlockStore holds the translated
+  items in their decoded order per client, then call `encode_update/1`.
+  The encoder's `encode_diff/2` path:
+
+    1. Derives a state-vector from store contents,
+    2. Filters clients desc by id (determinism — CX-w62),
+    3. Emits struct runs,
+    4. Appends encode_delete_set/1 (determinism — CX-w62).
+
+  The store IS only consulted for GC remapping (`remap_gc_origin/2`
+  and friends). Translated items' origins point at ids from the
+  source namespace — those ids are not in our synthetic store, so
+  the GC-remap lookups miss and return the ref unchanged, which is
+  exactly what we want.
+
+  client_id is a local-peer field, not persisted in the wire format;
+  we set it deterministically to 0 because `encode_update/1` never
+  reads it. types is empty — we don't need named-type registration
+  for re-encoding (the type-declaration items themselves carry their
+  names in `parent: {:named, _}`).
+  """
+  def encode_items(items, delete_set) when is_list(items) do
+    store = Enum.reduce(items, BlockStore.new(), &BlockStore.push(&2, &1))
+    encode_update(%Doc{client_id: 0, store: store, delete_set: delete_set, types: %{}})
   end
 
   @doc """
