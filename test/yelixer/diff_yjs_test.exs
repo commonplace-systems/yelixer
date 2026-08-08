@@ -7,7 +7,7 @@ defmodule Yelixer.DiffYjsTest do
   drives the same op sequence through both yelixer and yjs, comparing
   text/map/array content and encoded binary after a reload.
 
-  Tagged :diff_yjs so CI can opt in/out.
+  Tagged :diff_yjs so CI can isolate it for the conformance count assertion.
   """
   use ExUnit.Case, async: false
 
@@ -23,8 +23,24 @@ defmodule Yelixer.DiffYjsTest do
 
   setup_all do
     case System.find_executable("node") do
-      nil -> {:skip, "node not found in PATH"}
-      _ -> :ok
+      nil ->
+        raise "Node executable not found in PATH; the Yjs oracle cannot run"
+
+      node ->
+        case System.cmd(node, [@driver, "--check-import"], stderr_to_stdout: true) do
+          {_output, 0} ->
+            :ok
+
+          {output, status} ->
+            raise """
+            Yjs oracle import failed with status #{status}.
+            Install the pinned test dependency with:
+              npm ci --prefix apps/yelixer/test/fixtures
+
+            Node output:
+            #{String.trim(output)}
+            """
+        end
     end
   end
 
@@ -105,7 +121,10 @@ defmodule Yelixer.DiffYjsTest do
       assert %{"ok" => true} = rpc(port, %{cmd: "reset", client_id: 1})
       rpc(port, %{cmd: "insert_text", name: "content", pos: 0, text: "hello world"})
       rpc(port, %{cmd: "reload"})
-      assert %{"ok" => true, "text" => yjs_text} = rpc(port, %{cmd: "text_content", name: "content"})
+
+      assert %{"ok" => true, "text" => yjs_text} =
+               rpc(port, %{cmd: "text_content", name: "content"})
+
       assert yjs_text == "hello world"
 
       # Yelixer path

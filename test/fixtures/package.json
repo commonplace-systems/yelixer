@@ -1,0 +1,8 @@
+{
+  "name": "yelixer-yjs-test-oracle",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "yjs": "13.6.32"
+  }
+}

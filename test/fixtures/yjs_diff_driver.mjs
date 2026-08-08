@@ -26,8 +26,12 @@
 //
 // Usage:  node yjs_diff_driver.mjs
 
-import * as Y from '/home/jes/yelixer/yjs/src/index.js'
+import * as Y from 'yjs'
 import readline from 'readline'
+
+// Let the ExUnit setup guard execute this exact module, including its static
+// yjs import, without starting the long-lived JSONL process.
+if (process.argv.includes('--check-import')) process.exit(0)
 
 // yjs logs a warning to stdout via lib0/logging.print → console.log
 // when it auto-changes client-id on apply_update collision. Our stdout
@@ -52,15 +56,16 @@ function ensureDoc() {
   return doc
 }
 
-// yjs v14 has a unified YType model (no separate Y.Map / Y.Text / Y.Array).
-// The same underlying type supports text/map/array operations via method
-// dispatch:
-//   text:  t.insert(pos, str) / t.toString() / t.delete(pos, len)
-//   map:   m.setAttr(k, v)    / m.getAttrs() / m.deleteAttr(k)
-//   array: a.insert(pos, xs)  / a.toArray()  / a.delete(pos, len)
-// All retrieved via doc.get(name).
-function getType(name) {
-  return ensureDoc().get(name)
+function getText(name) {
+  return ensureDoc().getText(name)
+}
+
+function getMap(name) {
+  return ensureDoc().getMap(name)
+}
+
+function getArray(name) {
+  return ensureDoc().getArray(name)
 }
 
 function toHex(uint8) {
@@ -85,7 +90,7 @@ function handle(msg) {
         return { ok: true }
 
       case 'insert_text': {
-        const t = getType(msg.name || 'content')
+        const t = getText(msg.name || 'content')
         doc.transact(() => {
           t.insert(msg.pos || 0, msg.text)
         })
@@ -93,7 +98,7 @@ function handle(msg) {
       }
 
       case 'delete_text': {
-        const t = getType(msg.name || 'content')
+        const t = getText(msg.name || 'content')
         doc.transact(() => {
           t.delete(msg.pos || 0, msg.len || 0)
         })
@@ -101,23 +106,23 @@ function handle(msg) {
       }
 
       case 'set_map': {
-        const m = getType(msg.root || 'root')
+        const m = getMap(msg.root || 'root')
         doc.transact(() => {
-          m.setAttr(msg.key, msg.value)
+          m.set(msg.key, msg.value)
         })
         return { ok: true }
       }
 
       case 'delete_map': {
-        const m = getType(msg.root || 'root')
+        const m = getMap(msg.root || 'root')
         doc.transact(() => {
-          m.deleteAttr(msg.key)
+          m.delete(msg.key)
         })
         return { ok: true }
       }
 
       case 'push_array': {
-        const a = getType(msg.root || 'items')
+        const a = getArray(msg.root || 'items')
         doc.transact(() => {
           a.insert(a.length, msg.items)
         })
@@ -125,7 +130,7 @@ function handle(msg) {
       }
 
       case 'insert_array': {
-        const a = getType(msg.root || 'items')
+        const a = getArray(msg.root || 'items')
         doc.transact(() => {
           a.insert(msg.pos || 0, msg.items)
         })
@@ -133,7 +138,7 @@ function handle(msg) {
       }
 
       case 'delete_array': {
-        const a = getType(msg.root || 'items')
+        const a = getArray(msg.root || 'items')
         doc.transact(() => {
           a.delete(msg.pos || 0, msg.len || 0)
         })
@@ -162,17 +167,17 @@ function handle(msg) {
       }
 
       case 'text_content': {
-        const t = getType(msg.name || 'content')
+        const t = getText(msg.name || 'content')
         return { ok: true, text: t.toString() }
       }
 
       case 'map_content': {
-        const m = getType(msg.name || 'root')
-        return { ok: true, map: m.getAttrs() }
+        const m = getMap(msg.name || 'root')
+        return { ok: true, map: m.toJSON() }
       }
 
       case 'array_content': {
-        const a = getType(msg.name || 'items')
+        const a = getArray(msg.name || 'items')
         return { ok: true, array: a.toArray() }
       }
 
