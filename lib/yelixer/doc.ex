@@ -341,11 +341,25 @@ defmodule Yelixer.Doc do
   Force-registers `name` → `type_ref`, overwriting any existing entry.
 
   Unlike `get_or_create_type/3`, this overwrites an existing registration.
-  A top-level named XML element's own tag registration is set locally and is
-  never encoded onto the wire. Replay can therefore register the named root as
-  `:unknown`, and `get_or_create_type/3` deliberately will not replace it. A
-  fixed root tag must be force-registered after replay or `to_string/2`
-  silently emits the wrong open/close tags.
+
+  ## Why replay cannot recover a named root's tag (the mechanism)
+
+  A top-level named XMLElement's own tag registration is set locally by
+  `XMLElement.new_element/3` and is NEVER encoded onto the wire — only Items
+  are. On replay, `Yelixer.Encoding.apply_update/2`'s `infer_type_ref/2`
+  recovers a type_ref for exactly two shapes: items whose parent is
+  `{:id, _}` (map/array-of-types values), and XML children via
+  `maybe_register_xml_child_type/3` (keys ending in `"::children"`).
+
+  A root registered under a *named*, non-synthetic key falls through BOTH
+  paths. The first item integrated with `parent: {:named, name}` makes
+  `get_or_create_type(doc, name, :unknown)` stick — and `get_or_create_type/3`
+  never overwrites an existing key, so `tag_name/2` returns `nil` forever
+  after a replay, silently corrupting `to_string/2`'s open/close tags.
+
+  Statically-known root tags must therefore be force-registered after
+  reconstruction; replay can never recover them on its own. That is what this
+  function is for.
   """
   def put_type(%__MODULE__{types: types} = doc, name, type_ref),
     do: %{doc | types: Map.put(types, name, type_ref)}
