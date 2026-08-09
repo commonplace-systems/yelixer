@@ -92,12 +92,33 @@ defmodule Yelixer.Types do
     end
   end
 
-  # Yjs v14 uses a single xml_fragment wire type for all nested
-  # CRDTs — YArray, YMap, and actual XML fragments all arrive here
-  # as :xml_fragment. The semantic shape is recovered from the items
-  # themselves: items with a parent_sub field (a string key) become
-  # "attrs"; positional items (parent_sub nil) become "children".
-  # Both keys are omitted when empty to keep output compact.
+  # ⚠️ CORRECTED 2026-08-09 — the claim this comment used to make was true of
+  # ONE PRERELEASE AND NOTHING ELSE. It said Yjs v14 uses a single
+  # xml_fragment wire type for ALL nested CRDTs, so YArray/YMap/XmlFragment
+  # would all arrive here as :xml_fragment. That was the premise of f87d43e,
+  # taken from the v14 rc that /home/jes/yelixer happened to hold.
+  #
+  # MEASURED off the wire (each version's own UpdateDecoderV1.readTypeRef, a
+  # nested type under a top-level map, positive controls in both versions):
+  #
+  #                     nested Text  nested Array  nested Map  nested XmlFragment
+  #   v14 rc                  —            —            4              —
+  #   yjs 13.6.32             2            0            1              4
+  #   yjs 14.0.0-16           2            0            1              4
+  #
+  # ⇒ The unified-YType ENCODING was walked back along with the JS API: both
+  # currently-supported lines encode nested types by their own kind, and
+  # typeref 4 means what it has always meant — an actual XmlFragment.
+  #
+  # ⛔ So this function is NOT a catch-all for nested types. It handles
+  # genuine XmlFragments, which is why sub_type_to_json/2 dispatches
+  # :text/:array/:map separately above. Do not delete it on the strength of
+  # "v14 doesn't do the unified thing any more" — that reasoning retires the
+  # wrong half.
+  #
+  # The semantic shape is recovered from the items themselves: items with a
+  # parent_sub field (a string key) become "attrs"; positional items
+  # (parent_sub nil) become "children". Both keys are omitted when empty.
   defp xml_fragment_to_json(doc, type_key) do
     items = Yelixer.BlockStore.get_sequence(doc.store, type_key)
 
