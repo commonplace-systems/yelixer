@@ -3,6 +3,7 @@
   "private": true,
   "type": "module",
   "dependencies": {
-    "yjs": "13.6.32"
+    "yjs-preview": "npm:yjs@14.0.0-16",
+    "yjs-stable": "npm:yjs@13.6.32"
   }
 }

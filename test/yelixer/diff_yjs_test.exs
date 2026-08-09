@@ -16,24 +16,33 @@ defmodule Yelixer.DiffYjsTest do
 
   @moduletag :diff_yjs
   @driver Path.expand("../fixtures/yjs_diff_driver.mjs", __DIR__)
+  @oracles ~w(stable preview)
 
   # ---------------------------------------------------------------------------
   # Node driver port helpers
   # ---------------------------------------------------------------------------
 
   setup_all do
+    oracle = System.get_env("YJS_ORACLE", "stable")
+
+    unless oracle in @oracles do
+      raise "unknown YJS_ORACLE=#{inspect(oracle)}; expected stable or preview"
+    end
+
     case System.find_executable("node") do
       nil ->
         raise "Node executable not found in PATH; the Yjs oracle cannot run"
 
       node ->
-        case System.cmd(node, [@driver, "--check-import"], stderr_to_stdout: true) do
+        case System.cmd(node, [@driver, "--oracle", oracle, "--check-import"],
+               stderr_to_stdout: true
+             ) do
           {_output, 0} ->
             :ok
 
           {output, status} ->
             raise """
-            Yjs oracle import failed with status #{status}.
+            Yjs #{oracle} oracle import failed with status #{status}.
             Install the pinned test dependency with:
               npm ci --prefix apps/yelixer/test/fixtures
 
@@ -42,18 +51,25 @@ defmodule Yelixer.DiffYjsTest do
             """
         end
     end
+
+    {:ok, oracle: oracle}
   end
 
-  setup do
-    port = open_driver()
+  setup %{oracle: oracle} do
+    port = open_driver(oracle)
     on_exit(fn -> if Port.info(port), do: Port.close(port) end)
     {:ok, port: port}
   end
 
-  defp open_driver do
+  defp open_driver(oracle) do
     Port.open(
       {:spawn_executable, System.find_executable("node")},
-      [:binary, :exit_status, {:line, 1_000_000}, {:args, [@driver]}]
+      [
+        :binary,
+        :exit_status,
+        {:line, 1_000_000},
+        {:args, [@driver, "--oracle", oracle]}
+      ]
     )
   end
 

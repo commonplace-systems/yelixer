@@ -24,13 +24,28 @@
 //   stdout — one result per command, JSON object:
 //     {"ok":true,...}  or  {"ok":false,"error":"..."}
 //
-// Usage:  node yjs_diff_driver.mjs
+// Usage:  node yjs_diff_driver.mjs --oracle stable|preview
 
-import * as Y from 'yjs'
 import readline from 'readline'
 
-// Let the ExUnit setup guard execute this exact module, including its static
-// yjs import, without starting the long-lived JSONL process.
+const oracleArg = process.argv.indexOf('--oracle')
+const oracle = oracleArg === -1 ? 'stable' : process.argv[oracleArg + 1]
+const oraclePackages = {
+  stable: 'yjs-stable',
+  preview: 'yjs-preview'
+}
+const oraclePackage = oraclePackages[oracle]
+
+if (!oraclePackage) {
+  throw new Error(`unknown Yjs oracle '${oracle}'; expected stable or preview`)
+}
+
+// Import the selected package in this module so --check-import exercises the
+// exact oracle that the long-lived JSONL process will use.
+const Y = await import(oraclePackage)
+
+// Let the ExUnit setup guard execute this exact module, including its selected
+// oracle import, without starting the long-lived JSONL process.
 if (process.argv.includes('--check-import')) process.exit(0)
 
 // yjs logs a warning to stdout via lib0/logging.print → console.log
