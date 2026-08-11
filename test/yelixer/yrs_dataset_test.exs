@@ -50,7 +50,10 @@ defmodule Yelixer.YrsDatasetTest do
   test "small dataset: first 100 tests full validation (text + map + array)" do
     data = File.read!(@small_dataset_path)
     {test_count, rest} = Encoding.decode_uint(data)
-    run_count = min(test_count, 100)
+    full_census? = System.get_env("YELIXER_YRS_FULL_CENSUS") == "1"
+    run_count = if full_census?, do: test_count, else: min(test_count, 100)
+
+    if full_census?, do: assert(run_count > 0)
 
     {pass, fail, crash, errors, _rest} =
       Enum.reduce(1..run_count, {0, 0, 0, [], rest}, fn test_num, {pass, fail, crash, errors, rest} ->
@@ -97,7 +100,11 @@ defmodule Yelixer.YrsDatasetTest do
       end)
 
     if fail > 0 or crash > 0 do
-      error_sample = errors |> Enum.reverse() |> Enum.take(20) |> Enum.join("\n")
+      error_limit = if full_census?, do: fail + crash, else: 20
+
+      error_sample =
+        errors |> Enum.reverse() |> Enum.take(error_limit) |> Enum.join("\n")
+
       flunk("#{fail} mismatches, #{crash} crashes out of #{run_count} (#{pass} passed):\n#{error_sample}")
     end
   end
