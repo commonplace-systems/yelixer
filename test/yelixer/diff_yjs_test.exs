@@ -17,42 +17,44 @@ defmodule Yelixer.DiffYjsTest do
   @moduletag :diff_yjs
   @driver Path.expand("../fixtures/yjs_diff_driver.mjs", __DIR__)
   @oracles ~w(stable preview)
+  @oracle System.get_env("YJS_ORACLE", "stable")
+
+  unless @oracle in @oracles do
+    raise "unknown YJS_ORACLE=#{inspect(@oracle)}; expected stable or preview"
+  end
+
+  @driver_skip_reason (case System.find_executable("node") do
+                         nil ->
+                           "Yjs #{@oracle} driver yjs_diff_driver.mjs cannot check its import because " <>
+                             "Node.js is missing; install Node.js, then run " <>
+                             "`npm ci --prefix apps/yelixer/test/fixtures`"
+
+                         node ->
+                           case System.cmd(
+                                  node,
+                                  [@driver, "--oracle", @oracle, "--check-import"],
+                                  stderr_to_stdout: true
+                                ) do
+                             {_output, 0} ->
+                               nil
+
+                             {_output, _status} ->
+                               "Yjs #{@oracle} driver yjs_diff_driver.mjs import did not resolve; " <>
+                                 "install it with `npm ci --prefix apps/yelixer/test/fixtures`"
+                           end
+                       end)
+
+  if @driver_skip_reason do
+    IO.puts("SKIP Yelixer.DiffYjsTest: #{@driver_skip_reason}")
+    @moduletag skip: @driver_skip_reason
+  end
 
   # ---------------------------------------------------------------------------
   # Node driver port helpers
   # ---------------------------------------------------------------------------
 
   setup_all do
-    oracle = System.get_env("YJS_ORACLE", "stable")
-
-    unless oracle in @oracles do
-      raise "unknown YJS_ORACLE=#{inspect(oracle)}; expected stable or preview"
-    end
-
-    case System.find_executable("node") do
-      nil ->
-        raise "Node executable not found in PATH; the Yjs oracle cannot run"
-
-      node ->
-        case System.cmd(node, [@driver, "--oracle", oracle, "--check-import"],
-               stderr_to_stdout: true
-             ) do
-          {_output, 0} ->
-            :ok
-
-          {output, status} ->
-            raise """
-            Yjs #{oracle} oracle import failed with status #{status}.
-            Install the pinned test dependency with:
-              npm ci --prefix apps/yelixer/test/fixtures
-
-            Node output:
-            #{String.trim(output)}
-            """
-        end
-    end
-
-    {:ok, oracle: oracle}
+    {:ok, oracle: @oracle}
   end
 
   setup %{oracle: oracle} do
