@@ -45,6 +45,10 @@ defmodule Yelixer.DiffYjsTest do
                        end)
 
   if @driver_skip_reason do
+    if System.get_env("YELIXER_REQUIRE_YJS_ORACLE") == "1" do
+      raise @driver_skip_reason
+    end
+
     IO.puts("SKIP Yelixer.DiffYjsTest: #{@driver_skip_reason}")
     @moduletag skip: @driver_skip_reason
   end
