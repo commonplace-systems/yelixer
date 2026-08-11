@@ -47,13 +47,15 @@ defmodule Yelixer.YrsDatasetTest do
     end
   end
 
-  test "small dataset: first 100 tests full validation (text + map + array)" do
+  test "small dataset: all tests full validation (text + map + array)" do
     data = File.read!(@small_dataset_path)
     {test_count, rest} = Encoding.decode_uint(data)
-    full_census? = System.get_env("YELIXER_YRS_FULL_CENSUS") == "1"
-    run_count = if full_census?, do: test_count, else: min(test_count, 100)
 
-    if full_census?, do: assert(run_count > 0)
+    # Census @3f1dd52 found 0/5,320 divergences; full validation measured +21.3s (28.3s → 49.6s).
+    run_count = test_count
+
+    assert run_count > 0
+    assert run_count == test_count
 
     {pass, fail, crash, errors, _rest} =
       Enum.reduce(1..run_count, {0, 0, 0, [], rest}, fn test_num, {pass, fail, crash, errors, rest} ->
@@ -100,10 +102,8 @@ defmodule Yelixer.YrsDatasetTest do
       end)
 
     if fail > 0 or crash > 0 do
-      error_limit = if full_census?, do: fail + crash, else: 20
-
       error_sample =
-        errors |> Enum.reverse() |> Enum.take(error_limit) |> Enum.join("\n")
+        errors |> Enum.reverse() |> Enum.join("\n")
 
       flunk("#{fail} mismatches, #{crash} crashes out of #{run_count} (#{pass} passed):\n#{error_sample}")
     end
