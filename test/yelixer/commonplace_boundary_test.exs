@@ -1,11 +1,11 @@
 defmodule Yelixer.CommonplaceBoundaryTest do
   use ExUnit.Case, async: true
 
-  @project_root Path.expand("../../../..", __DIR__)
-  @checker Path.join(@project_root, "scripts/check_yelixer_commonplace_refs.exs")
+  @app_root Path.expand("../..", __DIR__)
+  @checker Path.join(@app_root, "test/support/check_commonplace_refs.exs")
 
   test "the real yelixer tree has no executable parent-application references" do
-    {output, status} = System.cmd("elixir", [@checker, @project_root], stderr_to_stdout: true)
+    {output, status} = System.cmd("elixir", [@checker, @app_root], stderr_to_stdout: true)
 
     assert status == 0, output
     assert output =~ "yelixer boundary check passed"
@@ -21,13 +21,13 @@ defmodule Yelixer.CommonplaceBoundaryTest do
     on_exit(fn -> File.rm_rf!(temp_root) end)
 
     for directory <- ["lib", "test"] do
-      source = Path.join([@project_root, "apps", "yelixer", directory])
-      destination = Path.join([temp_root, "apps", "yelixer", directory])
+      source = Path.join(@app_root, directory)
+      destination = Path.join(temp_root, directory)
       File.mkdir_p!(Path.dirname(destination))
       File.cp_r!(source, destination)
     end
 
-    tamper_path = Path.join([temp_root, "apps", "yelixer", "lib", "tamper.ex"])
+    tamper_path = Path.join([temp_root, "lib", "tamper.ex"])
 
     parent_app = "Common" <> "place"
 

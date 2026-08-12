@@ -7,6 +7,11 @@
 # The directory Mix downloads your dependencies sources to.
 /deps/
 
+# Yelixer is both an umbrella app and a standalone library. The umbrella uses
+# its root lock, while standalone verification resolves this library's declared
+# constraints fresh; an app lock is otherwise unread and can silently drift.
+/mix.lock
+
 # Where third-party dependencies like ExDoc output generated docs.
 /doc/
 
