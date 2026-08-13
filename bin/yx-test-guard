@@ -1,0 +1,123 @@
+#!/usr/bin/env bash
+#
+# yx-test-guard — assert that tests actually RAN, not merely that mix exited 0.
+#
+# WHY THIS EXISTS
+#
+#   $ mix test test/nonexistent
+#   $ echo $?
+#   0
+#   $ # ...and zero tests ran. No summary line. No warning. Clean exit.
+#
+# An exit status cannot distinguish "everything passed" from "nothing was
+# selected". Neither can it distinguish "the Yjs oracle ran and agreed" from
+# "the oracle was missing so its module was skipped" — which is the failure
+# this repository cares about most, because the conformance suite is the whole
+# reason to trust the library's wire compatibility.
+#
+# ⛔ THE RULE THIS ENCODES: assert the COUNT, never an exit code.
+#
+# Ported from commonplace's bin/cp-test-guard, which was written after a
+# reviewer read "390 tests, 0 failures" and missed the "11 invalid" beside it.
+# Kept deliberately small: this repo has one app, so there is one summary line.
+#
+# USAGE
+#
+#   bin/yx-test-guard --min 390 -- mix test
+#   bin/yx-test-guard --exact 11 -- mix test test/yelixer/diff_yjs_test.exs --include diff_yjs
+#
+# --min   the run must report at least N tests
+# --exact the run must report exactly N tests (use where the suite is a fixed,
+#         known set — a conformance matrix that silently shrinks is the defect)
+#
+# The wrapped command's exit status is preserved when the guard passes.
+
+set -uo pipefail
+
+MIN=""
+EXACT=""
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --min) MIN="$2"; shift 2 ;;
+    --exact) EXACT="$2"; shift 2 ;;
+    --) shift; break ;;
+    *) echo "yx-test-guard: unexpected argument '$1' (did you forget '--'?)" >&2; exit 64 ;;
+  esac
+done
+
+if [[ $# -eq 0 ]]; then
+  echo "yx-test-guard: no command given. usage: yx-test-guard --min N -- mix test ..." >&2
+  exit 64
+fi
+
+OUT="$(mktemp -t yx-test-guard.XXXXXX)"
+trap 'rm -f "$OUT"' EXIT
+
+"$@" >"$OUT" 2>&1
+CMD_RC=$?
+cat "$OUT"
+
+TOTAL=0
+FOUND=0
+while read -r n; do TOTAL=$((TOTAL + n)); FOUND=1; done \
+  < <(grep -oE '[0-9]+ tests?,' "$OUT" | grep -oE '[0-9]+')
+
+if [[ "$FOUND" -eq 0 ]]; then
+  echo "" >&2
+  echo "yx-test-guard: FAILED — no ExUnit summary line was emitted." >&2
+  echo "  The command exited ${CMD_RC}, but nothing ran. A zero-selection run" >&2
+  echo "  is a failure here, not a pass." >&2
+  echo "  Command: $*" >&2
+  exit 1
+fi
+
+# ⛔ INVALIDATED TESTS ARE NOT A PASS WITH A FOOTNOTE. ExUnit prints
+# "N tests, 0 failures, N invalid" when a setup_all raises: literally true,
+# reads green, and nothing in those modules ran.
+INVALID=0
+while read -r n; do INVALID=$((INVALID + n)); done \
+  < <(grep -oE '[0-9]+ invalid' "$OUT" | grep -oE '[0-9]+')
+if [[ "$INVALID" -gt 0 ]]; then
+  echo "" >&2
+  echo "yx-test-guard: FAILED — ${INVALID} test(s) INVALIDATED; coverage unknown." >&2
+  echo "  Command: $*" >&2
+  exit 1
+fi
+
+# ⛔ A SKIPPED CONFORMANCE MODULE IS THE FAILURE THIS REPO MOST NEEDS TO SEE.
+# The oracle suite skips itself when the Yjs driver is absent, which is correct
+# locally and a silent hole in CI. CI sets YELIXER_REQUIRE_YJS_ORACLE=1 so the
+# skip becomes a raise; this is the second line of defence if that is dropped.
+SKIPPED=0
+while read -r n; do SKIPPED=$((SKIPPED + n)); done \
+  < <(grep -oE '[0-9]+ skipped' "$OUT" | grep -oE '[0-9]+')
+if [[ -n "$EXACT" && "$SKIPPED" -gt 0 ]]; then
+  echo "" >&2
+  echo "yx-test-guard: FAILED — ${SKIPPED} test(s) SKIPPED in an exact-count run." >&2
+  echo "  An exact count is used where the set is fixed and fully required;" >&2
+  echo "  a skip there means the environment silently dropped coverage." >&2
+  echo "  Command: $*" >&2
+  exit 1
+fi
+
+if [[ -n "$EXACT" && "$TOTAL" -ne "$EXACT" ]]; then
+  echo "" >&2
+  echo "yx-test-guard: FAILED — expected exactly ${EXACT} tests, saw ${TOTAL}." >&2
+  echo "  If the suite legitimately changed, update the number DELIBERATELY in" >&2
+  echo "  the commit that changed it. Do not adjust it to get green." >&2
+  echo "  Command: $*" >&2
+  exit 1
+fi
+
+if [[ -n "$MIN" && "$TOTAL" -lt "$MIN" ]]; then
+  echo "" >&2
+  echo "yx-test-guard: FAILED — expected at least ${MIN} tests, saw ${TOTAL}." >&2
+  echo "  If the suite legitimately shrank, lower this DELIBERATELY in the" >&2
+  echo "  commit that shrank it. Do not lower it to get green." >&2
+  echo "  Command: $*" >&2
+  exit 1
+fi
+
+echo "yx-test-guard: ${TOTAL} test(s) ran${EXACT:+ (exact ${EXACT})}${MIN:+ (floor ${MIN})}, 0 invalid, command rc=${CMD_RC}"
+exit "$CMD_RC"

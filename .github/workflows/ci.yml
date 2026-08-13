@@ -1,0 +1,76 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: erlef/setup-beam@v1
+        with:
+          otp-version: "27.3"
+          elixir-version: "1.18.4"
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: test/fixtures/package-lock.json
+
+      - name: Install dependencies
+        run: mix deps.get
+
+      - name: Compile (warnings as errors)
+        run: mix compile --warnings-as-errors
+
+      # PROPERTY 1 of 3 — BOUNDARY. yelixer must not reference its former
+      # parent application. This was an umbrella-era invariant that only
+      # became checkable-in-isolation when the library was extracted; nothing
+      # else verifies it now that commonplace no longer contains the app.
+      - name: Enforce Commonplace boundary
+        run: elixir test/support/check_commonplace_refs.exs .
+
+      # PROPERTY 2 of 3 — SELF-CONTAINMENT. A fresh checkout must resolve,
+      # compile and run its own suite with no parent repository present.
+      # `actions/checkout` gives exactly that: this job IS the standalone
+      # position that commonplace's umbrella used to hide.
+      #
+      # Wrapped in yx-test-guard because `mix test` exits 0 when it selects
+      # NOTHING — assert the COUNT, never an exit code.
+      - name: Run the suite (count-asserted)
+        run: bin/yx-test-guard --min 380 -- mix test
+
+      # PROPERTY 3 of 3 — WIRE CONFORMANCE WITH YJS ITSELF. This is the
+      # property the library exists to have, and between the extraction and
+      # this workflow it was verified NOWHERE: the umbrella deleted its
+      # conformance matrix along with the app it targeted, correctly, because
+      # the target was gone.
+      #
+      # ⛔ Both oracles are REQUIRED, and a missing oracle must be RED, never
+      # skipped: the suite skips itself when the Yjs driver is absent, which is
+      # right locally and a silent hole in CI. YELIXER_REQUIRE_YJS_ORACLE=1
+      # turns that skip into a raise, and --exact 11 is the second line of
+      # defence if the flag is ever dropped.
+      - name: Install the Yjs oracles
+        run: npm ci --prefix test/fixtures
+
+      - name: Conformance vs Yjs stable (13.6.32)
+        env:
+          YJS_ORACLE: stable
+          YELIXER_REQUIRE_YJS_ORACLE: "1"
+        run: bin/yx-test-guard --exact 11 -- mix test test/yelixer/diff_yjs_test.exs --include diff_yjs
+
+      # Preview tracks the v14 prerelease line. It is reported separately so a
+      # preview-only regression is visible as itself rather than being averaged
+      # into the stable verdict.
+      - name: Conformance vs Yjs preview (14.0.0-16)
+        env:
+          YJS_ORACLE: preview
+          YELIXER_REQUIRE_YJS_ORACLE: "1"
+        run: bin/yx-test-guard --exact 11 -- mix test test/yelixer/diff_yjs_test.exs --include diff_yjs
