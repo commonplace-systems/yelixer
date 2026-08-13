@@ -27,7 +27,7 @@ defmodule Yelixer.DiffYjsTest do
                          nil ->
                            "Yjs #{@oracle} driver yjs_diff_driver.mjs cannot check its import because " <>
                              "Node.js is missing; install Node.js, then run " <>
-                             "`npm ci --prefix apps/yelixer/test/fixtures`"
+                             "`npm ci --prefix test/fixtures`"
 
                          node ->
                            case System.cmd(
@@ -40,7 +40,7 @@ defmodule Yelixer.DiffYjsTest do
 
                              {_output, _status} ->
                                "Yjs #{@oracle} driver yjs_diff_driver.mjs import did not resolve; " <>
-                                 "install it with `npm ci --prefix apps/yelixer/test/fixtures`"
+                                 "install it with `npm ci --prefix test/fixtures`"
                            end
                        end)
 

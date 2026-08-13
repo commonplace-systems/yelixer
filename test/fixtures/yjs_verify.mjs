@@ -1,6 +1,6 @@
 // Reverse oracle: verify that Yjs can decode yelixer-generated update binaries.
 //
-// Usage:  cd apps/yelixer && node test/fixtures/yjs_verify.mjs
+// Usage:  node test/fixtures/yjs_verify.mjs
 //
 // Reads yelixer_*.bin files from test/fixtures/, applies each to a fresh Yjs
 // doc, and prints the result.  Exit code 1 if any file fails to decode.
@@ -41,7 +41,7 @@ const files = fs.readdirSync(__dirname)
 
 if (files.length === 0) {
   console.log('  No yelixer_*.bin files found.  Generate them by running oracle_test.exs first.')
-  console.log('  Example: cd apps/yelixer && mix test test/yelixer/oracle_test.exs')
+  console.log('  Example: mix test test/yelixer/oracle_test.exs')
   process.exit(0)
 }
 

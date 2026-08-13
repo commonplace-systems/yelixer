@@ -29,7 +29,7 @@ defmodule Yelixer.MultiCommitFixtureTest do
       {:error, :enoent} ->
         flunk("""
         Missing multi_commit_fixtures.json — regenerate with:
-          node apps/yelixer/test/fixtures/multi_commit_generator.mjs
+          node test/fixtures/multi_commit_generator.mjs
         """)
     end
   end

@@ -8,11 +8,11 @@ defmodule Yelixer.OracleTest do
 
   ## Regenerating vectors
 
-      cd apps/yelixer && node test/fixtures/yjs_oracle.mjs
+      node test/fixtures/yjs_oracle.mjs
 
   ## Verifying yelixer output in Yjs
 
-      cd apps/yelixer && node test/fixtures/yjs_verify.mjs
+      node test/fixtures/yjs_verify.mjs
   """
 
   use ExUnit.Case, async: true

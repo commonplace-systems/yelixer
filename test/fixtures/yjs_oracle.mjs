@@ -1,6 +1,6 @@
 // Oracle test vector generator: uses Yjs (v14) as ground truth for yelixer interop testing.
 //
-// Usage:   cd apps/yelixer && node test/fixtures/yjs_oracle.mjs
+// Usage:   node test/fixtures/yjs_oracle.mjs
 // Output:  test/fixtures/oracle_vectors.json
 //
 // Each vector records: name, hex-encoded update, types used, and expected output
