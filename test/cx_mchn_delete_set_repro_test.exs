@@ -216,9 +216,7 @@ defmodule Yelixer.CxMchnDeleteSetReproTest do
   end
 
   test "REAL FIXTURE: cx_k20z_start_meta_precorruption.bin at pure-Yelixer level" do
-    fixture =
-      Path.join([__DIR__, "..", "..", "commonplace", "test", "fixtures", "cx_k20z_start_meta_precorruption.bin"])
-      |> Path.expand()
+    fixture = Path.join([__DIR__, "fixtures", "cx_k20z_start_meta_precorruption.bin"])
 
     if File.exists?(fixture) do
       state_bin = File.read!(fixture)
@@ -308,8 +306,7 @@ defmodule Yelixer.CxMchnDeleteSetReproTest do
              "CX-mchn reproduced on REAL fixture: doc emptied/corrupted after delete-all+reinsert refold. " <>
                "Got length #{String.length(reconstructed)} instead of #{String.length(new_json)}"
     else
-      IO.puts("Fixture not found at #{fixture} — skipping fixture-based repro")
-      :ok
+      flunk("required REAL FIXTURE missing: #{fixture}")
     end
   end
 end
