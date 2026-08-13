@@ -118,4 +118,146 @@ defmodule Yelixer.Types.XMLElementTest do
     doc = XMLElement.delete_attribute(doc, "root", "class")
     assert XMLElement.get_attribute(doc, "root", "class") == nil
   end
+
+  describe "delete_child/4" do
+    test "deletes one child at index 0 (head)" do
+      doc = new_doc()
+      doc = XMLElement.new_element(doc, "root", "div")
+      doc = XMLElement.insert_child(doc, "root", 0, {:element, "a"})
+      doc = XMLElement.insert_child(doc, "root", 1, {:element, "b"})
+      doc = XMLElement.insert_child(doc, "root", 2, {:element, "c"})
+
+      doc = XMLElement.delete_child(doc, "root", 0)
+
+      children = XMLElement.children(doc, "root")
+      assert length(children) == 2
+      assert [{:element, "b", _}, {:element, "c", _}] = children
+      assert XMLElement.child_count(doc, "root") == 2
+    end
+
+    test "deletes one child at middle index" do
+      doc = new_doc()
+      doc = XMLElement.new_element(doc, "root", "div")
+      doc = XMLElement.insert_child(doc, "root", 0, {:element, "a"})
+      doc = XMLElement.insert_child(doc, "root", 1, {:element, "b"})
+      doc = XMLElement.insert_child(doc, "root", 2, {:element, "c"})
+
+      doc = XMLElement.delete_child(doc, "root", 1)
+
+      children = XMLElement.children(doc, "root")
+      assert length(children) == 2
+      assert [{:element, "a", _}, {:element, "c", _}] = children
+    end
+
+    test "deletes one child at last index" do
+      doc = new_doc()
+      doc = XMLElement.new_element(doc, "root", "div")
+      doc = XMLElement.insert_child(doc, "root", 0, {:element, "a"})
+      doc = XMLElement.insert_child(doc, "root", 1, {:element, "b"})
+      doc = XMLElement.insert_child(doc, "root", 2, {:element, "c"})
+
+      doc = XMLElement.delete_child(doc, "root", 2)
+
+      children = XMLElement.children(doc, "root")
+      assert length(children) == 2
+      assert [{:element, "a", _}, {:element, "b", _}] = children
+    end
+
+    test "deletes multiple consecutive children with length=2" do
+      doc = new_doc()
+      doc = XMLElement.new_element(doc, "root", "div")
+      doc = XMLElement.insert_child(doc, "root", 0, {:element, "a"})
+      doc = XMLElement.insert_child(doc, "root", 1, {:element, "b"})
+      doc = XMLElement.insert_child(doc, "root", 2, {:element, "c"})
+      doc = XMLElement.insert_child(doc, "root", 3, {:element, "d"})
+
+      doc = XMLElement.delete_child(doc, "root", 1, 2)
+
+      children = XMLElement.children(doc, "root")
+      assert length(children) == 2
+      assert [{:element, "a", _}, {:element, "d", _}] = children
+    end
+
+    test "default length is 1" do
+      doc = new_doc()
+      doc = XMLElement.new_element(doc, "root", "div")
+      doc = XMLElement.insert_child(doc, "root", 0, {:element, "a"})
+      doc = XMLElement.insert_child(doc, "root", 1, {:element, "b"})
+
+      doc = XMLElement.delete_child(doc, "root", 0)
+
+      children = XMLElement.children(doc, "root")
+      assert length(children) == 1
+      assert [{:element, "b", _}] = children
+    end
+
+    test "to_string reflects deletion" do
+      doc = new_doc()
+      doc = XMLElement.new_element(doc, "root", "div")
+      doc = XMLElement.insert_child(doc, "root", 0, {:element, "a"})
+      doc = XMLElement.insert_child(doc, "root", 1, {:element, "b"})
+      doc = XMLElement.insert_child(doc, "root", 2, {:element, "c"})
+
+      doc = XMLElement.delete_child(doc, "root", 1)
+
+      assert XMLElement.to_string(doc, "root") == "<div><a></a><c></c></div>"
+    end
+  end
+
+  describe "to_string XSS-escaping (CX-n3i7)" do
+    test "escapes <script> tags and & in text content" do
+      doc = new_doc()
+      doc = XMLElement.new_element(doc, "root", "p")
+      doc = XMLElement.insert_child(doc, "root", 0, :text)
+      [{:text, child_name}] = XMLElement.children(doc, "root")
+      doc = XMLText.insert(doc, child_name, 0, ~s[<script>alert(1)</script> & "quoted" 'single'])
+
+      assert XMLElement.to_string(doc, "root") ==
+               ~s[<p>&lt;script&gt;alert(1)&lt;/script&gt; &amp; "quoted" 'single'</p>]
+    end
+
+    test "escapes &, <, >, \", ' in attribute values" do
+      doc = new_doc()
+      doc = XMLElement.new_element(doc, "root", "div")
+      doc = XMLElement.set_attribute(doc, "root", "data-x", ~s(1 & "2" <3> '4'))
+
+      assert XMLElement.to_string(doc, "root") ==
+               ~s(<div data-x="1 &amp; &quot;2&quot; &lt;3&gt; &#39;4&#39;"></div>)
+    end
+
+    test "the underlying stored text is NOT mutated — store-raw discipline" do
+      doc = new_doc()
+      doc = XMLElement.new_element(doc, "root", "p")
+      doc = XMLElement.insert_child(doc, "root", 0, :text)
+      [{:text, child_name}] = XMLElement.children(doc, "root")
+      doc = XMLText.insert(doc, child_name, 0, "<b>raw</b>")
+
+      # Escaping is a serialization-time concern only — the CRDT text
+      # store still holds exactly what was typed.
+      assert XMLText.to_string(doc, child_name) == "<b>raw</b>"
+      assert XMLElement.to_string(doc, "root") == "<p>&lt;b&gt;raw&lt;/b&gt;</p>"
+    end
+
+    test "escaped output survives a fork/copy round-trip (snapshot_update) without double-escaping" do
+      doc = new_doc()
+      doc = XMLElement.new_element(doc, "root", "div")
+      doc = XMLElement.set_attribute(doc, "root", "title", ~s(a & b))
+      doc = XMLElement.insert_child(doc, "root", 0, :text)
+      [{:text, child_name}] = XMLElement.children(doc, "root")
+      doc = XMLText.insert(doc, child_name, 0, "x & y <z>")
+
+      expected = ~s(<div title="a &amp; b">x &amp; y &lt;z&gt;</div>)
+      assert XMLElement.to_string(doc, "root") == expected
+
+      {snapshot_bin, _dm} = Yelixer.Doc.snapshot_update(doc)
+      receiver = XMLElement.new_element(Yelixer.Doc.new(), "root", "div")
+      {:ok, rebuilt} = Yelixer.Encoding.apply_update(receiver, snapshot_bin)
+
+      # Same escaped output, not double-escaped (&amp;amp;) — this proves
+      # the internal doc-copy/replay path (Doc.snapshot_update ->
+      # XMLText.to_string -> XMLText.insert) reads and writes RAW text,
+      # not the escaped `to_string/2` serialization.
+      assert XMLElement.to_string(rebuilt, "root") == expected
+    end
+  end
 end
