@@ -21,6 +21,21 @@
 //     {"cmd":"array_content","name":"items"}
 //     {"cmd":"quit"}
 //
+// Added for CX-content-divergence (test/yelixer/divergence_content_test.exs):
+//     {"cmd":"format_text","name":"content","pos":0,"len":5,"key":"bold","value":true}
+//     {"cmd":"insert_embed_text","name":"content","pos":5,"embed":{"img":"url"}}
+//     {"cmd":"text_length","name":"content"}          — Y.Text.length, no mutation
+//     {"cmd":"set_map_binary","root":"root","key":"k","hex":"00fffe01c864"}
+//       — sets key to a REAL Uint8Array built from hex, distinct from
+//         set_map (which sends whatever JSON value type comes over the wire).
+//     {"cmd":"map_get_type","root":"root","key":"k"}
+//       — reports the JS runtime type of the live value (constructor
+//         name, plus `is_uint8array`), to catch SILENT type coercion
+//         that a value-equality check alone would miss.
+//     {"cmd":"array_push_nested_array","root":"items","values":[1,2]}
+//       — pushes a nested Y.Array (pre-populated with `values`) as a
+//         single element of the named array.
+//
 //   stdout — one result per command, JSON object:
 //     {"ok":true,...}  or  {"ok":false,"error":"..."}
 //
@@ -208,6 +223,56 @@ function handle(msg) {
       case 'array_content': {
         const a = getArray(msg.name || 'items')
         return { ok: true, array: a.toArray() }
+      }
+
+      case 'format_text': {
+        const t = getText(msg.name || 'content')
+        doc.transact(() => {
+          t.format(msg.pos || 0, msg.len || 0, { [msg.key]: msg.value })
+        })
+        return { ok: true, length: t.length }
+      }
+
+      case 'insert_embed_text': {
+        const t = getText(msg.name || 'content')
+        doc.transact(() => {
+          t.insertEmbed(msg.pos || 0, msg.embed)
+        })
+        return { ok: true, length: t.length }
+      }
+
+      case 'text_length': {
+        const t = getText(msg.name || 'content')
+        return { ok: true, length: t.length }
+      }
+
+      case 'set_map_binary': {
+        const m = getMap(msg.root || 'root')
+        const bytes = fromHex(msg.hex)
+        doc.transact(() => {
+          m.set(msg.key, bytes)
+        })
+        return { ok: true }
+      }
+
+      case 'map_get_type': {
+        const m = getMap(msg.root || 'root')
+        const v = m.get(msg.key)
+        return {
+          ok: true,
+          constructor_name: v && v.constructor ? v.constructor.name : typeof v,
+          is_uint8array: v instanceof Uint8Array
+        }
+      }
+
+      case 'array_push_nested_array': {
+        const a = getArray(msg.root || 'items')
+        const nested = new Y.Array()
+        doc.transact(() => {
+          a.insert(a.length, [nested])
+          nested.insert(0, msg.values || [])
+        })
+        return { ok: true, length: a.length }
       }
 
       case 'quit':

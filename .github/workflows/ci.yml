@@ -51,11 +51,11 @@ jobs:
       #
       # Wrapped in yx-test-guard because `mix test` exits 0 when it selects
       # NOTHING — assert the COUNT, never an exit code.
-      # Floor 380 -> 395 -> 405, each step deliberate: +4 doc-spec pins, +1
+      # Floor 380 -> 395 -> 405 -> 412, each step deliberate: +4 doc-spec pins, +1
       # doctest term the old arithmetic dropped, +10 parity CONTROLS that now
-      # run here rather than hiding in the excluded population (see below).
-      # Only the 7 expected-red :divergence arms are excluded here; they are
-      # counted in their own job.
+      # run here rather than hiding in the excluded population (see below),
+      # +7 more controls from the content instrument. Only the 12 expected-red
+      # :divergence arms are excluded here; they are counted in their own jobs.
       #
       # The guard compares this floor against EXECUTED tests, not DEFINED ones:
       # ExUnit's "N tests" counts every test in the loaded files INCLUDING the
@@ -63,7 +63,7 @@ jobs:
       # that never ran. Executed = (tests + doctests) - excluded - skipped;
       # "N doctests, M tests" are DISJOINT and "excluded" spans both.
       - name: Run the suite (count-asserted)
-        run: bin/yx-test-guard --min 405 -- mix test
+        run: bin/yx-test-guard --min 412 -- mix test
 
       # PROPERTY 3 of 3 — WIRE CONFORMANCE WITH YJS ITSELF. This is the
       # property the library exists to have, and between the extraction and
@@ -129,3 +129,24 @@ jobs:
           YJS_ORACLE: stable
           YELIXER_REQUIRE_YJS_ORACLE: "1"
         run: bin/yx-test-guard --exact 17 --expect-failures 7 -- mix test test/yelixer/divergence_clock_test.exs --include divergence
+
+      # The CONTENT divergence population — also RED BY DESIGN, also counted,
+      # kept as its own job so a change in one instrument cannot be absorbed
+      # by the other's count.
+      #
+      # Five arms, four measured defects:
+      #   Text.length/2      three disagreeing index spaces (8 / 6 / 5)
+      #   binary, mode LOUD  non-UTF-8 blob -> yjs rejects the WHOLE update
+      #   binary, mode QUIET valid-UTF-8 blob -> silently arrives as a String
+      #   Array.to_list/2    raises on a nested sub-type; yjs resolves it
+      #   wire layer         yelixer's encode_update bytes vs yjs's own
+      #
+      # The wire arm is the one that did not exist anywhere before: the
+      # conformance harness's @moduledoc claimed it compared "encoded binary
+      # after a reload", the driver was fully plumbed for it, and no test had
+      # ever asserted on a byte.
+      - name: Content divergence pins vs Yjs stable (RED BY DESIGN, counted)
+        env:
+          YJS_ORACLE: stable
+          YELIXER_REQUIRE_YJS_ORACLE: "1"
+        run: bin/yx-test-guard --exact 12 --expect-failures 5 -- mix test test/yelixer/divergence_content_test.exs --include divergence

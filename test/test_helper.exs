@@ -14,3 +14,4 @@ ExUnit.start()
 ExUnit.configure(exclude: [:divergence])
 
 Code.require_file("support/file_rm_rf_guard.exs", __DIR__)
+Code.require_file("support/divergence_helpers.exs", __DIR__)

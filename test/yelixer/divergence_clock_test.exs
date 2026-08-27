@@ -89,6 +89,7 @@ defmodule Yelixer.DivergenceClockTest do
 
   alias Yelixer.{Doc, Encoding, StateVector}
   alias Yelixer.Types.Text
+  alias Yelixer.Test.DivergenceHelpers
 
   # ⭐ TWO LABELS, BECAUSE THERE ARE TWO ORTHOGONAL FACTS — and one tag
   # carrying both is how a control ends up in an excluded population for a
@@ -208,23 +209,11 @@ defmodule Yelixer.DivergenceClockTest do
   # line numbers. Fails LOUDLY and distinctly ("VACUOUS") when the two
   # sides actually agree, rather than letting the case masquerade as a
   # conformance pass.
-  defp assert_diverges!(oracle_val, yelixer_val, label) do
-    if oracle_val == yelixer_val do
-      flunk("""
-      VACUOUS DIVERGENCE CASE: #{label}
-
-      oracle and yelixer AGREED (#{inspect(oracle_val)}). This case is
-      labelled as exercising a measured divergence but the two
-      implementations did not actually disagree at this (fixture,
-      offset). Either this coordinate has stopped diverging (restate
-      it as a negative control with a comment explaining why) or the
-      harness picked the wrong coordinate — this must not be reported
-      as a passing conformance result either way.
-      """)
-    end
-
-    :ok
-  end
+  # Extracted to `Yelixer.Test.DivergenceHelpers` (test/support/divergence_helpers.exs)
+  # so `test/yelixer/divergence_content_test.exs` (CX-content-divergence) shares
+  # the exact same vacuity gate rather than a second, possibly-drifted copy.
+  defp assert_diverges!(oracle_val, yelixer_val, label),
+    do: DivergenceHelpers.assert_diverges!(oracle_val, yelixer_val, label)
 
   # ---------------------------------------------------------------------------
   # Node driver port helpers (mirrors Yelixer.DiffYjsTest)

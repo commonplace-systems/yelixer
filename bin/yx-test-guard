@@ -23,7 +23,7 @@
 #
 # USAGE
 #
-#   bin/yx-test-guard --min 405 -- mix test
+#   bin/yx-test-guard --min 412 -- mix test
 #   bin/yx-test-guard --exact 11 -- mix test test/yelixer/diff_yjs_test.exs --include diff_yjs
 #   bin/yx-test-guard --exact 17 --expect-failures 7 -- mix test --include divergence ...
 #
