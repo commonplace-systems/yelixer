@@ -27,7 +27,24 @@
 #
 # Usage: bin/land-round.sh sol/<round-branch>   |   bin/land-round.sh --self-test
 set -euo pipefail
-# --self-test: prove, with the REAL gate() and a sentinel in place of `git push`, that a
+# ⛔ --self-test IS TESTING A COPY. The block below defines its OWN gate() and its OWN
+# push_main(); the SHIPPED gate() is at the bottom of this file and the real push is a
+# bare `git push` the self-test never reaches. MEASURED BY MUTATION 2026-08-27 19:24Z,
+# on scratch copies, this file untouched:
+#
+#   baseline, unmutated                       -> SELF-TEST PASS  rc 0
+#   SHIPPED gate() mutated exit 70 -> exit 0  -> SELF-TEST PASS  rc 0   <- THE DEFECT
+#   self-test's OWN gate() copy mutated       -> SELF-TEST FAIL  rc 3   <- control fires
+#
+# So a green --self-test says NOTHING about the gate this script actually runs. The class
+# is `cell`'s and `next`'s: A SELF-TEST THAT DEFINES ITS OWN COPY OF THE THING UNDER TEST
+# IS TESTING THE COPY. The old header below claimed "with the REAL gate()" and was false.
+#
+# ⛔ NOT REPAIRED HERE. Hoisting the shipped gate() above this block changes the one script
+# that pushes to origin, and both arms would have to be re-demonstrated. That needs a slot.
+# The honest fix available without one is this label.
+#
+# --self-test: prove, with THE SELF-TEST'S OWN gate() and a sentinel in place of `git push`, that a
 # deliberately failing gate ends the run before the push line (rc 70, no sentinel), and --
 # the green arm -- that a passing gate reaches it. Runs no git, merges nothing.
 if [ "${1:-}" = "--self-test" ]; then
