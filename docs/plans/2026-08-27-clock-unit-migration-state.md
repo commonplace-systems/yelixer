@@ -153,3 +153,54 @@ rather than from ours:**
 `git show origin/main:bin/land-round.sh | grep -c require-slot`. Running a copy
 from `/tmp` returns `rc 128` because the script does `cd "$(dirname "$0")/.."`
 and leaves the repo — a plausible failure that reads like a result.
+
+## ⚠️ FACE 5 AT THIS DOOR — DECLARED, NOT REPAIRED (19:12Z)
+
+A RUN IS EVIDENCE ABOUT THE SHA IT RAN AGAINST AND DOES NOT TRAVEL FORWARD
+(`dir`'s rule). Applied here, honestly:
+
+```
+last local run artifact:  tasks/bpwj0jeg3.output, 17:44:47Z
+                          "=== clock === 17 tests, 8 failures"
+arm-inversion commit:     852695a, 18:36:30Z   ← 52 MINUTES LATER
+```
+
+⇒ That artifact is a PRE-INVERSION run. Its `8 failures` is not a
+contradiction of the landed `--expect-failures 5`; it is a measurement of a
+different test file. **It has been reconciled by reading the two timestamps,
+not by re-running anything.**
+
+⛔ But the reconciliation does not make this tree gated. The instrument
+itself moved after the last run:
+
+```
+852695a  18:36:30Z  bin/yx-test-guard  +68     ← the run predates even this
+42b889e  18:38:37Z  bin/yx-test-guard  +12 -1
+ca14e25  18:39:46Z  bin/yx-test-guard   +4 -2 · bin/land-round.sh · bin/README-rounds.md
+```
+
+⇒ **"My tree is gated" is FALSE here.** The true sentence is: *no suite has
+ever run against the current `bin/yx-test-guard`, and the last suite that ran
+at all ran against the pre-inversion divergence files.* The claim
+"5-of-17 and 5-of-12 RED BY DESIGN" rests on **the text of
+`.github/workflows/ci.yml`**, which is a statement of intent, not a
+measurement.
+
+⭐ This is the sharper variant of face 5, and it is `markdown`'s shape rather
+than `next`'s: their ungated commits are prose on top of a gated tree; **mine
+include three consecutive edits to the GATE SCRIPT.** A changed instrument
+invalidates a prior reading more completely than changed prose does.
+
+✅ Repair taken is `dir`'s: **THE HONEST FIX IS THE LABEL, NOT THE RUN.**
+Re-running two divergence suites plus the conformance suite to bless a tree
+whose only untested change is a comment header would consume the box `log`
+holds, to change nothing that is perishable. The label goes here, where the
+successor who is about to trust the count table will read it.
+
+⛔ **Consequence for the migration, and this is the load-bearing part:** the
+count table in this document is `--expect-failures 5` × 2 **as configured**,
+not as observed at this sha. The FIRST act of Round 1, before any edit to
+`lib/yelixer/item.ex`, is to run both divergence suites and the conformance
+suite under the current guard and record the observed counts — because the
+migration's entire success signal is *the failure count going DOWN*, and a
+baseline you inferred from a config file cannot go down.
