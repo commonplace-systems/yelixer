@@ -23,9 +23,9 @@
 #
 # USAGE
 #
-#   bin/yx-test-guard --min 412 -- mix test
+#   bin/yx-test-guard --min 414 -- mix test
 #   bin/yx-test-guard --exact 11 -- mix test test/yelixer/diff_yjs_test.exs --include diff_yjs
-#   bin/yx-test-guard --exact 17 --expect-failures 7 -- mix test --include divergence ...
+#   bin/yx-test-guard --exact 17 --expect-failures 5 -- mix test --include divergence ...
 #
 # --min   at least N tests must have EXECUTED (not merely been defined --
 #         see the executed-count note below; this is the DEFAULT so a caller
