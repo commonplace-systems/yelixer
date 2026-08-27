@@ -120,7 +120,10 @@ defmodule Yelixer.Types.XMLElement do
     {origin, right_origin} = find_child_origins(doc.store, children_key, index)
     clock = Doc.mint_clock(doc)
     id = ID.new(doc.client_id, clock)
-    item = Item.new(id, origin, right_origin, {:type, child_type_ref}, {:named, children_key}, nil)
+
+    item =
+      Item.new(id, origin, right_origin, {:type, child_type_ref}, {:named, children_key}, nil)
+
     {:ok, store} = Integrate.integrate(doc.store, item, children_key)
 
     doc = %{doc | store: store}

@@ -68,7 +68,9 @@ defmodule Yelixer.RehydratePropertiesTest do
   # is position-agnostic: the runner clamps positions to the current doc size.
   defp text_op do
     one_of([
-      tuple({constant(:insert), integer(0..50), string(:alphanumeric, min_length: 1, max_length: 8)}),
+      tuple(
+        {constant(:insert), integer(0..50), string(:alphanumeric, min_length: 1, max_length: 8)}
+      ),
       tuple({constant(:delete), integer(0..50), integer(1..8)})
     ])
   end
@@ -118,7 +120,7 @@ defmodule Yelixer.RehydratePropertiesTest do
   # ---------------------------------------------------------------------------
 
   property "text content survives encode-decode after arbitrary ops on envelope doc" do
-    check all ops <- text_script(), max_runs: 200 do
+    check all(ops <- text_script(), max_runs: 200) do
       doc = new_envelope_text_doc(1)
       mutated = Enum.reduce(ops, doc, &apply_text_op(&2, &1))
 
@@ -128,7 +130,7 @@ defmodule Yelixer.RehydratePropertiesTest do
   end
 
   property "envelope metadata survives encode-decode after arbitrary text ops" do
-    check all ops <- text_script(), max_runs: 200 do
+    check all(ops <- text_script(), max_runs: 200) do
       doc = new_envelope_text_doc(1)
       mutated = Enum.reduce(ops, doc, &apply_text_op(&2, &1))
 
@@ -142,7 +144,7 @@ defmodule Yelixer.RehydratePropertiesTest do
   # ---------------------------------------------------------------------------
 
   property "interleaved save-reload gives the same final content as no save-reload" do
-    check all ops <- text_script(), seed <- integer(0..99), max_runs: 200 do
+    check all(ops <- text_script(), seed <- integer(0..99), max_runs: 200) do
       doc = new_envelope_text_doc(1)
 
       # Deterministic reload positions from the seed so both paths see
@@ -168,7 +170,7 @@ defmodule Yelixer.RehydratePropertiesTest do
   # ---------------------------------------------------------------------------
 
   property "save-reload is idempotent: reload of reload equals reload" do
-    check all ops <- text_script(), max_runs: 200 do
+    check all(ops <- text_script(), max_runs: 200) do
       doc = new_envelope_text_doc(1)
       mutated = Enum.reduce(ops, doc, &apply_text_op(&2, &1))
 
@@ -199,7 +201,7 @@ defmodule Yelixer.RehydratePropertiesTest do
   defp apply_map_op(doc, {:delete, k}), do: YMap.delete(doc, "content", k)
 
   property "map content survives encode-decode after arbitrary ops" do
-    check all ops <- list_of(map_op(), max_length: 20), max_runs: 200 do
+    check all(ops <- list_of(map_op(), max_length: 20), max_runs: 200) do
       doc = new_envelope_map_doc(1)
       mutated = Enum.reduce(ops, doc, &apply_map_op(&2, &1))
 
@@ -248,7 +250,7 @@ defmodule Yelixer.RehydratePropertiesTest do
   end
 
   property "array content survives encode-decode after arbitrary ops" do
-    check all ops <- list_of(array_op(), max_length: 15), max_runs: 200 do
+    check all(ops <- list_of(array_op(), max_length: 15), max_runs: 200) do
       doc = new_envelope_array_doc(1)
       mutated = Enum.reduce(ops, doc, &apply_array_op(&2, &1))
 
@@ -263,7 +265,7 @@ defmodule Yelixer.RehydratePropertiesTest do
   # ---------------------------------------------------------------------------
 
   property "N rehydrate cycles interleaved with single ops preserve final content" do
-    check all ops <- text_script(), n <- integer(1..10), max_runs: 100 do
+    check all(ops <- text_script(), n <- integer(1..10), max_runs: 100) do
       doc = new_envelope_text_doc(1)
 
       # Apply ops in groups of 1, rehydrating between each op

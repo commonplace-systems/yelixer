@@ -398,7 +398,11 @@ defmodule Yelixer.Encoding do
     {clock, rest} = decode_uint(binary)
     {len, rest} = decode_uint(rest)
 
-    assert_clock_bound!(clock + len, "delete set range (client #{client}, start #{clock}, len #{len})")
+    assert_clock_bound!(
+      clock + len,
+      "delete set range (client #{client}, start #{clock}, len #{len})"
+    )
+
     ds = DeleteSet.insert(ds, client, clock, len)
     decode_ds_ranges(rest, remaining - 1, ds, client)
   end
@@ -556,7 +560,8 @@ defmodule Yelixer.Encoding do
           items_bin =
             Enum.reduce(items, <<>>, fn item, iacc ->
               item =
-                if item.deleted or DeleteSet.deleted_in_cache?(ds_cache, item.id.client, item.id.clock) do
+                if item.deleted or
+                     DeleteSet.deleted_in_cache?(ds_cache, item.id.client, item.id.clock) do
                   %{item | content: {:deleted, item.length}, deleted: true}
                 else
                   item
@@ -1130,7 +1135,8 @@ defmodule Yelixer.Encoding do
 
   defp pending_pass(doc, blobs) do
     {doc, remaining, cleared_bytes, cleared_count} =
-      Enum.reduce(blobs, {doc, [], 0, 0}, fn blob, {doc, remaining, cleared_bytes, cleared_count} ->
+      Enum.reduce(blobs, {doc, [], 0, 0}, fn blob,
+                                             {doc, remaining, cleared_bytes, cleared_count} ->
         case decode_update(blob) do
           {:ok, {items, ds, _rest}} ->
             {doc, still_pending} = integrate_batch(doc, items, ds)
@@ -1193,7 +1199,11 @@ defmodule Yelixer.Encoding do
   # First-writer-wins: only add a (client_id → namespace) entry when
   # client_id isn't already tracked, preserving the provenance of the
   # namespace that first introduced it.
-  defp record_client_namespaces(%Doc{client_namespaces: existing} = doc, new_client_ids, namespace_hash) do
+  defp record_client_namespaces(
+         %Doc{client_namespaces: existing} = doc,
+         new_client_ids,
+         namespace_hash
+       ) do
     updated =
       Enum.reduce(new_client_ids, existing, fn cid, acc ->
         case Map.fetch(acc, cid) do
@@ -1381,7 +1391,8 @@ defmodule Yelixer.Encoding do
     integrate_items(items, doc, sv, pending, MapSet.new())
   end
 
-  defp integrate_items([], doc, sv, pending, _blocked_clients), do: {doc, sv, Enum.reverse(pending)}
+  defp integrate_items([], doc, sv, pending, _blocked_clients),
+    do: {doc, sv, Enum.reverse(pending)}
 
   defp integrate_items([item | rest], doc, sv, pending, blocked_clients) do
     client = item.id.client
@@ -1401,12 +1412,19 @@ defmodule Yelixer.Encoding do
         # Partial overlap — trim the already-known portion and integrate the rest
         offset = client_clock - item.id.clock
         {_left, trimmed} = Item.split(item, offset)
+
         case try_integrate_item(trimmed, doc, sv) do
           {:ok, doc, sv} ->
             integrate_items(rest, doc, sv, pending, blocked_clients)
 
           :pending_dep ->
-            integrate_items(rest, doc, sv, [trimmed | pending], MapSet.put(blocked_clients, client))
+            integrate_items(
+              rest,
+              doc,
+              sv,
+              [trimmed | pending],
+              MapSet.put(blocked_clients, client)
+            )
 
           :pending_parent ->
             integrate_items(rest, doc, sv, [trimmed | pending], blocked_clients)
@@ -1755,7 +1773,8 @@ defmodule Yelixer.Encoding do
   def update_client_ids(binary) do
     case decode_update(binary) do
       {:ok, {items, delete_set, _rest}} ->
-        item_ids = Enum.reduce(items, MapSet.new(), fn it, acc -> MapSet.put(acc, it.id.client) end)
+        item_ids =
+          Enum.reduce(items, MapSet.new(), fn it, acc -> MapSet.put(acc, it.id.client) end)
 
         ds_ids =
           delete_set.clients
@@ -1901,9 +1920,13 @@ defmodule Yelixer.Encoding do
       else
         item
       end
+
     next_clock = clock + item.length
 
-    assert_clock_bound!(next_clock, "item (client #{client}, clock #{clock}, length #{item.length})")
+    assert_clock_bound!(
+      next_clock,
+      "item (client #{client}, clock #{clock}, length #{item.length})"
+    )
 
     {item, rest, next_clock}
   end

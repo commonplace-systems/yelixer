@@ -282,7 +282,10 @@ defmodule Yelixer.Types.Text do
         # Index lands inside this block — split it at the boundary
         offset = index - pos
         split_clock = item.id.clock + offset
-        {store, right} = BlockStore.split_block(store, ID.new(item.id.client, split_clock), type_name)
+
+        {store, right} =
+          BlockStore.split_block(store, ID.new(item.id.client, split_clock), type_name)
+
         left_after_split = BlockStore.get(store, item.id)
         {store, left_after_split, right}
     end
@@ -315,13 +318,18 @@ defmodule Yelixer.Types.Text do
         # Block starts inside the range but extends past its end.
         # Split at the end boundary, then collect the left piece.
         split_clock = item.id.clock + remaining
-        {store, _right} = BlockStore.split_block(store, ID.new(item.id.client, split_clock), type_name)
+
+        {store, _right} =
+          BlockStore.split_block(store, ID.new(item.id.client, split_clock), type_name)
+
         {store, Enum.reverse([item.id | acc])}
 
       true ->
         # Block straddles the start of the range — split at the start boundary.
         split_clock = item.id.clock + (index - pos)
-        {store, right} = BlockStore.split_block(store, ID.new(item.id.client, split_clock), type_name)
+
+        {store, right} =
+          BlockStore.split_block(store, ID.new(item.id.client, split_clock), type_name)
 
         if right.length <= remaining do
           # The right piece fits entirely in the range — re-walk from the top.
@@ -330,7 +338,10 @@ defmodule Yelixer.Types.Text do
         else
           # The right piece also extends past the range end — split it too.
           split_end = right.id.clock + remaining
-          {store, _} = BlockStore.split_block(store, ID.new(right.id.client, split_end), type_name)
+
+          {store, _} =
+            BlockStore.split_block(store, ID.new(right.id.client, split_end), type_name)
+
           {store, [right.id]}
         end
     end

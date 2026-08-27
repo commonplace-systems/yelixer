@@ -78,8 +78,10 @@ defmodule Yelixer.SnapshotDeterminismTest do
     end
 
     property "snapshot_update is byte-deterministic across instances (Text)" do
-      check all content <- string(:printable, min_length: 0, max_length: 40),
-                client_id <- integer(1..1_000_000) do
+      check all(
+              content <- string(:printable, min_length: 0, max_length: 40),
+              client_id <- integer(1..1_000_000)
+            ) do
         doc_a = Doc.new(client_id: client_id)
         {doc_a, _} = Doc.get_or_create_type(doc_a, "t", :text)
         doc_a = if content == "", do: doc_a, else: Text.insert(doc_a, "t", 0, content)

@@ -45,7 +45,9 @@ defmodule Yelixer.CxMchnDeleteSetReproTest do
     {_final_doc, commits, first_bad} =
       Enum.reduce_while(1..40, {doc, commits, nil}, fn i, {doc, commits, _} ->
         old = Text.to_string(doc, "text")
-        new = ~s({"kind":"room","description":"round #{i} with some length #{String.duplicate("x", rem(i, 7))}"})
+
+        new =
+          ~s({"kind":"room","description":"round #{i} with some length #{String.duplicate("x", rem(i, 7))}"})
 
         doc2 = Text.delete(doc, "text", 0, String.length(old))
         doc3 = Text.insert(doc2, "text", 0, new)
@@ -97,7 +99,8 @@ defmodule Yelixer.CxMchnDeleteSetReproTest do
       end
     end
 
-    assert is_nil(first_bad), "CX-mchn reproduced: corrupted at accumulation round #{inspect(first_bad)}"
+    assert is_nil(first_bad),
+           "CX-mchn reproduced: corrupted at accumulation round #{inspect(first_bad)}"
   end
 
   test "same repro with a genuinely fresh client for the reinsert (rules out clock reuse)" do
@@ -181,9 +184,11 @@ defmodule Yelixer.CxMchnDeleteSetReproTest do
     doc = Text.insert(doc, "content", 0, "Hello World")
 
     fresh_item =
-      Yelixer.BlockStore.client_blocks(doc.store, 1) |> Enum.find(&match?({:string, _}, &1.content))
+      Yelixer.BlockStore.client_blocks(doc.store, 1)
+      |> Enum.find(&match?({:string, _}, &1.content))
 
     IO.puts("\n=== CX-mchn minimal parent_sub-inheritance repro ===")
+
     IO.puts(
       "PRE encode/decode: fresh item origin=#{inspect(fresh_item.origin)} " <>
         "right_origin=#{inspect(fresh_item.right_origin)} parent_sub=#{inspect(fresh_item.parent_sub)} " <>
@@ -233,7 +238,8 @@ defmodule Yelixer.CxMchnDeleteSetReproTest do
       # whole-doc delete + full reinsert, as ONE full-state chained commit.
       new_json =
         Jason.encode!(
-          Jason.decode!(content) |> Map.update("exits", %{}, &Map.put(&1, "probeexit", "somewhere"))
+          Jason.decode!(content)
+          |> Map.update("exits", %{}, &Map.put(&1, "probeexit", "somewhere"))
         )
 
       sv = Yelixer.BlockStore.state_vector(seeded.store)
@@ -284,23 +290,35 @@ defmodule Yelixer.CxMchnDeleteSetReproTest do
         Text.delete(seeded, "content", 0, String.length(content)).store
         |> Yelixer.BlockStore.get_sequence("content")
 
-      IO.puts("live-sequence length AFTER delete, BEFORE insert (get_sequence): #{length(seq_before_insert)}")
+      IO.puts(
+        "live-sequence length AFTER delete, BEFORE insert (get_sequence): #{length(seq_before_insert)}"
+      )
+
       IO.puts("all deleted?: #{Enum.all?(seq_before_insert, & &1.deleted)}")
 
       ds_ranges_for_client = Map.get(edited.delete_set.clients, edited.client_id, [])
-      IO.puts("delete_set ranges for edited.client_id (#{edited.client_id}): #{inspect(ds_ranges_for_client)}")
+
+      IO.puts(
+        "delete_set ranges for edited.client_id (#{edited.client_id}): #{inspect(ds_ranges_for_client)}"
+      )
 
       fresh = Doc.new(client_id: 1)
       {:ok, fresh} = Encoding.apply_update(fresh, state_bin)
       {:ok, fresh} = Encoding.apply_update(fresh, update2)
 
       reconstructed = Text.to_string(fresh, "content")
-      IO.puts("reconstructed after delete-all+reinsert: #{inspect(String.slice(reconstructed, 0, 60))} (len=#{String.length(reconstructed)})")
+
+      IO.puts(
+        "reconstructed after delete-all+reinsert: #{inspect(String.slice(reconstructed, 0, 60))} (len=#{String.length(reconstructed)})"
+      )
 
       fresh_world_item = Yelixer.BlockStore.get(fresh.store, %Yelixer.ID{client: 1, clock: 0})
       IO.puts("fresh doc's copy of the (client=1,clock=0) item: #{inspect(fresh_world_item)}")
       IO.puts("fresh.delete_set: #{inspect(fresh.delete_set)}")
-      IO.puts("DeleteSet.deleted?(fresh.delete_set, 1, 0): #{Yelixer.DeleteSet.deleted?(fresh.delete_set, 1, 0)}")
+
+      IO.puts(
+        "DeleteSet.deleted?(fresh.delete_set, 1, 0): #{Yelixer.DeleteSet.deleted?(fresh.delete_set, 1, 0)}"
+      )
 
       assert reconstructed == new_json,
              "CX-mchn reproduced on REAL fixture: doc emptied/corrupted after delete-all+reinsert refold. " <>

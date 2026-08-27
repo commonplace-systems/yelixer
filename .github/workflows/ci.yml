@@ -29,6 +29,14 @@ jobs:
       - name: Compile (warnings as errors)
         run: mix compile --warnings-as-errors
 
+      # Formatting. This step did not exist until 2026-08-27, which is how
+      # 26 committed files drifted unformatted without anything saying so --
+      # discovered because bin/land-round.sh runs this check and correctly
+      # refused to land. The gate and the pass that made it green land in the
+      # same commit deliberately: a format pass without the check re-rots.
+      - name: Check formatting
+        run: mix format --check-formatted
+
       # PROPERTY 1 of 3 — BOUNDARY. yelixer must not reference its former
       # parent application. This was an umbrella-era invariant that only
       # became checkable-in-isolation when the library was extracted; nothing

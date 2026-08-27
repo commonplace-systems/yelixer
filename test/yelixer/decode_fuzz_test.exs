@@ -18,7 +18,7 @@ defmodule Yelixer.DecodeFuzzTest do
   @moduletag :properties
 
   property "apply_update never raises on random bytes" do
-    check all bytes <- binary(min_length: 0, max_length: 200), max_runs: 500 do
+    check all(bytes <- binary(min_length: 0, max_length: 200), max_runs: 500) do
       doc = Doc.new(client_id: 1)
 
       # apply_update should return either {:ok, doc} for any valid yjs
@@ -29,7 +29,9 @@ defmodule Yelixer.DecodeFuzzTest do
           Encoding.apply_update(doc, bytes)
         catch
           kind, reason ->
-            flunk("apply_update raised #{kind}: #{inspect(reason)} on input #{inspect(bytes, limit: 100)}")
+            flunk(
+              "apply_update raised #{kind}: #{inspect(reason)} on input #{inspect(bytes, limit: 100)}"
+            )
         end
 
       case result do
@@ -40,13 +42,15 @@ defmodule Yelixer.DecodeFuzzTest do
   end
 
   property "decode_update never raises on random bytes" do
-    check all bytes <- binary(min_length: 0, max_length: 200), max_runs: 500 do
+    check all(bytes <- binary(min_length: 0, max_length: 200), max_runs: 500) do
       result =
         try do
           Encoding.decode_update(bytes)
         catch
           kind, reason ->
-            flunk("decode_update raised #{kind}: #{inspect(reason)} on input #{inspect(bytes, limit: 100)}")
+            flunk(
+              "decode_update raised #{kind}: #{inspect(reason)} on input #{inspect(bytes, limit: 100)}"
+            )
         end
 
       case result do
@@ -60,10 +64,12 @@ defmodule Yelixer.DecodeFuzzTest do
     # Take a known-good update and truncate at a random offset.
     # The decoder should refuse gracefully rather than panicking on
     # an incomplete varint or missing struct.
-    check all client <- integer(1..100),
-              text <- string(:alphanumeric, min_length: 1, max_length: 40),
-              trunc_at <- integer(0..200),
-              max_runs: 200 do
+    check all(
+            client <- integer(1..100),
+            text <- string(:alphanumeric, min_length: 1, max_length: 40),
+            trunc_at <- integer(0..200),
+            max_runs: 200
+          ) do
       doc = Doc.new(client_id: client)
       {doc, _} = Doc.get_or_create_type(doc, "t", :text)
       doc = Yelixer.Types.Text.insert(doc, "t", 0, text)
@@ -90,10 +96,12 @@ defmodule Yelixer.DecodeFuzzTest do
   end
 
   property "apply_update never raises on bit-flipped valid updates" do
-    check all text <- string(:alphanumeric, min_length: 1, max_length: 40),
-              flip_pos <- integer(0..200),
-              flip_bit <- integer(0..7),
-              max_runs: 200 do
+    check all(
+            text <- string(:alphanumeric, min_length: 1, max_length: 40),
+            flip_pos <- integer(0..200),
+            flip_bit <- integer(0..7),
+            max_runs: 200
+          ) do
       doc = Doc.new(client_id: 1)
       {doc, _} = Doc.get_or_create_type(doc, "t", :text)
       doc = Yelixer.Types.Text.insert(doc, "t", 0, text)

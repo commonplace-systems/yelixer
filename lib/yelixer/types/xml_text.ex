@@ -118,7 +118,10 @@ defmodule Yelixer.Types.XMLText do
       true ->
         offset = index - pos
         split_clock = item.id.clock + offset
-        {store, right} = BlockStore.split_block(store, ID.new(item.id.client, split_clock), type_name)
+
+        {store, right} =
+          BlockStore.split_block(store, ID.new(item.id.client, split_clock), type_name)
+
         left_after_split = BlockStore.get(store, item.id)
         {store, left_after_split, right}
     end
@@ -146,19 +149,27 @@ defmodule Yelixer.Types.XMLText do
 
       pos >= index ->
         split_clock = item.id.clock + remaining
-        {store, _right} = BlockStore.split_block(store, ID.new(item.id.client, split_clock), type_name)
+
+        {store, _right} =
+          BlockStore.split_block(store, ID.new(item.id.client, split_clock), type_name)
+
         {store, Enum.reverse([item.id | acc])}
 
       true ->
         split_clock = item.id.clock + (index - pos)
-        {store, right} = BlockStore.split_block(store, ID.new(item.id.client, split_clock), type_name)
+
+        {store, right} =
+          BlockStore.split_block(store, ID.new(item.id.client, split_clock), type_name)
 
         if right.length <= remaining do
           new_seq = BlockStore.get_sequence(store, type_name)
           do_collect_ids(store, new_seq, type_name, index, remaining, 0, acc)
         else
           split_end = right.id.clock + remaining
-          {store, _} = BlockStore.split_block(store, ID.new(right.id.client, split_end), type_name)
+
+          {store, _} =
+            BlockStore.split_block(store, ID.new(right.id.client, split_end), type_name)
+
           {store, [right.id]}
         end
     end

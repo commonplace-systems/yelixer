@@ -236,7 +236,8 @@ defmodule Yelixer.PendingBufferTest do
 
       {author, diffs, _final_sv} =
         Enum.reduce(1..8, {author, [], BlockStore.state_vector(author.store)}, fn i,
-                                                                                    {author, diffs, sv} ->
+                                                                                  {author, diffs,
+                                                                                   sv} ->
           char = <<?a + rem(i, 26)>>
           pos = String.length(Text.to_string(author, "text"))
           author = Text.insert(author, "text", pos, char)

@@ -146,9 +146,9 @@ defmodule Yelixer.BlockStoreBenchTest do
       ratio = large_time / max(small_time, 1)
 
       assert ratio < 10,
-        "Lookup scaling ratio #{Float.round(ratio, 1)}x suggests linear scan. " <>
-          "Expected sub-linear (binary search). " <>
-          "small=#{small_time}us, large=#{large_time}us"
+             "Lookup scaling ratio #{Float.round(ratio, 1)}x suggests linear scan. " <>
+               "Expected sub-linear (binary search). " <>
+               "small=#{small_time}us, large=#{large_time}us"
     end
   end
 

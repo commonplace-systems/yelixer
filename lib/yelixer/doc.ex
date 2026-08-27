@@ -103,8 +103,16 @@ defmodule Yelixer.Doc do
           clock_floor: non_neg_integer()
         }
 
-  defstruct [:client_id, :store, :delete_set, :types,
-             client_namespaces: %{}, pending: [], pending_bytes: 0, clock_floor: 0]
+  defstruct [
+    :client_id,
+    :store,
+    :delete_set,
+    :types,
+    client_namespaces: %{},
+    pending: [],
+    pending_bytes: 0,
+    clock_floor: 0
+  ]
 
   @doc """
   Allocates a fresh document replica.
@@ -657,12 +665,24 @@ defmodule Yelixer.Doc do
     # no-op (empty map / empty sequence), so single-plane snapshot
     # bytes are unchanged from today.
     case effective_ref do
-      :text -> doc |> replay_text(source, name) |> replay_map_plane(source, name)
-      :map -> doc |> replay_map(source, name) |> replay_sequence_plane(source, name)
-      :array -> doc |> replay_array(source, name) |> replay_map_plane(source, name)
-      :xml_fragment -> replay_xml_fragment(doc, source, name, name)
-      {:xml_element, tag} -> replay_xml_element(doc, source, name, name, tag)
-      :xml_text -> replay_xml_text(doc, source, name, name)
+      :text ->
+        doc |> replay_text(source, name) |> replay_map_plane(source, name)
+
+      :map ->
+        doc |> replay_map(source, name) |> replay_sequence_plane(source, name)
+
+      :array ->
+        doc |> replay_array(source, name) |> replay_map_plane(source, name)
+
+      :xml_fragment ->
+        replay_xml_fragment(doc, source, name, name)
+
+      {:xml_element, tag} ->
+        replay_xml_element(doc, source, name, name, tag)
+
+      :xml_text ->
+        replay_xml_text(doc, source, name, name)
+
       _ ->
         # Unknown/stub ref types: register the name so the resulting doc
         # carries the type registration, but skip content replay.

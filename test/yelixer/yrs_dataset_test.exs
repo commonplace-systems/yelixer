@@ -43,7 +43,10 @@ defmodule Yelixer.YrsDatasetTest do
 
     if fail > 0 or crash > 0 do
       error_sample = errors |> Enum.reverse() |> Enum.take(20) |> Enum.join("\n")
-      flunk("#{fail} mismatches, #{crash} crashes out of #{test_count} (#{pass} passed):\n#{error_sample}")
+
+      flunk(
+        "#{fail} mismatches, #{crash} crashes out of #{test_count} (#{pass} passed):\n#{error_sample}"
+      )
     end
   end
 
@@ -58,7 +61,8 @@ defmodule Yelixer.YrsDatasetTest do
     assert run_count == test_count
 
     {pass, fail, crash, errors, _rest} =
-      Enum.reduce(1..run_count, {0, 0, 0, [], rest}, fn test_num, {pass, fail, crash, errors, rest} ->
+      Enum.reduce(1..run_count, {0, 0, 0, [], rest}, fn test_num,
+                                                        {pass, fail, crash, errors, rest} ->
         {updates_len, rest} = Encoding.decode_uint(rest)
 
         {doc, rest, ok?} = apply_updates(rest, updates_len, new_doc())
@@ -78,8 +82,19 @@ defmodule Yelixer.YrsDatasetTest do
               actual_array = Array.to_json(doc, "array")
               m_ok = json_equal?(actual_map, expected_map)
               a_ok = json_equal?(actual_array, expected_array)
-              m_detail = if not m_ok, do: "\n  map expected: #{inspect(expected_map)}\n  map actual:   #{inspect(actual_map)}", else: ""
-              a_detail = if not a_ok, do: "\n  arr expected: #{inspect(expected_array)}\n  arr actual:   #{inspect(actual_array)}", else: ""
+
+              m_detail =
+                if not m_ok,
+                  do:
+                    "\n  map expected: #{inspect(expected_map)}\n  map actual:   #{inspect(actual_map)}",
+                  else: ""
+
+              a_detail =
+                if not a_ok,
+                  do:
+                    "\n  arr expected: #{inspect(expected_array)}\n  arr actual:   #{inspect(actual_array)}",
+                  else: ""
+
               {m_ok, a_ok, m_detail, a_detail}
             rescue
               e ->
@@ -91,11 +106,13 @@ defmodule Yelixer.YrsDatasetTest do
           if text_ok and map_ok and array_ok do
             {pass + 1, fail, crash, errors, rest}
           else
-            error = "Test #{test_num}:" <>
-              (if !text_ok, do: " text mismatch", else: "") <>
-              (if !map_ok, do: " map mismatch", else: "") <>
-              (if !array_ok, do: " array mismatch", else: "") <>
-              map_detail <> array_detail
+            error =
+              "Test #{test_num}:" <>
+                if(!text_ok, do: " text mismatch", else: "") <>
+                if(!map_ok, do: " map mismatch", else: "") <>
+                if(!array_ok, do: " array mismatch", else: "") <>
+                map_detail <> array_detail
+
             {pass, fail + 1, crash, [error | errors], rest}
           end
         end
@@ -105,7 +122,9 @@ defmodule Yelixer.YrsDatasetTest do
       error_sample =
         errors |> Enum.reverse() |> Enum.join("\n")
 
-      flunk("#{fail} mismatches, #{crash} crashes out of #{run_count} (#{pass} passed):\n#{error_sample}")
+      flunk(
+        "#{fail} mismatches, #{crash} crashes out of #{run_count} (#{pass} passed):\n#{error_sample}"
+      )
     end
   end
 

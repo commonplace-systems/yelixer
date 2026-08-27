@@ -22,26 +22,26 @@ defmodule Yelixer.EncodingErrorTest do
       # ... but actually, let's construct a simpler case:
       # num_clients=1, num_structs=1, client=1, clock=0, info byte with named parent
       # then a string whose declared length exceeds the binary
+      # num_clients=1
+      # num_structs=1
+      # client=1
+      # first_clock=0
+      # info byte: content_ref=4 (string), no origin, no right_origin => parent inline
+      # parent_info=1 (named), then parent name string
+      # info: content_ref=4, no flags
+      # Since no origin and no right_origin, parent is read next
+      # parent_info=1 means named parent
+      # parent_info=1
+      # parent name: length=4, "test"
+      # Now content (string): declared length=100 but binary ends
       header =
         <<1>> <>
-          # num_clients=1
           <<1>> <>
-          # num_structs=1
           <<1>> <>
-          # client=1
           <<0>> <>
-          # first_clock=0
-          # info byte: content_ref=4 (string), no origin, no right_origin => parent inline
-          # parent_info=1 (named), then parent name string
           <<4>> <>
-          # info: content_ref=4, no flags
-          # Since no origin and no right_origin, parent is read next
-          # parent_info=1 means named parent
           <<1>> <>
-          # parent_info=1
-          # parent name: length=4, "test"
           <<4, 116, 101, 115, 116>> <>
-          # Now content (string): declared length=100 but binary ends
           <<100>>
 
       assert {:error, {:malformed_update, _reason}} = Encoding.apply_update(doc, header)
@@ -52,18 +52,18 @@ defmodule Yelixer.EncodingErrorTest do
       # Build update: 1 client, 1 struct, client=1, clock=0
       # info byte with content_ref = 15 (unknown, only 0-8 are valid)
       # Since no origin/right_origin, it tries to read parent, which will also be garbage
+      # info byte: content_ref=15 (bits 0-4), no origin/right_origin flags
+      # parent_info (since no origin/right_origin)
+      # named parent "t"
+      # Now decode_content is called with ref=15 — no clause matches
       header =
         <<1>> <>
           <<1>> <>
           <<1>> <>
           <<0>> <>
-          # info byte: content_ref=15 (bits 0-4), no origin/right_origin flags
           <<15>> <>
-          # parent_info (since no origin/right_origin)
           <<1>> <>
-          # named parent "t"
           <<1, 116>> <>
-          # Now decode_content is called with ref=15 — no clause matches
           <<0>>
 
       assert {:error, {:malformed_update, _reason}} = Encoding.apply_update(doc, header)

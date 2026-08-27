@@ -42,8 +42,7 @@ defmodule Yelixer.PropertiesTest do
   defp text_content, do: string(:alphanumeric, min_length: 1, max_length: 10)
 
   defp array_element,
-    do:
-      one_of([integer(), string(:alphanumeric, min_length: 1, max_length: 8)])
+    do: one_of([integer(), string(:alphanumeric, min_length: 1, max_length: 8)])
 
   defp map_entries do
     list_of(tuple({map_key(), map_value()}), min_length: 1, max_length: 5)
@@ -58,8 +57,10 @@ defmodule Yelixer.PropertiesTest do
   # ===========================================================================
 
   property "two peers always converge regardless of insert content" do
-    check all text1 <- string(:alphanumeric, min_length: 1, max_length: 10),
-              text2 <- string(:alphanumeric, min_length: 1, max_length: 10) do
+    check all(
+            text1 <- string(:alphanumeric, min_length: 1, max_length: 10),
+            text2 <- string(:alphanumeric, min_length: 1, max_length: 10)
+          ) do
       doc1 = Doc.new(client_id: 1)
       doc2 = Doc.new(client_id: 2)
       {doc1, _} = Doc.get_or_create_type(doc1, "text", :text)
@@ -79,9 +80,11 @@ defmodule Yelixer.PropertiesTest do
   end
 
   property "three peers always converge" do
-    check all t1 <- string(:alphanumeric, min_length: 1, max_length: 5),
-              t2 <- string(:alphanumeric, min_length: 1, max_length: 5),
-              t3 <- string(:alphanumeric, min_length: 1, max_length: 5) do
+    check all(
+            t1 <- string(:alphanumeric, min_length: 1, max_length: 5),
+            t2 <- string(:alphanumeric, min_length: 1, max_length: 5),
+            t3 <- string(:alphanumeric, min_length: 1, max_length: 5)
+          ) do
       docs =
         [{1, t1}, {2, t2}, {3, t3}]
         |> Enum.map(fn {id, text} ->
@@ -103,9 +106,11 @@ defmodule Yelixer.PropertiesTest do
   end
 
   property "apply-order independence: text updates converge regardless of ordering" do
-    check all t1 <- text_content(),
-              t2 <- text_content(),
-              t3 <- text_content() do
+    check all(
+            t1 <- text_content(),
+            t2 <- text_content(),
+            t3 <- text_content()
+          ) do
       # Three clients each insert text concurrently
       docs =
         [{1, t1}, {2, t2}, {3, t3}]
@@ -138,8 +143,10 @@ defmodule Yelixer.PropertiesTest do
   end
 
   property "apply-order independence: map updates converge regardless of ordering" do
-    check all entries1 <- map_entries(),
-              entries2 <- map_entries() do
+    check all(
+            entries1 <- map_entries(),
+            entries2 <- map_entries()
+          ) do
       # Client 1 sets some keys
       doc1 = new_doc(1, [{"m", :map}])
 
@@ -171,8 +178,10 @@ defmodule Yelixer.PropertiesTest do
   end
 
   property "apply-order independence: array updates converge regardless of ordering" do
-    check all elems1 <- array_elements(),
-              elems2 <- array_elements() do
+    check all(
+            elems1 <- array_elements(),
+            elems2 <- array_elements()
+          ) do
       doc1 = new_doc(1, [{"arr", :array}])
       doc1 = Array.push(doc1, "arr", elems1)
 
@@ -197,7 +206,7 @@ defmodule Yelixer.PropertiesTest do
   # ===========================================================================
 
   property "encode/decode roundtrip preserves text content" do
-    check all text <- string(:alphanumeric, min_length: 1, max_length: 20) do
+    check all(text <- string(:alphanumeric, min_length: 1, max_length: 20)) do
       doc1 = Doc.new(client_id: 1)
       {doc1, _} = Doc.get_or_create_type(doc1, "text", :text)
       doc1 = Text.insert(doc1, "text", 0, text)
@@ -213,7 +222,7 @@ defmodule Yelixer.PropertiesTest do
   end
 
   property "encode/decode roundtrip preserves map entries" do
-    check all entries <- map_entries() do
+    check all(entries <- map_entries()) do
       doc1 = new_doc(1, [{"m", :map}])
 
       doc1 =
@@ -231,7 +240,7 @@ defmodule Yelixer.PropertiesTest do
   end
 
   property "encode/decode roundtrip preserves array elements" do
-    check all elems <- array_elements() do
+    check all(elems <- array_elements()) do
       doc1 = new_doc(1, [{"arr", :array}])
       doc1 = Array.push(doc1, "arr", elems)
 
@@ -245,8 +254,10 @@ defmodule Yelixer.PropertiesTest do
   end
 
   property "double encode/decode roundtrip yields same state" do
-    check all text <- text_content(),
-              entries <- map_entries() do
+    check all(
+            text <- text_content(),
+            entries <- map_entries()
+          ) do
       # Build a doc with both text and map content
       doc1 = new_doc(1, [{"text", :text}, {"m", :map}])
       doc1 = Text.insert(doc1, "text", 0, text)
@@ -276,8 +287,10 @@ defmodule Yelixer.PropertiesTest do
   # ===========================================================================
 
   property "state vector clocks never decrease after apply_update" do
-    check all t1 <- text_content(),
-              t2 <- text_content() do
+    check all(
+            t1 <- text_content(),
+            t2 <- text_content()
+          ) do
       # Build an update from client 1
       doc_src = new_doc(1, [{"text", :text}])
       doc_src = Text.insert(doc_src, "text", 0, t1)
@@ -306,7 +319,7 @@ defmodule Yelixer.PropertiesTest do
   end
 
   property "state vector monotonicity with map operations" do
-    check all entries <- map_entries() do
+    check all(entries <- map_entries()) do
       doc_src = new_doc(1, [{"m", :map}])
 
       doc_src =
@@ -327,9 +340,11 @@ defmodule Yelixer.PropertiesTest do
   end
 
   property "state vector monotonicity across multiple sequential updates" do
-    check all t1 <- text_content(),
-              t2 <- text_content(),
-              t3 <- text_content() do
+    check all(
+            t1 <- text_content(),
+            t2 <- text_content(),
+            t3 <- text_content()
+          ) do
       updates =
         [{1, t1}, {2, t2}, {3, t3}]
         |> Enum.map(fn {id, text} ->
@@ -340,8 +355,7 @@ defmodule Yelixer.PropertiesTest do
 
       # Apply updates one at a time, checking monotonicity at each step
       {_doc, _} =
-        Enum.reduce(updates, {new_doc(10, [{"text", :text}]), nil}, fn update,
-                                                                       {doc, prev_sv} ->
+        Enum.reduce(updates, {new_doc(10, [{"text", :text}]), nil}, fn update, {doc, prev_sv} ->
           sv_before = BlockStore.state_vector(doc.store)
 
           if prev_sv do
@@ -361,7 +375,7 @@ defmodule Yelixer.PropertiesTest do
   # ===========================================================================
 
   property "applying same update twice is idempotent (text)" do
-    check all text <- string(:alphanumeric, min_length: 1, max_length: 10) do
+    check all(text <- string(:alphanumeric, min_length: 1, max_length: 10)) do
       doc1 = Doc.new(client_id: 1)
       {doc1, _} = Doc.get_or_create_type(doc1, "text", :text)
       doc1 = Text.insert(doc1, "text", 0, text)
@@ -381,7 +395,7 @@ defmodule Yelixer.PropertiesTest do
   end
 
   property "applying same update twice is idempotent (map)" do
-    check all entries <- map_entries() do
+    check all(entries <- map_entries()) do
       doc1 = new_doc(1, [{"m", :map}])
 
       doc1 =
@@ -403,7 +417,7 @@ defmodule Yelixer.PropertiesTest do
   end
 
   property "applying same update twice is idempotent (array)" do
-    check all elems <- array_elements() do
+    check all(elems <- array_elements()) do
       doc1 = new_doc(1, [{"arr", :array}])
       doc1 = Array.push(doc1, "arr", elems)
 
@@ -421,8 +435,10 @@ defmodule Yelixer.PropertiesTest do
   end
 
   property "applying same update three times is idempotent" do
-    check all text <- text_content(),
-              entries <- map_entries() do
+    check all(
+            text <- text_content(),
+            entries <- map_entries()
+          ) do
       doc1 = new_doc(1, [{"text", :text}, {"m", :map}])
       doc1 = Text.insert(doc1, "text", 0, text)
 
@@ -453,9 +469,11 @@ defmodule Yelixer.PropertiesTest do
   # ===========================================================================
 
   property "map last-writer-wins: concurrent sets on same key yield one deterministic value" do
-    check all key <- map_key(),
-              val1 <- map_value(),
-              val2 <- map_value() do
+    check all(
+            key <- map_key(),
+            val1 <- map_value(),
+            val2 <- map_value()
+          ) do
       # Two clients set the same key concurrently
       doc1 = new_doc(1, [{"m", :map}])
       doc1 = YMap.set(doc1, "m", key, val1)
@@ -487,10 +505,12 @@ defmodule Yelixer.PropertiesTest do
   end
 
   property "map last-writer-wins: three clients setting same key converge to one value" do
-    check all key <- map_key(),
-              val1 <- map_value(),
-              val2 <- map_value(),
-              val3 <- map_value() do
+    check all(
+            key <- map_key(),
+            val1 <- map_value(),
+            val2 <- map_value(),
+            val3 <- map_value()
+          ) do
       doc1 = new_doc(1, [{"m", :map}])
       doc1 = YMap.set(doc1, "m", key, val1)
 
@@ -526,8 +546,10 @@ defmodule Yelixer.PropertiesTest do
   end
 
   property "map last-writer-wins: multiple keys with concurrent overwrites" do
-    check all entries1 <- map_entries(),
-              entries2 <- map_entries() do
+    check all(
+            entries1 <- map_entries(),
+            entries2 <- map_entries()
+          ) do
       doc1 = new_doc(1, [{"m", :map}])
 
       doc1 =

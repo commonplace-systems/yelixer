@@ -171,7 +171,10 @@ defmodule Yelixer.Integrate do
 
         if origin_id.clock < last_clock do
           split_clock = origin_id.clock + 1
-          {store, _} = BlockStore.split_block(store, ID.new(origin_id.client, split_clock), type_name)
+
+          {store, _} =
+            BlockStore.split_block(store, ID.new(origin_id.client, split_clock), type_name)
+
           store
         else
           store
@@ -331,7 +334,11 @@ defmodule Yelixer.Integrate do
   # necessarily falls within `[start_index, end_index)`), and Case 1
   # still fires on it as normal. See the CX-xes3 issue for the
   # convergence argument and the regression test that pins it.
-  defp fast_append_index(store, %Item{parent_sub: sub, origin: %ID{} = origin_id, right_origin: nil}, type_name)
+  defp fast_append_index(
+         store,
+         %Item{parent_sub: sub, origin: %ID{} = origin_id, right_origin: nil},
+         type_name
+       )
        when sub not in [nil, :inherit] do
     case BlockStore.map_live_ids(store, type_name, sub) do
       [^origin_id] -> {:ok, BlockStore.sequence_length(store, type_name)}
@@ -408,8 +415,16 @@ defmodule Yelixer.Integrate do
   # positional read and the reverse lookup into O(log n) map lookups —
   # amortized O(1) once the cache for a `type_name` is warm.
   defp resolve_conflicts(store, item, type_name, start_index, end_index) do
-    do_resolve(store, item, type_name, start_index, end_index, start_index,
-      MapSet.new(), MapSet.new())
+    do_resolve(
+      store,
+      item,
+      type_name,
+      start_index,
+      end_index,
+      start_index,
+      MapSet.new(),
+      MapSet.new()
+    )
   end
 
   defp do_resolve(store, _item, _type_name, index, end_index, left_index, _ibo, _ci)
@@ -417,7 +432,16 @@ defmodule Yelixer.Integrate do
     {store, left_index}
   end
 
-  defp do_resolve(store, item, type_name, index, end_index, left_index, items_before_origin, conflicting_items) do
+  defp do_resolve(
+         store,
+         item,
+         type_name,
+         index,
+         end_index,
+         left_index,
+         items_before_origin,
+         conflicting_items
+       ) do
     {other_id, store} = BlockStore.sequence_id_at(store, type_name, index)
     other = other_id && BlockStore.get(store, other_id)
 
@@ -448,8 +472,16 @@ defmodule Yelixer.Integrate do
         # branch below) keeps the scan moving at O(1) per unrelated
         # item instead of paying a spurious comparison.
         item.parent_sub not in [nil, :inherit] and other.parent_sub != item.parent_sub ->
-          do_resolve(store, item, type_name, index + 1, end_index, index + 1,
-            items_before_origin, MapSet.new())
+          do_resolve(
+            store,
+            item,
+            type_name,
+            index + 1,
+            end_index,
+            index + 1,
+            items_before_origin,
+            MapSet.new()
+          )
 
         # Case 1: same left anchor — client-ID tiebreak.
         other.origin == item.origin ->
@@ -457,8 +489,16 @@ defmodule Yelixer.Integrate do
             # other has lower client id: it wins; advance past it,
             # reset the rival set.
             other.id.client < item.id.client ->
-              do_resolve(store, item, type_name, index + 1, end_index, index + 1,
-                items_before_origin, MapSet.new())
+              do_resolve(
+                store,
+                item,
+                type_name,
+                index + 1,
+                end_index,
+                index + 1,
+                items_before_origin,
+                MapSet.new()
+              )
 
             # same right anchor: item wins this cluster; stop.
             item.right_origin == other.right_origin ->
@@ -467,8 +507,16 @@ defmodule Yelixer.Integrate do
             # other has higher client id: item will win, but later
             # items may shift the position; keep scanning.
             true ->
-              do_resolve(store, item, type_name, index + 1, end_index, left_index,
-                items_before_origin, conflicting_items)
+              do_resolve(
+                store,
+                item,
+                type_name,
+                index + 1,
+                end_index,
+                left_index,
+                items_before_origin,
+                conflicting_items
+              )
           end
 
         # Case 2: different left anchor. Position depends on where
@@ -488,13 +536,29 @@ defmodule Yelixer.Integrate do
                 MapSet.member?(items_before_origin, other_origin_seq_id) ->
                   if MapSet.member?(conflicting_items, other_origin_seq_id) do
                     # other.origin is an active rival; keep scanning.
-                    do_resolve(store, item, type_name, index + 1, end_index, left_index,
-                      items_before_origin, conflicting_items)
+                    do_resolve(
+                      store,
+                      item,
+                      type_name,
+                      index + 1,
+                      end_index,
+                      left_index,
+                      items_before_origin,
+                      conflicting_items
+                    )
                   else
                     # other.origin already settled; advance past
                     # `other`, reset the rival set.
-                    do_resolve(store, item, type_name, index + 1, end_index, index + 1,
-                      items_before_origin, MapSet.new())
+                    do_resolve(
+                      store,
+                      item,
+                      type_name,
+                      index + 1,
+                      end_index,
+                      index + 1,
+                      items_before_origin,
+                      MapSet.new()
+                    )
                   end
 
                 true ->

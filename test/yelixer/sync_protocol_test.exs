@@ -93,6 +93,7 @@ defmodule Yelixer.SyncProtocolTest do
 
     # First byte should be the message type
     <<type, _rest::binary>> = msg
-    assert type == 0  # step1 = sync state vector
+    # step1 = sync state vector
+    assert type == 0
   end
 end

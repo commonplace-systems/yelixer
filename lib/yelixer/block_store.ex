@@ -261,7 +261,9 @@ defmodule Yelixer.BlockStore do
         (Map.get(clients, client, []) ++ pending_items(pending, client))
         |> Enum.map(fn
           %Item{deleted: false} = item ->
-            if MapSet.member?(overlay_clocks, item.id.clock), do: %{item | deleted: true}, else: item
+            if MapSet.member?(overlay_clocks, item.id.clock),
+              do: %{item | deleted: true},
+              else: item
 
           item ->
             item
@@ -331,11 +333,12 @@ defmodule Yelixer.BlockStore do
           base
         end
 
-      %{store |
-        clients: Map.put(store.clients, client, new_list),
-        client_pending: Map.delete(store.client_pending, client),
-        client_tuples: Map.put(store.client_tuples, client, List.to_tuple(new_list)),
-        deleted_overlay: Map.delete(store.deleted_overlay, client)
+      %{
+        store
+        | clients: Map.put(store.clients, client, new_list),
+          client_pending: Map.delete(store.client_pending, client),
+          client_tuples: Map.put(store.client_tuples, client, List.to_tuple(new_list)),
+          deleted_overlay: Map.delete(store.deleted_overlay, client)
       }
     end
   end
@@ -356,9 +359,10 @@ defmodule Yelixer.BlockStore do
         new_ids = Enum.reverse(pending)
         new_seq = Map.get(store.sequences, type_name, []) ++ new_ids
 
-        %{store |
-          sequences: Map.put(store.sequences, type_name, new_seq),
-          sequence_pending: Map.delete(store.sequence_pending, type_name)
+        %{
+          store
+          | sequences: Map.put(store.sequences, type_name, new_seq),
+            sequence_pending: Map.delete(store.sequence_pending, type_name)
         }
     end
   end
@@ -575,7 +579,14 @@ defmodule Yelixer.BlockStore do
               end
           end
 
-        store = %{store | clients: clients, sequences: sequences, client_tuples: ct, sequence_len: sequence_len}
+        store = %{
+          store
+          | clients: clients,
+            sequences: sequences,
+            client_tuples: ct,
+            sequence_len: sequence_len
+        }
+
         # Splicing `right.id` in after `item.id` shifts every later
         # index — the cached reverse index (if any) is now stale.
         store = invalidate_sequence_index(store, type_name)
@@ -750,7 +761,9 @@ defmodule Yelixer.BlockStore do
         store
 
       %Item{} ->
-        overlay = Map.update(store.deleted_overlay, client, MapSet.new([clock]), &MapSet.put(&1, clock))
+        overlay =
+          Map.update(store.deleted_overlay, client, MapSet.new([clock]), &MapSet.put(&1, clock))
+
         %{store | deleted_overlay: overlay}
     end
   end
@@ -896,7 +909,10 @@ defmodule Yelixer.BlockStore do
   # Builds both directions of the cache together from
   # `sequences[type_name]` (already materialized by callers) if
   # neither has been built yet since the last invalidation.
-  defp ensure_sequence_index(%__MODULE__{sequence_index: si, sequence_positions: sp} = store, type_name) do
+  defp ensure_sequence_index(
+         %__MODULE__{sequence_index: si, sequence_positions: sp} = store,
+         type_name
+       ) do
     if Map.has_key?(si, type_name) do
       store
     else
@@ -909,9 +925,10 @@ defmodule Yelixer.BlockStore do
           {Map.put(idx_acc, seq_id, idx), Map.put(pos_acc, idx, seq_id)}
         end)
 
-      %{store |
-        sequence_index: Map.put(si, type_name, idx_map),
-        sequence_positions: Map.put(sp, type_name, pos_map)
+      %{
+        store
+        | sequence_index: Map.put(si, type_name, idx_map),
+          sequence_positions: Map.put(sp, type_name, pos_map)
       }
     end
   end
@@ -923,7 +940,12 @@ defmodule Yelixer.BlockStore do
   # `sequence_index_of/3` or `sequence_id_at/3` builds it from
   # `sequences[type_name]`.
   @doc false
-  def extend_sequence_index(%__MODULE__{sequence_index: si, sequence_positions: sp} = store, type_name, id, at_index) do
+  def extend_sequence_index(
+        %__MODULE__{sequence_index: si, sequence_positions: sp} = store,
+        type_name,
+        id,
+        at_index
+      ) do
     case Map.get(si, type_name) do
       nil ->
         store
@@ -931,9 +953,10 @@ defmodule Yelixer.BlockStore do
       idx_map ->
         pos_map = Map.get(sp, type_name, %{})
 
-        %{store |
-          sequence_index: Map.put(si, type_name, Map.put(idx_map, id, at_index)),
-          sequence_positions: Map.put(sp, type_name, Map.put(pos_map, at_index, id))
+        %{
+          store
+          | sequence_index: Map.put(si, type_name, Map.put(idx_map, id, at_index)),
+            sequence_positions: Map.put(sp, type_name, Map.put(pos_map, at_index, id))
         }
     end
   end
@@ -944,8 +967,15 @@ defmodule Yelixer.BlockStore do
   # the append path (`extend_sequence_index/4`) is the only mutation
   # cheap enough to maintain incrementally.
   @doc false
-  def invalidate_sequence_index(%__MODULE__{sequence_index: si, sequence_positions: sp} = store, type_name) do
-    %{store | sequence_index: Map.delete(si, type_name), sequence_positions: Map.delete(sp, type_name)}
+  def invalidate_sequence_index(
+        %__MODULE__{sequence_index: si, sequence_positions: sp} = store,
+        type_name
+      ) do
+    %{
+      store
+      | sequence_index: Map.delete(si, type_name),
+        sequence_positions: Map.delete(sp, type_name)
+    }
   end
 
   # Binary-search the clock-sorted tuple for the block covering `clock`.

@@ -300,6 +300,7 @@ defmodule Yelixer.RehydrateTest do
 
       assert Text.to_string(final, "content") == "start 1 2 3 4 5"
       assert Text.to_string(roundtrip(final), "content") == "start 1 2 3 4 5"
+
       assert YMap.to_map(roundtrip(final), "root") == %{
                "_type" => "text",
                "_name" => "test.txt"

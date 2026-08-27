@@ -202,10 +202,7 @@ defmodule Yelixer.Item do
 
     right_id = ID.new(item.id.client, item.id.clock + offset)
 
-    left = %{item |
-      content: left_content,
-      length: content_length(left_content)
-    }
+    left = %{item | content: left_content, length: content_length(left_content)}
 
     right = %__MODULE__{
       id: right_id,

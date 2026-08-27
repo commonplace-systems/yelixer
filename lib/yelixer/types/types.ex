@@ -142,17 +142,23 @@ defmodule Yelixer.Types do
 
   defp item_to_json_value(doc, %Yelixer.Item{content: {:any, [value]}}),
     do: resolve_content_value(doc, value)
+
   defp item_to_json_value(doc, %Yelixer.Item{content: {:type, _ref}, id: id}),
     do: sub_type_to_json(doc, id)
+
   defp item_to_json_value(doc, %Yelixer.Item{content: {:string, s}}),
     do: resolve_content_value(doc, s)
+
   defp item_to_json_value(_doc, _item), do: nil
 
   defp item_to_json_values(doc, %Yelixer.Item{content: {:any, values}}),
     do: Enum.map(values, &resolve_content_value(doc, &1))
+
   defp item_to_json_values(doc, %Yelixer.Item{content: {:type, _ref}, id: id}),
     do: [sub_type_to_json(doc, id)]
+
   defp item_to_json_values(doc, %Yelixer.Item{content: {:string, s}}),
     do: [resolve_content_value(doc, s)]
+
   defp item_to_json_values(_doc, _item), do: []
 end

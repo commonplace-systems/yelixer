@@ -23,12 +23,10 @@ defmodule Yelixer.OracleTest do
 
   @vectors_path "test/fixtures/oracle_vectors.json"
 
-  @vectors (
-    case File.read(@vectors_path) do
-      {:ok, json} -> Jason.decode!(json)
-      {:error, _} -> []
-    end
-  )
+  @vectors (case File.read(@vectors_path) do
+              {:ok, json} -> Jason.decode!(json)
+              {:error, _} -> []
+            end)
 
   defp decode_hex(hex) do
     Base.decode16!(hex, case: :lower)

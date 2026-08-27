@@ -22,14 +22,16 @@ defmodule Yelixer.AdversarialBoundsTest do
       huge_len = 1_000_000_000_000
 
       crafted =
-        <<Encoding.encode_uint(0)::binary,
+        <<
+          Encoding.encode_uint(0)::binary,
           # delete set: 1 client
           Encoding.encode_uint(1)::binary,
           Encoding.encode_uint(7)::binary,
           # 1 range
           Encoding.encode_uint(1)::binary,
           Encoding.encode_uint(1)::binary,
-          Encoding.encode_uint(huge_len)::binary>>
+          Encoding.encode_uint(huge_len)::binary
+        >>
 
       {time_us, result} = :timer.tc(fn -> Encoding.apply_update(doc, crafted) end)
 
@@ -49,7 +51,12 @@ defmodule Yelixer.AdversarialBoundsTest do
       doc = Doc.new(client_id: 1)
       huge = @max_safe + 1
 
-      crafted = build_single_struct_update(client: 9, clock: 0, struct_bytes: <<0, Encoding.encode_uint(huge)::binary>>)
+      crafted =
+        build_single_struct_update(
+          client: 9,
+          clock: 0,
+          struct_bytes: <<0, Encoding.encode_uint(huge)::binary>>
+        )
 
       assert {:error, {:malformed_update, _reason}} = Encoding.apply_update(doc, crafted)
     end
@@ -76,12 +83,9 @@ defmodule Yelixer.AdversarialBoundsTest do
       over_len = @max_safe + 5
 
       crafted =
-        <<Encoding.encode_uint(0)::binary,
-          Encoding.encode_uint(1)::binary,
-          Encoding.encode_uint(9)::binary,
-          Encoding.encode_uint(1)::binary,
-          Encoding.encode_uint(0)::binary,
-          Encoding.encode_uint(over_len)::binary>>
+        <<Encoding.encode_uint(0)::binary, Encoding.encode_uint(1)::binary,
+          Encoding.encode_uint(9)::binary, Encoding.encode_uint(1)::binary,
+          Encoding.encode_uint(0)::binary, Encoding.encode_uint(over_len)::binary>>
 
       assert {:error, {:malformed_update, _reason}} = Encoding.apply_update(doc, crafted)
     end
@@ -89,10 +93,8 @@ defmodule Yelixer.AdversarialBoundsTest do
     test "a struct count claiming more structs than remaining bytes is rejected, not crashed" do
       # num_clients=1, num_structs=1_000_000, client=9, first_clock=0, then nothing.
       crafted =
-        <<Encoding.encode_uint(1)::binary,
-          Encoding.encode_uint(1_000_000)::binary,
-          Encoding.encode_uint(9)::binary,
-          Encoding.encode_uint(0)::binary>>
+        <<Encoding.encode_uint(1)::binary, Encoding.encode_uint(1_000_000)::binary,
+          Encoding.encode_uint(9)::binary, Encoding.encode_uint(0)::binary>>
 
       assert {:error, {:malformed_update, _reason}} = Encoding.decode_update(crafted)
     end
@@ -104,12 +106,9 @@ defmodule Yelixer.AdversarialBoundsTest do
   # whose struct bytes are supplied verbatim (info byte + payload),
   # followed by an empty delete set.
   defp build_single_struct_update(client: client, clock: clock, struct_bytes: struct_bytes) do
-    <<Encoding.encode_uint(1)::binary,
-      Encoding.encode_uint(1)::binary,
-      Encoding.encode_uint(client)::binary,
-      Encoding.encode_uint(clock)::binary,
-      struct_bytes::binary,
-      Encoding.encode_uint(0)::binary>>
+    <<Encoding.encode_uint(1)::binary, Encoding.encode_uint(1)::binary,
+      Encoding.encode_uint(client)::binary, Encoding.encode_uint(clock)::binary,
+      struct_bytes::binary, Encoding.encode_uint(0)::binary>>
   end
 
   # Builds a full update binary with one struct carrying `:deleted`

@@ -116,7 +116,7 @@ defmodule Yelixer.CXXes3DequadraticTest do
       doc_ba = replay([common, update_b, update_a], 2)
 
       assert YMap.get(doc_ab, "m", "k") == YMap.get(doc_ba, "m", "k"),
-        "same-key concurrent writes picked different winners depending on integration order"
+             "same-key concurrent writes picked different winners depending on integration order"
 
       # Byte-identical encodes pin that the map_index fast path didn't
       # change which item wins, not just that the visible value matches

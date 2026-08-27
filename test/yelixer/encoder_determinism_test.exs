@@ -173,9 +173,11 @@ defmodule Yelixer.EncoderDeterminismTest do
 
   describe "encode_update/1 byte-determinism property" do
     property "≥100 random Text docs encode deterministically across instances" do
-      check all content <- string(:printable, min_length: 0, max_length: 40),
-                client_id <- integer(1..1_000_000),
-                max_runs: 100 do
+      check all(
+              content <- string(:printable, min_length: 0, max_length: 40),
+              client_id <- integer(1..1_000_000),
+              max_runs: 100
+            ) do
         doc_a = Doc.new(client_id: client_id)
         {doc_a, _} = Doc.get_or_create_type(doc_a, "t", :text)
         doc_a = if content == "", do: doc_a, else: Text.insert(doc_a, "t", 0, content)
@@ -188,15 +190,19 @@ defmodule Yelixer.EncoderDeterminismTest do
     end
 
     property "≥100 random YMap docs encode deterministically across instances" do
-      check all entries <-
-                  list_of(
-                    tuple({string(:alphanumeric, min_length: 1, max_length: 6),
-                           string(:alphanumeric, min_length: 0, max_length: 10)}),
-                    min_length: 0,
-                    max_length: 6
+      check all(
+              entries <-
+                list_of(
+                  tuple(
+                    {string(:alphanumeric, min_length: 1, max_length: 6),
+                     string(:alphanumeric, min_length: 0, max_length: 10)}
                   ),
-                client_id <- integer(1..1_000_000),
-                max_runs: 100 do
+                  min_length: 0,
+                  max_length: 6
+                ),
+              client_id <- integer(1..1_000_000),
+              max_runs: 100
+            ) do
         doc_a = Doc.new(client_id: client_id)
         {doc_a, _} = Doc.get_or_create_type(doc_a, "m", :map)
 
