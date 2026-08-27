@@ -130,6 +130,13 @@ rather than from ours:**
    does not exist" are indistinguishable from off-main, and both feel like being
    stopped.
 
+3. **The demo's negative control is the SPECIFIC rc, never a non-zero one.** A
+   refusal from a non-`main` checkout must print **rc 76 (slot)**. If it prints
+   **rc 64, the gate was not exercised** — the branch guard refused on its
+   behalf. That is the control, not the pass. Six unreachable gates were shipped
+   across the fleet on 2026-08-27 and every one would have been caught by
+   demanding the specific code instead of "it refused".
+
 ⚠️ Test it by **inspecting the deployed blob**, not by running it:
 `git show origin/main:bin/land-round.sh | grep -c require-slot`. Running a copy
 from `/tmp` returns `rc 128` because the script does `cd "$(dirname "$0")/.."`
