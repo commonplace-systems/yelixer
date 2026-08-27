@@ -262,6 +262,22 @@ defmodule Yelixer.DivergenceClockTest do
   # `s` immediately after unit `clock` land strictly inside a surrogate
   # pair? True iff unit `clock` itself is a HIGH surrogate — splitting
   # right after it separates it from its LOW half.
+  # Splits a string at a UTF-16 CODE UNIT offset.
+  #
+  # Deliberately a SEPARATE implementation from `Item.utf16_split_at/2`:
+  # a test that reuses the subject's own splitter cannot fail when the
+  # subject's splitter is wrong. No surrogate clamping here -- the
+  # offsets this is called with are whole-character boundaries, and a
+  # mid-surrogate offset should raise rather than be quietly repaired.
+  defp utf16_split_units(s, offset) do
+    u = :unicode.characters_to_binary(s, :utf8, {:utf16, :little})
+    at = offset * 2
+    <<l::binary-size(at), r::binary>> = u
+
+    {:unicode.characters_to_binary(l, {:utf16, :little}, :utf8),
+     :unicode.characters_to_binary(r, {:utf16, :little}, :utf8)}
+  end
+
   defp splits_surrogate_pair?(s, clock) do
     units = utf16_units(s)
     clock >= 0 and clock < length(units) and high_surrogate?(Enum.at(units, clock))
@@ -738,7 +754,24 @@ defmodule Yelixer.DivergenceClockTest do
 
       refute oracle_text =~ "�"
       assert oracle_text == yelixer_text
-      assert oracle_text == @nfc_string <> "X"
+
+      # POSITIONAL, AND IT NAMES ITS UNIT.
+      #
+      # This assertion used to read `oracle_text == @nfc_string <> "X"`
+      # -- X at the END of the string. That is only correct if `pos: 7`
+      # means SEVEN GRAPHEMES, which is what yelixer minted before the
+      # UTF-16 clock migration. It was a constant with an UNSTATED unit,
+      # and the unit is exactly what the migration changed.
+      #
+      # Restated so the unit is IN the assertion: index 7 is a UTF-16
+      # CODE UNIT offset, so X lands after the two units of the woman
+      # emoji (5,6) and BEFORE the skin-tone modifier (7,8) -- not at
+      # the end of the string. The expected value is DERIVED from
+      # @nfc_string and the declared unit rather than transcribed from
+      # what the code produced, so it still goes RED if the surrogate
+      # clamp in `Item.utf16_split_at/2` resolves the other way.
+      {before_7, after_7} = utf16_split_units(@nfc_string, 7)
+      assert oracle_text == before_7 <> "X" <> after_7
     end
 
     test "negative control: NFC pos=4 and pos=5 — before the gap starts — AGREE",
