@@ -98,3 +98,39 @@ migration's acceptance explicitly does not claim it.
   looks like** — the protective property is gap 0, and non-ASCII is not gap 0.
 - ⛔ **`mix test --trace` disables per-test timeouts and forces `--max-cases 1`.** Never
   take a verdict from a traced run.
+
+## The slot-gate gap, and the constraint on building it
+
+This repo has **no `bin/require-slot.sh`**, and `bin/land-round.sh` contains no
+slot check. Measured 2026-08-27 at both refs with a positive control:
+
+    local main = origin/main = a149f7a   ahead = 0
+    main:        land-round.sh grep -c require-slot -> 0   require-slot.sh -> ABSENT
+    origin/main: same                               -> 0                   -> ABSENT
+    control:     mix.exs present in both refs       -> OK
+
+⛔ **Do not read that as protection.** The queue discipline that held all evening
+was attention, not mechanism. A statement like "no token, so I cannot start by
+accident" is a claim about the speaker, and elsewhere tonight it was *true of a
+working tree and false of the deployed script* — the author reported the gate as
+armed in good faith.
+
+⛔ **Two constraints for whoever builds it, both learned from other repos' defects
+rather than from ours:**
+
+1. **The slot check must sit ABOVE the branch guard.** `land-round.sh:56` is
+   `[ "$cur" = "main" ] || exit 64`. A slot gate placed below it — beside the
+   other gates, which is the obvious spot — is reachable *only* from `main`, and
+   `main` is precisely where it will not exist until it lands. The layout builds
+   that trap automatically; nobody has to make a mistake. One repo tested its
+   gate by checking out `main` to reach it, which swapped out the gate, and
+   landed 18 commits out of turn.
+2. **`exit 64` from a branch checkout is the BRANCH GUARD, never a slot refusal.**
+   It is silent about every gate below it. "The gate refused me" and "the gate
+   does not exist" are indistinguishable from off-main, and both feel like being
+   stopped.
+
+⚠️ Test it by **inspecting the deployed blob**, not by running it:
+`git show origin/main:bin/land-round.sh | grep -c require-slot`. Running a copy
+from `/tmp` returns `rc 128` because the script does `cd "$(dirname "$0")/.."`
+and leaves the repo — a plausible failure that reads like a result.
