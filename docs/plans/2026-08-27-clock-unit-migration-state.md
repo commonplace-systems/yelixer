@@ -375,3 +375,32 @@ to 7. **The mutation landed on the one offset the clamp is built to repair.**
 takes the full clock suite from 2 failures to 6, so it was live and reaching
 the code. Without that control, "both arms green" reads identically to "the
 assertion cannot fail" — which is the vacuity this instrument exists to catch.
+
+## ⚠️ TWO SCOPE CORRECTIONS FILED AT THE CLOSE OF ROUND 1
+
+**1. THIS REPO IS TWO WORKTREES WEARING ONE NAME.**
+```
+git worktree list -> /home/jes/yelixer [main] · /home/jes/sol-s52/wt [sol/cx-hj9v-s52]
+```
+Every `find`, `_build` read and "no process here" claim made during this
+round was scoped to the primary checkout, and none of them said so. Re-taken
+across both roots: markers 1 + 0, `_build` 163 + 0, beams-by-cwd 0 across
+both (control: beam.smp on the box, non-zero). ⭐ The claims survive — but a
+correct number drawn from an unenumerated population is a lucky draw, and it
+reads identically to a careful one.
+
+**2. THIS SESSION'S OWN FOOTPRINT, against the constant the slot rations.**
+```
+this claude session   VmRSS 427 MB   VmHWM 518 MB
+all beam.smp on the box, combined       1731 MB
+the guard's SUITE_COST                  500 MB
+```
+⭐ The round was rationed against a 500 MB suite by a queue, a slot and a
+sampler. The session doing the rationing is of the same order and no
+instrument built for this round can see it. ⛔ Recorded, not proposed as a
+change: session lifetime is not this door's call.
+
+⭐ What makes the design survive anyway: **the pre-flight gates on
+`MemAvailable`, which includes this process.** A resource gate is blind to
+the cause and not to the effect — which is the only reason a floor written
+entirely in terms of BEAMs protected anything at all.
