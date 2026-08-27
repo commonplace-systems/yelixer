@@ -196,7 +196,7 @@ defmodule Yelixer.DivergenceContentTest do
 
   describe "content: BINARY VALUES via YMap.set (Encoding.encode_any/1, lib/yelixer/encoding.ex ~774)" do
     @tag :divergence
-    test "Mode 1 LOUD: a non-UTF-8 blob makes real yjs reject the WHOLE update",
+    test "Mode 1 LOUD: a non-UTF-8 blob must apply cleanly to real yjs, not get the WHOLE update rejected",
          %{port: port} do
       non_utf8_blob = <<0, 255, 254, 1, 200, 100>>
       refute String.valid?(non_utf8_blob), "fixture must actually be invalid UTF-8"
@@ -209,17 +209,13 @@ defmodule Yelixer.DivergenceContentTest do
       assert %{"ok" => true} = rpc(port, %{cmd: "reset", client_id: 9})
       result = rpc(port, %{cmd: "apply_update", update_hex: hex(update)})
 
-      DivergenceHelpers.assert_diverges!(
-        %{"ok" => true},
-        result,
-        "binary Mode 1: non-UTF-8 blob authored via YMap.set rejected by real yjs"
-      )
+      # MEASURED TODAY: yelixer authored a well-formed-to-itself update;
+      # real yjs refuses to apply ANY of it because the whole value
+      # landed under wire tag 119 (STRING), and yjs's decoder reads that
+      # tag as UTF-8 — result == %{"ok" => false, "error" => "... utf-8 ..."}.
 
-      # RED: yelixer authored a well-formed-to-itself update; real yjs
-      # refuses to apply ANY of it because the whole value landed under
-      # wire tag 119 (STRING), and yjs's decoder reads that tag as UTF-8.
+      # DESIRED, RED TODAY: real yjs should accept the update.
       assert %{"ok" => true} = result
-      assert result["error"] =~ "utf-8"
 
       # RETIREMENT: goes green when `encode_any/1` routes `is_binary/1`
       # values to `ContentBinary` (or at minimum validates `String.valid?/1`
@@ -228,7 +224,7 @@ defmodule Yelixer.DivergenceContentTest do
     end
 
     @tag :divergence
-    test "Mode 2 SILENT: a valid-UTF-8 blob is accepted but arrives typed as String, not Uint8Array",
+    test "Mode 2 SILENT: a valid-UTF-8 blob must arrive typed as Uint8Array, not silently coerced to String",
          %{port: port} do
       valid_utf8_blob = <<0, 0, 1, 44>>
       assert String.valid?(valid_utf8_blob), "fixture must actually be valid UTF-8"
@@ -244,20 +240,17 @@ defmodule Yelixer.DivergenceContentTest do
       assert %{"ok" => true, "constructor_name" => ctor, "is_uint8array" => is_u8a} =
                rpc(port, %{cmd: "map_get_type", root: "root", key: "k"})
 
-      DivergenceHelpers.assert_diverges!("Uint8Array", ctor, "binary Mode 2: JS runtime type")
+      # MEASURED TODAY: no error anywhere, no size mismatch — the value
+      # round-trips byte-for-byte as far as `==` can see, and is STILL
+      # silently coerced to a different JS type: ctor == "String" and
+      # is_u8a == false. This is why the parity assertion below is on
+      # TYPE, not on the printed/compared value.
 
-      # Confirms what actually happened, ahead of the RED parity assertion
-      # below: no error anywhere, no size mismatch — the value round-trips
-      # byte-for-byte as far as `==` can see, and STILL silently coerced to
-      # a different JS type. This is why the parity assertion is on TYPE,
-      # not on the printed/compared value.
-      assert ctor == "String"
-      refute is_u8a
-
-      # RED: the primary PARITY assertion — a correctly-typed Uint8Array
-      # write should decode to constructor "Uint8Array" on the yjs side,
-      # not "String". This is expected to fail.
+      # DESIRED, RED TODAY: the primary PARITY assertion — a
+      # correctly-typed Uint8Array write should decode to constructor
+      # "Uint8Array" on the yjs side, not "String".
       assert ctor == "Uint8Array"
+      assert is_u8a
 
       # RETIREMENT: same root cause and same fix as Mode 1 above.
     end
@@ -309,7 +302,7 @@ defmodule Yelixer.DivergenceContentTest do
 
   describe "content: Types.Text.length/2 — three disagreeing index spaces" do
     @tag :divergence
-    test "string run + embed + format-mark pair: yelixer=8, yjs=6, rendered=5",
+    test "string run + embed + format-mark pair: yelixer's Text.length must equal yjs's",
          %{port: port} do
       assert %{"ok" => true} = rpc(port, %{cmd: "reset", client_id: 820_201})
 
@@ -343,23 +336,14 @@ defmodule Yelixer.DivergenceContentTest do
       yelixer_length = Text.length(doc, "content")
       rendered_length = doc |> Text.to_string("content") |> String.length()
 
-      DivergenceHelpers.assert_diverges!(
-        yjs_length,
-        yelixer_length,
-        "Text.length: yelixer vs yjs (string + embed + format pair)"
-      )
+      # MEASURED TODAY: three different integers from one document —
+      # yjs_length == 6, yelixer_length == 8, rendered_length == 5.
 
-      DivergenceHelpers.assert_diverges!(
-        yjs_length,
-        rendered_length,
-        "Text.length: yjs vs rendered (string + embed + format pair)"
-      )
-
-      assert yjs_length == 6
-      assert rendered_length == 5
-      # RED: three different integers from one document.
-      assert yelixer_length == 8
+      # DESIRED, RED TODAY: yelixer's Text.length/2 should count the same
+      # thing yjs's Y.Text.length does (string chars + embeds, not format
+      # marks).
       assert yelixer_length == yjs_length
+      assert rendered_length == 5
     end
 
     test "control: plain string with no embed/format — all three counts agree", %{port: port} do
@@ -396,7 +380,8 @@ defmodule Yelixer.DivergenceContentTest do
 
   describe "content: Types.Array.to_list/2 (lib/yelixer/types/array.ex:173, no {:type, _} clause)" do
     @tag :divergence
-    test "a nested sub-type element makes to_list/2 raise FunctionClauseError", %{port: port} do
+    test "a nested sub-type element must resolve via to_list/2, not raise FunctionClauseError",
+         %{port: port} do
       assert %{"ok" => true} = rpc(port, %{cmd: "reset", client_id: 820_301})
 
       assert %{"ok" => true} =
@@ -414,20 +399,12 @@ defmodule Yelixer.DivergenceContentTest do
       # yelixer's to_json/2 (which HAS a {:type, _} clause) agrees:
       assert Array.to_json(doc, "items") == oracle_array
 
-      DivergenceHelpers.assert_diverges!(
-        {:ok, oracle_array},
-        safe_to_list(doc, "items"),
-        "Array.to_list/2 raises on a nested sub-type element"
-      )
+      # MEASURED TODAY: to_list/2's single-clause Enum.flat_map has no
+      # catch-all for {:type, _} content and raises instead of returning
+      # oracle_array — safe_to_list(doc, "items") == {:raised, FunctionClauseError}.
 
-      # Confirms what actually happened, ahead of the RED parity assertion
-      # below: to_list/2's single-clause Enum.flat_map has no catch-all for
-      # {:type, _} content and raises instead of returning oracle_array.
-      assert {:raised, FunctionClauseError} = safe_to_list(doc, "items")
-
-      # RED: the primary PARITY assertion — to_list/2 should return the
-      # same resolved content yjs's toArray() does. Expected to fail
-      # because the actual result is {:raised, FunctionClauseError}.
+      # DESIRED, RED TODAY: the primary PARITY assertion — to_list/2
+      # should return the same resolved content yjs's toArray() does.
       assert safe_to_list(doc, "items") == {:ok, oracle_array}
 
       # RETIREMENT: goes green when to_list/2 gains a {:type, _ref} clause
@@ -454,8 +431,10 @@ defmodule Yelixer.DivergenceContentTest do
   end
 
   # Wraps Array.to_list/2 so a FunctionClauseError becomes a comparable value
-  # rather than crashing the test process — needed to route the raise through
-  # DivergenceHelpers.assert_diverges!/3 like every other case in this file.
+  # rather than crashing the test process — needed so the parity assertion
+  # above (`safe_to_list(doc, "items") == {:ok, oracle_array}`) can compare
+  # "raised" against "returned a value" without the raise itself aborting
+  # the test.
   defp safe_to_list(doc, type_name) do
     {:ok, Array.to_list(doc, type_name)}
   rescue
@@ -515,7 +494,7 @@ defmodule Yelixer.DivergenceContentTest do
     end
 
     @tag :divergence
-    test "Array.push/3([1,2,3]) diverges: 3 structs/34 bytes (yelixer) vs 1 struct/22 bytes (yjs)",
+    test "Array.push/3([1,2,3]) wire bytes must be BYTE-IDENTICAL to real yjs's, not 3 structs/34 bytes vs 1 struct/22 bytes",
          %{port: port} do
       doc = Doc.new(client_id: 820_403)
       {doc, _} = Doc.get_or_create_type(doc, "items", :array)
@@ -528,15 +507,10 @@ defmodule Yelixer.DivergenceContentTest do
       assert %{"ok" => true, "update_hex" => oracle_hex} = rpc(port, %{cmd: "encode"})
       oracle_update = unhex(oracle_hex)
 
-      DivergenceHelpers.assert_diverges!(
-        oracle_hex,
-        yelixer_hex,
-        "wire bytes: Array.push([1,2,3]) yelixer vs yjs"
-      )
-
-      # Characterize HOW: byte length and struct count, not just "unequal".
-      assert byte_size(yelixer_update) == 34
-      assert byte_size(oracle_update) == 22
+      # MEASURED TODAY: byte length and struct count diverge, not just
+      # "unequal" — byte_size(yelixer_update) == 34 (3 structs, one
+      # block per element) vs byte_size(oracle_update) == 22 (1 struct,
+      # yjs run-length-compresses same-transaction elements).
 
       # Both sides still decode to the SAME logical content in both
       # directions — the divergence is in wire PACKING, not in meaning.
@@ -551,7 +525,8 @@ defmodule Yelixer.DivergenceContentTest do
       {:ok, yelixer_doc} = Encoding.apply_update(Doc.new(client_id: 9), oracle_update)
       assert Array.to_list(yelixer_doc, "items") == [1, 2, 3]
 
-      # RED: the primary byte-equality assertion, last and separate.
+      # DESIRED, RED TODAY: the primary byte-equality assertion, last and
+      # separate.
       assert yelixer_hex == oracle_hex
 
       # RETIREMENT: goes green if `Types.Array.insert/4` is changed to

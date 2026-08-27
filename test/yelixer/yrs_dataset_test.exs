@@ -50,6 +50,14 @@ defmodule Yelixer.YrsDatasetTest do
     end
   end
 
+  # Same 180s as its sibling above, and for a stronger reason: this arm does
+  # text + map + array over the SAME 1.65 MB dataset, so it is strictly the
+  # heavier of the two -- yet it was the one left on ExUnit's 60s default.
+  # Diagnosed 2026-08-27: it timed out on a QUIET box (available never below
+  # 3139 MB, zero other suites), so "host contention" was never the account;
+  # it was marginal against a timeout its lighter sibling had already been
+  # given four minutes to clear. It passed only when the box was fast enough.
+  @tag timeout: 180_000
   test "small dataset: all tests full validation (text + map + array)" do
     data = File.read!(@small_dataset_path)
     {test_count, rest} = Encoding.decode_uint(data)

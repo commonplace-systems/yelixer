@@ -1,6 +1,6 @@
 defmodule Yelixer.Test.DivergenceHelpers do
   @moduledoc """
-  Shared anti-vacuity gate for the `:divergence` instrument population.
+  Shared vacuity CONTROL for the `:divergence` instrument population.
 
   Extracted from `test/yelixer/divergence_clock_test.exs` (CX-divergence)
   so the wire/content instrument (`test/yelixer/divergence_content_test.exs`,
@@ -14,19 +14,48 @@ defmodule Yelixer.Test.DivergenceHelpers do
   copy, two callers — a divergence between the copies would mean one
   instrument's vacuity guard silently drifted from the other's without
   either file's diff showing it.
+
+  ## ⚖️ What this is for NOW, and what it must NEVER be used for again
+
+  Both `:divergence` test files were rewritten so that each `:divergence`
+  arm asserts the DESIRED (parity) outcome directly and is RED TODAY —
+  see the "INVERTED ARMS" section of `divergence_clock_test.exs`'s
+  moduledoc for the full ruling and why that inversion is safe only
+  because `:divergence` is excluded from the default suite.
+
+  Before that rewrite, `assert_diverges!/3` was called as a *precondition*
+  inside every `:divergence` arm, before that arm's real assertion. That
+  was the defect being fixed: a closed divergence could not make an arm
+  PASS under that design — it only moved the failure one line earlier,
+  from a mismatch assertion to a "VACUOUS" flunk here. The failure COUNT
+  never changed, so this function's firing was indistinguishable from the
+  clock-unit fix doing nothing.
+
+  ⛔ **NEVER call this function as a precondition inside a `:divergence`
+  arm again.** That is the exact trap this rewrite closed.
+
+  ✅ **What it IS still for**: a SEPARATE, LABELLED vacuity CONTROL,
+  exercised only by the dedicated "vacuity guard" describe block in each
+  test file (deliberately-vacuous and deliberately-real inputs, asserted
+  to raise / not raise respectively). In that role it still does real
+  work — it is the thing that would catch an arm that stopped being able
+  to fail for the WRONG reason (a fixture edit, a normalization slip, a
+  drifted coordinate), as distinct from an arm whose defect genuinely
+  closed. Those two failure modes must never again share an observable —
+  that conflation is exactly what made the pre-inversion design silently
+  blind to the fix landing.
   """
 
   import ExUnit.Assertions, only: [flunk: 1]
 
   @doc """
   Flunks LOUDLY (with "VACUOUS" in the message) when `oracle_val` and
-  `yelixer_val` are equal — i.e. when a case labelled as exercising a
-  measured divergence did not actually diverge at this (fixture, offset).
+  `yelixer_val` are equal.
 
-  An arm expected to diverge that does NOT must fail as vacuous, not
-  silently pass as if it were a real conformance result — an arm that
-  cannot diverge is not coverage, and it looks exactly like coverage in a
-  green count. `label` must be present at every call site so a failure is
+  Used ONLY by the dedicated "vacuity guard" describe blocks in
+  `divergence_clock_test.exs` and `divergence_content_test.exs` — never as
+  a precondition inside a `:divergence` arm (see the moduledoc above for
+  why). `label` must be present at every call site so a failure is
   self-describing without cross-referencing line numbers.
   """
   def assert_diverges!(oracle_val, yelixer_val, label) do

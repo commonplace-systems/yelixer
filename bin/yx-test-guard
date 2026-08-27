@@ -70,11 +70,73 @@ if [[ $# -eq 0 ]]; then
 fi
 
 OUT="$(mktemp -t yx-test-guard.XXXXXX)"
-trap 'rm -f "$OUT"' EXIT
+
+# ⭐ SAMPLE THE BOX *DURING* THE RUN, NOT AT THE ENDS.
+#
+# Measured here 2026-08-27: a run's pre-flight read 4286 MB available and its
+# post-run read 4351 MB -- both comfortable -- while 174 samples taken DURING
+# it found a MINIMUM of 934 MB, far below the fleet's 1500 MB danger line.
+# ⛔ A before-and-after pair would have certified a clean window that never
+# existed. A pre-flight answers "may I start"; only sampling answers "what did
+# my run do to the box", and that is the number a neighbour needs from you.
+#
+# In the guard rather than in each caller because a remembered rule does not
+# fire: I hand-rolled this loop once and would have hand-rolled it again.
+# ⛔ THREE VARIABLES, NOT ONE. Sampling `available` alone tells you WHAT
+# happened and cannot tell you WHOSE -- measured here today: this repo reported
+# a 934 MB minimum during its own run and took responsibility for it, and the
+# dominant term was another process faulting ~2.5 GB back in. A 174-sample
+# series of ONE variable still has one variable, and the discipline produced a
+# FALSE CONFESSION because the variable that moved was not in the instrument.
+#
+# So also sample total BEAM residency (which captures a neighbouring long-lived
+# BEAM oscillating -- one on this box has been measured swinging 2451 MB across
+# five readings, same pid, exceeding the whole suite population) and the suite
+# count. Enumerated by `comm` via pgrep -x, never by matching a string this
+# script also contains.
+SAMPLES="$(mktemp -t yx-test-guard-mem.XXXXXX)"
+(
+  while :; do
+    avail=$(awk '/MemAvailable/{print int($2/1024)}' /proc/meminfo 2>/dev/null) || break
+    beam_rss=0; suites=0
+    for pp in $(pgrep -x beam.smp 2>/dev/null); do
+      r=$(awk '/^VmRSS:/{print int($2/1024)}' "/proc/$pp/status" 2>/dev/null) && beam_rss=$((beam_rss + ${r:-0}))
+      # ⛔ The REDIRECT fails before tr runs, so tr's own 2>/dev/null cannot
+      # suppress it: a BEAM exiting between enumeration and this read printed
+      # "/proc/NNN/cmdline: No such file or directory" INTO a captured run log.
+      # Harmless to the count, but a sampler must not write noise into the
+      # output someone reads for a verdict. Brace-group redirect covers both.
+      cl=$({ tr '\0' ' ' < "/proc/$pp/cmdline"; } 2>/dev/null)
+      case "$cl" in *"-extra"*"mix"*"test"*) suites=$((suites + 1));; esac
+    done
+    echo "$avail $beam_rss $suites"
+    sleep 3
+  done > "$SAMPLES"
+) &
+SAMPLER_PID=$!
+
+# ⛔ ONE trap, extended -- a second `trap ... EXIT` SILENTLY REPLACES the first
+# (measured elsewhere in the fleet today), which would leave the sampler alive
+# or the tempfiles behind depending on which won.
+trap 'kill "$SAMPLER_PID" 2>/dev/null; rm -f "$OUT" "$SAMPLES"' EXIT
 
 "$@" >"$OUT" 2>&1
 CMD_RC=$?
 cat "$OUT"
+
+# Minimum available memory observed DURING the run, with the sample count so a
+# reader can tell "quiet box" from "instrument saw almost nothing".
+box_note() {
+  local n min_avail max_beam max_suites
+  n=$(wc -l < "$SAMPLES" 2>/dev/null || echo 0)
+  [ "$n" -gt 0 ] || { printf '%s' ", box: NOT SAMPLED"; return; }
+  min_avail=$(awk '{print $1}' "$SAMPLES" | sort -n | head -1)
+  max_beam=$(awk '{print $2}' "$SAMPLES" | sort -n | tail -1)
+  max_suites=$(awk '{print $3}' "$SAMPLES" | sort -n | tail -1)
+  # min available is the danger number; peak BEAM residency and peak suite
+  # count are what make a dip ATTRIBUTABLE rather than arguable afterwards.
+  printf '%s' ", box: min avail ${min_avail}MB / peak BEAM rss ${max_beam}MB / peak suites ${max_suites}, over ${n} samples"
+}
 
 TOTAL=0
 FOUND=0
@@ -199,9 +261,9 @@ if [[ -n "$EXPECT_FAILURES" ]]; then
     exit 1
   fi
 
-  echo "yx-test-guard: ${TOTAL} test(s) ran${EXACT:+ (exact ${EXACT})}, ${FAILURES} failure(s) (expected ${EXPECT_FAILURES}, RED BY DESIGN), 0 invalid"
+  echo "yx-test-guard: ${TOTAL} test(s) ran${EXACT:+ (exact ${EXACT})}, ${FAILURES} failure(s) (expected ${EXPECT_FAILURES}, RED BY DESIGN), 0 invalid$(box_note)"
   exit 0
 fi
 
-echo "yx-test-guard: ${EXECUTED} test(s) ran${EXACT:+ (exact ${EXACT})}${MIN:+ (floor ${MIN})}${EXCLUDED:+, ${EXCLUDED} excluded}, 0 invalid, command rc=${CMD_RC}"
+echo "yx-test-guard: ${EXECUTED} test(s) ran${EXACT:+ (exact ${EXACT})}${MIN:+ (floor ${MIN})}${EXCLUDED:+, ${EXCLUDED} excluded}, 0 invalid, command rc=${CMD_RC}$(box_note)"
 exit "$CMD_RC"
