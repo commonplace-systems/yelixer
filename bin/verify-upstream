@@ -26,7 +26,18 @@
 # demonstrated on the real tree, and NO CI job and NO script calls it. Measured
 # 2026-08-27 with a positive control (`git grep` finds yx-test-guard's real
 # invocations in 3 files): every hit for `verify-upstream` at origin/main is
-# this file talking about itself, plus one prose mention in fetch-upstream.
+# this file talking about itself (7 self-hits), plus TWO prose mentions:
+# fetch-upstream:25 and .gitignore:37. Both are `#` comment lines addressed
+# to a human operator. EXECUTABLE READERS: ZERO.
+#
+# ⚠️ COUNT IN THE RIGHT UNITS. A file-count conflates two states that a
+# sweep must not merge: an EXECUTABLE reader (something runs it -- cf.
+# test_helper.exs:17's `Code.require_file` for divergence_helpers.exs) and a
+# PROSE reader (a human is told about it). Reporting "3 referrers" for this
+# file, as I did in a 19:15Z message, states the wired case's number for the
+# unwired one. For an executable, prose readers are a mitigation and not a
+# wiring; for a DOCUMENT they are the only reader possible, so the same 3
+# means different things and the units have to be said out loud.
 #
 # That is a THIRD state, distinct from absent and from unreachable, and it
 # greps GREENER than either -- the file exists and its arms are red-tested, so
