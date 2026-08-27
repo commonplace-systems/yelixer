@@ -1,0 +1,109 @@
+#!/usr/bin/env bash
+#
+# yx-mutate — run a RED DEMONSTRATION, refusing to proceed unless the
+# mutation actually happened.
+#
+# WHY THIS EXISTS
+#
+#   To show a gate works you break something and watch it go red. But:
+#
+#     $ python3 -c "s=open(f).read(); open(f,'w').write(s.replace(OLD,NEW))"
+#     $ mix test
+#     ... 0 failures
+#
+#   ⛔ If OLD did not match, `replace` is a NO-OP, the file is unchanged, and
+#   the green you just read is the ORIGINAL code passing. A MUTATION THAT
+#   NEVER LANDED IS INDISTINGUISHABLE FROM A GATE THAT HELD — both print
+#   green. That is a check whose result does not depend on the thing it
+#   checks.
+#
+#   This happened here on 2026-08-27 while demonstrating the fix for a
+#   different instance of the same class, and was caught only because a stray
+#   traceback appeared above the green. Luck is not a control. It had also
+#   been written down earlier this month and instantiated again anyway:
+#   A FILED ARTIFACT FIRES; A REMEMBERED RULE DOES NOT. Hence a script, not a
+#   habit — forgetting it is now a refusal, not a silent pass.
+#
+# WHAT IT GUARANTEES
+#
+#   1. OLD occurs EXACTLY ONCE. Zero  -> the mutation would be a no-op.
+#      More than one -> ambiguous; silently mutating the wrong site is the
+#      same defect wearing a different hat. Both REFUSE (exit 64/65).
+#   2. The file's bytes actually changed after substitution (exit 66).
+#   3. The file is ALWAYS restored -- on success, on failure, on Ctrl-C --
+#      and restoration is VERIFIED, not assumed (exit 67).
+#   4. The wrapped command's exit status is reported, never swallowed.
+#
+# USAGE
+#
+#   bin/yx-mutate <file> <old-string> <new-string> -- <command...>
+#
+#   bin/yx-mutate test/yelixer/divergence_clock_test.exs \
+#     'assert oracle_text == yelixer_text' \
+#     'refute oracle_text == yelixer_text' \
+#     -- mix test test/yelixer/divergence_clock_test.exs
+#
+#   Expect the command to FAIL. A green here means the gate did NOT fire.
+
+set -uo pipefail
+
+FILE="${1:?usage: yx-mutate <file> <old> <new> -- <command...>}"
+OLD="${2?missing <old-string>}"
+NEW="${3?missing <new-string>}"
+shift 3
+[[ "${1:-}" == "--" ]] && shift
+[[ $# -gt 0 ]] || { echo "yx-mutate: no command given (did you forget '--'?)" >&2; exit 64; }
+[[ -f "$FILE" ]] || { echo "yx-mutate: no such file: $FILE" >&2; exit 64; }
+
+COUNT=$(grep -F -o -- "$OLD" "$FILE" | wc -l)
+
+if [[ "$COUNT" -eq 0 ]]; then
+  echo "yx-mutate: REFUSED — the old string does not appear in $FILE." >&2
+  echo "  The substitution would be a NO-OP and the run would test UNMODIFIED" >&2
+  echo "  code. A green from that is the original passing, not a gate holding." >&2
+  exit 64
+fi
+
+if [[ "$COUNT" -gt 1 ]]; then
+  echo "yx-mutate: REFUSED — the old string appears ${COUNT} times in $FILE." >&2
+  echo "  Ambiguous: this would mutate every site, and a demonstration that" >&2
+  echo "  breaks more than it names proves less than it appears to. Narrow it." >&2
+  exit 65
+fi
+
+BACKUP="$(mktemp -t yx-mutate.XXXXXX)"
+cp "$FILE" "$BACKUP"
+
+restore() {
+  cp "$BACKUP" "$FILE"
+  if ! cmp -s "$BACKUP" "$FILE"; then
+    echo "yx-mutate: FAILED — could not restore $FILE. Original is at $BACKUP" >&2
+    exit 67
+  fi
+  rm -f "$BACKUP"
+}
+trap restore EXIT INT TERM
+
+OLD="$OLD" NEW="$NEW" FILE="$FILE" python3 - <<'PY'
+import os
+f, old, new = os.environ["FILE"], os.environ["OLD"], os.environ["NEW"]
+s = open(f).read()
+assert s.count(old) == 1
+open(f, "w").write(s.replace(old, new, 1))
+PY
+
+if cmp -s "$BACKUP" "$FILE"; then
+  echo "yx-mutate: REFUSED — $FILE is byte-identical after substitution." >&2
+  echo "  Nothing was mutated, so the run below would prove nothing." >&2
+  exit 66
+fi
+
+echo "yx-mutate: mutation applied to $FILE (verified changed). Running:"
+echo "  $*"
+echo "  ⚠️ EXPECT THIS TO FAIL. A pass means the gate did not fire."
+echo
+"$@"
+CMD_RC=$?
+echo
+echo "yx-mutate: command exited ${CMD_RC} ($([[ $CMD_RC -ne 0 ]] && echo 'RED — the gate fired' || echo '⛔ GREEN — the gate did NOT fire')). $FILE restored."
+exit "$CMD_RC"
