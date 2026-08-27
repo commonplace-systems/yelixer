@@ -165,6 +165,20 @@ function handle(msg) {
         return { ok: true, update_hex: toHex(update) }
       }
 
+      case 'state_vector': {
+        // Per-client high-water clock, in yjs's own (UTF-16) unit
+        // system. Used by the divergence-clock harness (CX-divergence)
+        // to build a Yelixer.StateVector for encode_diff/2, and to
+        // assert the LOSS-axis "author's clock" fact directly rather
+        // than inferring it.
+        const sv = {}
+        ensureDoc().store.clients.forEach((structs, client) => {
+          const last = structs[structs.length - 1]
+          sv[String(client)] = last.id.clock + last.length
+        })
+        return { ok: true, sv }
+      }
+
       case 'apply_update': {
         const bytes = fromHex(msg.update_hex)
         Y.applyUpdate(ensureDoc(), bytes)

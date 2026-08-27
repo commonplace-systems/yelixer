@@ -25,22 +25,36 @@
 #
 #   bin/yx-test-guard --min 390 -- mix test
 #   bin/yx-test-guard --exact 11 -- mix test test/yelixer/diff_yjs_test.exs --include diff_yjs
+#   bin/yx-test-guard --exact 17 --expect-failures 7 -- mix test --include divergence ...
 #
 # --min   the run must report at least N tests
 # --exact the run must report exactly N tests (use where the suite is a fixed,
 #         known set — a conformance matrix that silently shrinks is the defect)
+# --expect-failures
+#         the run must report exactly N failures, and the guard then exits 0.
+#         For a RED-BY-DESIGN population: the :divergence job pins measured
+#         parity bugs that are not yet fixed, so its correct state is red, and
+#         the number of reds is the assertion.
 #
-# The wrapped command's exit status is preserved when the guard passes.
+#         ⭐ This is not "ignore failures" — it is the same rule pointed the
+#         other way. A divergence that silently starts PASSING is a signal
+#         (someone fixed it, or the case stopped being able to fail), and only
+#         an exact failure count can see that. Both directions are errors here.
+#
+# The wrapped command's exit status is preserved when the guard passes, except
+# under --expect-failures, where meeting the expected count IS the pass.
 
 set -uo pipefail
 
 MIN=""
 EXACT=""
+EXPECT_FAILURES=""
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --min) MIN="$2"; shift 2 ;;
     --exact) EXACT="$2"; shift 2 ;;
+    --expect-failures) EXPECT_FAILURES="$2"; shift 2 ;;
     --) shift; break ;;
     *) echo "yx-test-guard: unexpected argument '$1' (did you forget '--'?)" >&2; exit 64 ;;
   esac
@@ -110,14 +124,49 @@ if [[ -n "$EXACT" && "$TOTAL" -ne "$EXACT" ]]; then
   exit 1
 fi
 
-if [[ -n "$MIN" && "$TOTAL" -lt "$MIN" ]]; then
+# ⛔ EXCLUDED TESTS ARE DEFINED, NOT RUN — AND ExUnit COUNTS THEM IN "N tests".
+# "411 tests, 0 failures, 17 excluded" means 394 executed. Comparing a floor
+# against the DEFINED count would let the floor be satisfied by tests that
+# never ran, which is the very substitution this guard exists to refuse. The
+# floor is therefore checked against EXECUTED = TOTAL - EXCLUDED.
+EXCLUDED=0
+while read -r n; do EXCLUDED=$((EXCLUDED + n)); done \
+  < <(grep -oE '[0-9]+ excluded' "$OUT" | grep -oE '[0-9]+')
+EXECUTED=$((TOTAL - EXCLUDED))
+
+if [[ -n "$MIN" && "$EXECUTED" -lt "$MIN" ]]; then
   echo "" >&2
-  echo "yx-test-guard: FAILED — expected at least ${MIN} tests, saw ${TOTAL}." >&2
+  echo "yx-test-guard: FAILED — expected at least ${MIN} tests to RUN, saw ${EXECUTED} (${TOTAL} defined, ${EXCLUDED} excluded)." >&2
   echo "  If the suite legitimately shrank, lower this DELIBERATELY in the" >&2
   echo "  commit that shrank it. Do not lower it to get green." >&2
   echo "  Command: $*" >&2
   exit 1
 fi
 
-echo "yx-test-guard: ${TOTAL} test(s) ran${EXACT:+ (exact ${EXACT})}${MIN:+ (floor ${MIN})}, 0 invalid, command rc=${CMD_RC}"
+if [[ -n "$EXPECT_FAILURES" ]]; then
+  FAILURES=0
+  while read -r n; do FAILURES=$((FAILURES + n)); done \
+    < <(grep -oE '[0-9]+ failures?' "$OUT" | grep -oE '[0-9]+')
+
+  if [[ "$FAILURES" -ne "$EXPECT_FAILURES" ]]; then
+    echo "" >&2
+    echo "yx-test-guard: FAILED — expected exactly ${EXPECT_FAILURES} failure(s), saw ${FAILURES}." >&2
+    if [[ "$FAILURES" -lt "$EXPECT_FAILURES" ]]; then
+      echo "  FEWER reds than expected. Either a divergence was FIXED — restate" >&2
+      echo "  the count in the commit that fixed it, and say which case retired —" >&2
+      echo "  or a case stopped being able to fail, which is a VACUOUS arm and is" >&2
+      echo "  worse than a red one: it looks exactly like coverage in a count." >&2
+    else
+      echo "  MORE reds than expected. A new divergence appeared, or a case that" >&2
+      echo "  was passing regressed. Do not raise this number to get green." >&2
+    fi
+    echo "  Command: $*" >&2
+    exit 1
+  fi
+
+  echo "yx-test-guard: ${TOTAL} test(s) ran${EXACT:+ (exact ${EXACT})}, ${FAILURES} failure(s) (expected ${EXPECT_FAILURES}, RED BY DESIGN), 0 invalid"
+  exit 0
+fi
+
+echo "yx-test-guard: ${EXECUTED} test(s) ran${EXACT:+ (exact ${EXACT})}${MIN:+ (floor ${MIN})}${EXCLUDED:+, ${EXCLUDED} excluded}, 0 invalid, command rc=${CMD_RC}"
 exit "$CMD_RC"

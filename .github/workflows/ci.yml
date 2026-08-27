@@ -51,8 +51,13 @@ jobs:
       #
       # Wrapped in yx-test-guard because `mix test` exits 0 when it selects
       # NOTHING — assert the COUNT, never an exit code.
+      # Floor raised 380 -> 394 deliberately: +4 doc-spec pins. The 17
+      # :divergence tests are EXCLUDED here and counted in their own job below.
+      # The guard compares this floor against EXECUTED tests, not DEFINED ones
+      # -- ExUnit's "N tests" includes excluded tests, so a floor checked
+      # against it could be satisfied by tests that never ran.
       - name: Run the suite (count-asserted)
-        run: bin/yx-test-guard --min 380 -- mix test
+        run: bin/yx-test-guard --min 394 -- mix test
 
       # PROPERTY 3 of 3 — WIRE CONFORMANCE WITH YJS ITSELF. This is the
       # property the library exists to have, and between the extraction and
@@ -82,3 +87,31 @@ jobs:
           YJS_ORACLE: preview
           YELIXER_REQUIRE_YJS_ORACLE: "1"
         run: bin/yx-test-guard --exact 11 -- mix test test/yelixer/diff_yjs_test.exs --include diff_yjs
+
+      # THE DIVERGENCE POPULATION — RED BY DESIGN, AND COUNTED.
+      #
+      # These pin MEASURED yelixer/yjs parity bugs that are not yet fixed, so
+      # their correct state is red. They are excluded from the default suite
+      # (test/test_helper.exs) and from the --exact 11 conformance population
+      # deliberately: a gate that is red for known-and-accepted reasons stops
+      # being a gate, which is the exact defect this job exists to measure.
+      #
+      # ⭐ --expect-failures is not "ignore failures". It fails in BOTH
+      # directions. Fewer reds means either a divergence was fixed (restate the
+      # count, and say which case retired) or a case stopped being able to fail
+      # — a vacuous arm, which is worse than a red one because it looks exactly
+      # like coverage in a count. More reds means a new divergence or a
+      # regression.
+      #
+      # Four populations, four failure modes, all from one root cause at
+      # lib/yelixer/item.ex:266 (graphemes minted where yjs mints UTF-16 units):
+      #   LOST / SILENTLY TRUNCATED — reused client_id, follows the author's clock
+      #   CORRUPTED (U+FFFD)        — follows the origin reference; survives a fresh id
+      #   UNDER-DELETED             — delete-set names the deleted item's client
+      #   MISPLACED on READ         — the integrating side counts graphemes too,
+      #                               so a minting-only fix would not close it
+      - name: Divergence pins vs Yjs stable (RED BY DESIGN, counted)
+        env:
+          YJS_ORACLE: stable
+          YELIXER_REQUIRE_YJS_ORACLE: "1"
+        run: bin/yx-test-guard --exact 17 --expect-failures 7 -- mix test test/yelixer/divergence_clock_test.exs --include divergence
