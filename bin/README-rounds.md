@@ -40,7 +40,7 @@ bin/land-round.sh --self-test   # proves the gate mechanism blocks red and passe
 Must be run from the main checkout (not a worktree, not a branch other than
 `main`). Merges the round branch, then runs — in order, matching
 `.github/workflows/ci.yml` — the boundary check, the full suite
-(count-asserted via `bin/yx-test-guard --min 395`), both Yjs conformance
+(count-asserted via `bin/yx-test-guard --min 405`), both Yjs conformance
 oracles (`bin/yx-test-guard --exact 11`, oracle required), and `mix format
 --check-formatted`. Any gate failure leaves the merge local and unpushed and
 prints how to undo it (`git reset --hard <before-sha>`); only if every gate

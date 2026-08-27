@@ -51,9 +51,11 @@ jobs:
       #
       # Wrapped in yx-test-guard because `mix test` exits 0 when it selects
       # NOTHING — assert the COUNT, never an exit code.
-      # Floor raised 380 -> 395 deliberately: +4 doc-spec pins, +1 doctest term
-      # that the old arithmetic dropped. The 17 :divergence tests are EXCLUDED
-      # here and counted in their own job below.
+      # Floor 380 -> 395 -> 405, each step deliberate: +4 doc-spec pins, +1
+      # doctest term the old arithmetic dropped, +10 parity CONTROLS that now
+      # run here rather than hiding in the excluded population (see below).
+      # Only the 7 expected-red :divergence arms are excluded here; they are
+      # counted in their own job.
       #
       # The guard compares this floor against EXECUTED tests, not DEFINED ones:
       # ExUnit's "N tests" counts every test in the loaded files INCLUDING the
@@ -61,7 +63,7 @@ jobs:
       # that never ran. Executed = (tests + doctests) - excluded - skipped;
       # "N doctests, M tests" are DISJOINT and "excluded" spans both.
       - name: Run the suite (count-asserted)
-        run: bin/yx-test-guard --min 395 -- mix test
+        run: bin/yx-test-guard --min 405 -- mix test
 
       # PROPERTY 3 of 3 — WIRE CONFORMANCE WITH YJS ITSELF. This is the
       # property the library exists to have, and between the extraction and
@@ -114,6 +116,14 @@ jobs:
       #   UNDER-DELETED             — delete-set names the deleted item's client
       #   MISPLACED on READ         — the integrating side counts graphemes too,
       #                               so a minting-only fix would not close it
+      # TWO LABELS, TWO FACTS. :parity = "member of the parity table" (NOT
+      # excluded); :divergence = "expected red" (excluded from the default
+      # suite). The 10 controls carry :parity ALONE, so they run in the
+      # ordinary suite above and a broken control turns THAT red -- verified
+      # by mutation. Tagging them :divergence would have parked the table's
+      # own vacuity guards in the excluded population, where a silent break
+      # leaves the default run green while the table keeps printing its reds
+      # -- indistinguishable from a harness that ALWAYS reports divergence.
       - name: Divergence pins vs Yjs stable (RED BY DESIGN, counted)
         env:
           YJS_ORACLE: stable

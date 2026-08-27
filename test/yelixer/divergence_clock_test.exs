@@ -90,7 +90,27 @@ defmodule Yelixer.DivergenceClockTest do
   alias Yelixer.{Doc, Encoding, StateVector}
   alias Yelixer.Types.Text
 
-  @moduletag :divergence
+  # ⭐ TWO LABELS, BECAUSE THERE ARE TWO ORTHOGONAL FACTS — and one tag
+  # carrying both is how a control ends up in an excluded population for a
+  # reason that does not apply to it.
+  #
+  #   :parity     — "member of the parity table". NOT excluded. Every arm here
+  #                 carries it, so `--only parity` prints the whole table.
+  #   :divergence — "EXPECTED RED". Excluded from the default suite
+  #                 (test/test_helper.exs). Only the diverging arms carry it.
+  #
+  # ⛔ THE CONTROLS DELIBERATELY DO NOT CARRY :divergence. A green control is
+  # not expected-red, and tagging it so would park the anti-vacuity gates and
+  # negative controls in the excluded population — meaning THE GUARDS FOR THIS
+  # WHOLE TABLE WOULD NEVER RUN IN A NORMAL SUITE. If one silently broke, the
+  # default run would stay green while the table kept printing its reds, which
+  # is exactly what a harness that ALWAYS reports divergence would print.
+  # Carrying :parity alone, they run in the default suite and a regression
+  # turns the ORDINARY run red.
+  #
+  # ⛔ Fixed with two labels, never two copies: duplicating an arm makes two
+  # tests fail together for one cause and inflates apparent protection.
+  @moduletag :parity
   @driver Path.expand("../fixtures/yjs_diff_driver.mjs", __DIR__)
   @oracle "stable"
 
@@ -284,6 +304,7 @@ defmodule Yelixer.DivergenceClockTest do
   # ---------------------------------------------------------------------------
 
   describe "axis: LOSS (same client_id, author's own clock)" do
+    @tag :divergence
     test "NFD, gap=7, safe origin (pos=1) — edit shorter than the gap is TOTAL LOSS",
          %{port: port} do
       # FACT 1 fixture: NFD "Café 👩🏽‍💻\n" (@nfd_hex / @nfd_string)
@@ -331,6 +352,7 @@ defmodule Yelixer.DivergenceClockTest do
       # correctly includes this edit.
     end
 
+    @tag :divergence
     test "NFD, gap=7, safe origin (pos=1) — edit longer than the gap is SILENT PARTIAL TRUNCATION",
          %{port: port} do
       # FACT 1/2/3 as above: NFD fixture, position 1, safe origin unit 0.
@@ -364,6 +386,7 @@ defmodule Yelixer.DivergenceClockTest do
       # RETIREMENT: same as the total-loss case above.
     end
 
+    @tag :divergence
     test "bounded, not cumulative: the deficit is spent once, then clocks REALIGN",
          %{port: port} do
       # This case exists to correct a too-pessimistic framing: the loss
@@ -472,6 +495,7 @@ defmodule Yelixer.DivergenceClockTest do
   # ---------------------------------------------------------------------------
 
   describe "axis: CORRUPTION (fresh client_id, origin reference into base block)" do
+    @tag :divergence
     test "NFC, pos=6 — origin lands on the HIGH surrogate of 👩 -> destroyed into two U+FFFD",
          %{port: port} do
       # FACT 1 fixture: NFC "Café 👩🏽‍💻\n" (@nfc_string), authored LIVE by
@@ -527,6 +551,7 @@ defmodule Yelixer.DivergenceClockTest do
       # pair (see the pos=7 negative control below), not the high half.
     end
 
+    @tag :divergence
     test "NFD, pos=7 — same emoji, DIFFERENT offset destroys it (normalization shifts the danger, it is not the discriminator)",
          %{port: port} do
       # FACT 1 fixture: NFD "Café 👩🏽‍💻\n" (@nfd_hex / @nfd_string).
@@ -657,6 +682,7 @@ defmodule Yelixer.DivergenceClockTest do
   # ---------------------------------------------------------------------------
 
   describe "axis: UNDER-DELETION (any deleter id; delete-set names the deleted item's client)" do
+    @tag :divergence
     test "NFD delete(0, 5 graphemes) straddles the é/space boundary -> the space survives",
          %{port: port} do
       # FACT 1 fixture: NFD "Café 👩🏽‍💻\n" (@nfd_hex / @nfd_string).
@@ -732,6 +758,7 @@ defmodule Yelixer.DivergenceClockTest do
   # ---------------------------------------------------------------------------
 
   describe "axis: READ/INTEGRATION (same bytes, both sides render differently)" do
+    @tag :divergence
     test "two real-yjs transactions, applied to both sides — yelixer's integration permanently drops the second one",
          %{port: port} do
       # FACT 1 fixture: built live from two separate real-yjs
