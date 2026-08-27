@@ -327,3 +327,51 @@ round, and the arm names it.
 did not. `content_length/1` is on the split path. No benchmark was run, so
 this is a named cost with no number attached — it is not a claim that the
 cost is small.
+
+## ✅ ROUND 1 COMPLETE — 5 → 1 ON THE CLOCK AXIS, MAIN SUITE GREEN (22:08Z)
+
+```
+                       BASELINE 19:26     AFTER 22:08
+full suite             (not taken)        423 tests, 0 FAILURES, 10 excluded   rc 0
+clock divergence       17 / 5 failures    17 / 1 failure  (expected 1)         rc 0
+content divergence     12 / 5 failures    12 / 5 failures (untouched)          rc 0
+conformance oracle     11 / 0             11 / 0                               rc 0
+box, whole window      —                  267 samples, MIN avail 2723 MB, MAX beams 4
+```
+
+**FOUR arms retired outright** (`:886` READ/INTEGRATION · `:360` and `:406` LOSS
+· `:437` deficit-realign). **ONE remains** (`:807` UNDER-DELETION): its parity
+assertion now PASSES and the residual failure is the one its own RETIREMENT
+comment predicted — **the delete-set's clock range is still expressed in the
+old unit.** That is a different site, untouched here, and it is Round 2's.
+
+### ⛔ THE INTERMEDIATE STATE, RECORDED BECAUSE THE NET NUMBER HIDES IT
+
+The first measurement after the code change read **5 → 2, not 5 → 1**. The
+extra red was `:711`, an UNTAGGED test in the divergence file, which had been
+GREEN: a regression into the DEFAULT suite, which would have made CI job 1
+red. It is in this record because a net count of retired arms would have
+concealed a green→red flip entirely.
+
+Its cause was a hand-written constant with an unstated unit (`X` at the end
+of the string — true only if `pos: 7` means seven GRAPHEMES). It was restated
+positionally, deriving the expected value from the fixture and the DECLARED
+UTF-16 unit, with a splitter independent of the subject's own.
+
+### ⭐ THE MUTATION DEMONSTRATION, INCLUDING THE ARM THAT DID NOT FIRE
+
+```
+unmutated                          -> GREEN
+utf16_split_at  offset + 1         -> RED, and the rendered text is visibly corrupted
+utf16_split_at  offset - 1         -> GREEN  <- THE MUTATION WAS ABSORBED
+```
+
+The `-1` arm did not go red, and the reason is not that the assertion is
+weak: offset 7 minus one lands on unit 6, the LOW surrogate of the woman
+emoji, so `utf16_cut/2` reports `:surrogate` and the B-up clamp restores it
+to 7. **The mutation landed on the one offset the clamp is built to repair.**
+
+⭐ Established by POSITIVE CONTROL rather than assumed: the same mutation
+takes the full clock suite from 2 failures to 6, so it was live and reaching
+the code. Without that control, "both arms green" reads identically to "the
+assertion cannot fail" — which is the vacuity this instrument exists to catch.
