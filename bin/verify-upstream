@@ -21,6 +21,27 @@
 #
 # This script makes no network calls (see bin/fetch-upstream for the host-act
 # fetch/checkout step). It only inspects what's already on disk.
+#
+# ⛔ NOTHING INVOKES THIS. It is PRESENT, its three arms (GREEN/RED/BLIND) were
+# demonstrated on the real tree, and NO CI job and NO script calls it. Measured
+# 2026-08-27 with a positive control (`git grep` finds yx-test-guard's real
+# invocations in 3 files): every hit for `verify-upstream` at origin/main is
+# this file talking about itself, plus one prose mention in fetch-upstream.
+#
+# That is a THIRD state, distinct from absent and from unreachable, and it
+# greps GREENER than either -- the file exists and its arms are red-tested, so
+# a reader concludes it is protecting them. A self-referential hit is still a
+# hit, so "prefer hits over zeros" does not catch it; only reading the PATHS
+# does.
+#
+# ⚠️ Deliberate, and stated so it is not mistaken for an oversight: CI has no
+# clones to verify (they are gitignored, populated on the host), so wiring this
+# into CI would make it BLIND on every run. It is a developer tool, run by hand
+# before trusting a citation into yjs-stable/ or y-crdt/. Calling it a gate
+# would be the decoration this repo has spent the day refusing.
+#
+# ⛔ If you wire it anywhere, the arm to demonstrate FIRST is BLIND (rc 2) --
+# the one a CI checkout would hit every time.
 
 set -uo pipefail
 
