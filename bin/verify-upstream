@@ -1,0 +1,84 @@
+#!/usr/bin/env bash
+#
+# bin/verify-upstream — drift check for the readable upstream source
+# references against upstream-refs.json.
+#
+# THREE OUTCOMES, THREE DISTINCT EXIT CODES. Never a skip. Never a silent pass.
+#
+#   0  GREEN — every ref present, on-disk HEAD == the sha the manifest names.
+#   1  RED   — a ref is present but at a DIFFERENT sha than the manifest names
+#              (drift: someone moved the clone, or the manifest was bumped
+#              and bin/fetch-upstream wasn't re-run).
+#   2  BLIND — a ref the manifest names has no clone on disk at all. This is
+#              NOT a pass and NOT a skip — a missing readable reference means
+#              nobody can honestly cite it, which is exactly the state that
+#              must be loud. (House rule: "a missing oracle must be RED, never
+#              skipped" — applied to the readable half. Reported as its own
+#              code, distinct from RED, because "wrong version" and "no
+#              version" are different failures needing different fixes:
+#              red needs `bin/fetch-upstream` to move a sha, blind needs it
+#              to clone from nothing.)
+#
+# This script makes no network calls (see bin/fetch-upstream for the host-act
+# fetch/checkout step). It only inspects what's already on disk.
+
+set -uo pipefail
+
+REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+MANIFEST="$REPO_ROOT/upstream-refs.json"
+
+if [[ ! -f "$MANIFEST" ]]; then
+  echo "verify-upstream: no manifest at $MANIFEST" >&2
+  exit 1
+fi
+
+if ! command -v jq >/dev/null 2>&1; then
+  echo "verify-upstream: jq is required" >&2
+  exit 1
+fi
+
+count=$(jq '.refs | length' "$MANIFEST")
+status=0   # 0=green so far
+saw_red=0
+saw_blind=0
+
+for i in $(seq 0 $((count - 1))); do
+  row=$(jq -c ".refs[$i]" "$MANIFEST")
+  name=$(jq -r '.name' <<<"$row")
+  path=$(jq -r '.path' <<<"$row")
+  tag=$(jq -r '.tag' <<<"$row")
+  sha=$(jq -r '.sha' <<<"$row")
+  dest="$REPO_ROOT/$path"
+
+  if [[ ! -d "$dest/.git" ]]; then
+    echo "BLIND  $name ($tag): no clone at $path/ — cannot be read, cannot be cited. Run: bin/fetch-upstream $name"
+    saw_blind=1
+    continue
+  fi
+
+  have="$(git -C "$dest" rev-parse HEAD 2>/dev/null || echo "")"
+  if [[ -z "$have" ]]; then
+    echo "BLIND  $name ($tag): $path/ exists but is not a readable git checkout — Run: bin/fetch-upstream $name"
+    saw_blind=1
+    continue
+  fi
+
+  if [[ "$have" != "$sha" ]]; then
+    echo "RED    $name: on-disk HEAD $have does not match manifest sha $sha ($tag). Run: bin/fetch-upstream $name"
+    saw_red=1
+    continue
+  fi
+
+  echo "GREEN  $name: $have matches manifest ($tag)"
+done
+
+if [[ "$saw_blind" -eq 1 ]]; then
+  echo "verify-upstream: BLIND — at least one readable reference is missing on disk." >&2
+  exit 2
+fi
+if [[ "$saw_red" -eq 1 ]]; then
+  echo "verify-upstream: RED — at least one readable reference has drifted from the manifest." >&2
+  exit 1
+fi
+echo "verify-upstream: GREEN — all readable references match upstream-refs.json."
+exit 0

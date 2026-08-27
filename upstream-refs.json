@@ -1,0 +1,36 @@
+{
+  "$schema": "yelixer upstream readable-source-reference manifest v1",
+  "note": "READABLE SOURCE REFERENCE ONLY. This is not an oracle. Parity is measured against test/fixtures/package.json (yjs-stable=13.6.32, yjs-preview=14.0.0-16 via npm), never against these clones. These clones exist so a person can read upstream source to explain a conformance result. Each row's `sha` MUST match the corresponding oracle pin exactly so the source read is the source that ran.",
+  "refs": [
+    {
+      "name": "yjs-stable",
+      "path": "yjs-stable",
+      "remote": "git@github.com:yjs/yjs.git",
+      "tag": "v13.6.32",
+      "sha": "1ce38f75f786e4bc0b2cc9703afbc6eea8fe7859",
+      "human_version": "13.6.32",
+      "matches_oracle": "test/fixtures/package.json:dependencies.yjs-stable (npm:yjs@13.6.32)",
+      "purpose": "readable source matching the yjs-stable oracle used for the current parity baseline"
+    },
+    {
+      "name": "yjs-preview",
+      "path": "yjs-preview",
+      "remote": "git@github.com:yjs/yjs.git",
+      "tag": "v14.0.0-16",
+      "sha": "081886fed1a8489ed12950382eb5e563af182722",
+      "human_version": "14.0.0-16",
+      "matches_oracle": "test/fixtures/package.json:dependencies.yjs-preview (npm:yjs@14.0.0-16)",
+      "purpose": "readable source matching the yjs-preview oracle reported separately from stable"
+    },
+    {
+      "name": "y-crdt",
+      "path": "y-crdt",
+      "remote": "git@github.com:y-crdt/y-crdt.git",
+      "tag": "v0.25.0",
+      "sha": "ef0b9bdf2ec6b135d57455b7ca97796602095a9d",
+      "human_version": "0.25.0",
+      "matches_oracle": null,
+      "purpose": "readable Rust reference implementation (yrs) that docs/plans/2026-03-07-yjs-port.md ports against; no executable oracle exists for this one today, so this row is the only version fact for it. Pinned to the v0.25.0 release tag (matching the version= string in y-crdt/{yrs,yffi,ywasm}/Cargo.toml) rather than to a later commit on main, so the sha a reader sees is unambiguously citable as \"v0.25.0\"."
+    }
+  ]
+}

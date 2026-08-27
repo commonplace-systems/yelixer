@@ -12,7 +12,24 @@
 // Usage:   node multi_commit_generator.mjs
 // Output:  multi_commit_fixtures.json
 
-import * as Y from '/home/jes/yelixer/yjs/src/index.js'
+// ⛔ PROVENANCE WARNING (2026-08-27). This previously imported
+//   '/home/jes/yelixer/yjs/src/index.js' -- an ABSOLUTE path into an
+// UNTRACKED, UNVERSIONED directory that has since been removed (it held
+// yjs v14.0.0-rc.1, which is NEITHER pinned oracle). multi_commit_fixtures.json
+// was committed alongside that import, so THE COMMITTED FIXTURES' PROVENANCE IS
+// UNRECORDED and they were not produced by the source this file now names.
+// ⇒ Regenerating will likely CHANGE the committed fixtures. That is a deliberate
+// decision to take, not a mechanical refresh -- diff before committing.
+// Now imports the version-pinned oracle (test/fixtures/package.json,
+// yjs-stable = npm:yjs@13.6.32), which is the ruled parity target.
+// ⚠️ STATUS 2026-08-27: IMPORTS CLEANLY, DOES NOT RUN YET. This script was
+// authored against the yjs v14 API (`doc.get(name).insert(...)`); the pinned
+// stable oracle is 13.6.32, where that is `doc.getText(name)`. It needs an API
+// update before it can be used. Left visibly broken rather than silently
+// repointed at a v14 build: the parity target is STABLE, and a dev script that
+// quietly regenerates fixtures from a non-target version is how the committed
+// corpus lost its provenance in the first place.
+import * as Y from 'yjs-stable'
 import fs from 'fs'
 import { fileURLToPath } from 'url'
 import path from 'path'

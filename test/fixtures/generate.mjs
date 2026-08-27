@@ -1,5 +1,16 @@
 // Generate test fixtures from Yjs v14 for interop testing
-import * as Y from '../../yjs/src/index.js'
+// Was '../../yjs/src/index.js' -- an unpinned clone path.
+// (yjs_oracle/yjs_verify's variant resolved to /yelixer/yjs, which never existed:
+//  broken at HEAD before the clone was removed, and unreferenced by any test or CI.)
+// Uses the version-pinned oracle instead (yjs-stable = npm:yjs@13.6.32).
+// ⚠️ STATUS 2026-08-27: IMPORTS CLEANLY, DOES NOT RUN YET. This script was
+// authored against the yjs v14 API (`doc.get(name).insert(...)`); the pinned
+// stable oracle is 13.6.32, where that is `doc.getText(name)`. It needs an API
+// update before it can be used. Left visibly broken rather than silently
+// repointed at a v14 build: the parity target is STABLE, and a dev script that
+// quietly regenerates fixtures from a non-target version is how the committed
+// corpus lost its provenance in the first place.
+import * as Y from 'yjs-stable'
 import fs from 'fs'
 
 // 1. Simple text: "hello" inserted at position 0

@@ -33,3 +33,9 @@ yelixer-*.tar
 # Dolt database files (added by bd init)
 .dolt/
 *.db
+# Readable upstream source references (see upstream-refs.json, bin/fetch-upstream,
+# bin/verify-upstream). Real clones, populated on the host, never vendored.
+# The version fact lives in upstream-refs.json (tracked); the bytes do not.
+/yjs-stable/
+/yjs-preview/
+/y-crdt/

@@ -1,0 +1,88 @@
+#!/usr/bin/env bash
+#
+# bin/fetch-upstream — clone/checkout the readable upstream source references
+# named in upstream-refs.json, at the exact shas the manifest pins.
+#
+# WHAT THIS IS FOR
+#
+#   yjs-stable/, yjs-preview/, y-crdt/ are READABLE SOURCE REFERENCE clones —
+#   what a person reads to understand upstream behaviour. They are NOT the
+#   conformance oracle (that is test/fixtures/package.json, installed via
+#   `npm ci --prefix test/fixtures` and REQUIRED in CI). This script only
+#   populates the readable half, and only ever at the shas upstream-refs.json
+#   names — never "latest", never a branch tip.
+#
+# ⛔ THIS IS A HOST ACT, NOT A FENCED/SANDBOXED ONE.
+#
+#   Same rule as `mix deps.get` and `npm ci`: a fenced/sandboxed round (an
+#   agent working inside a network-restricted or otherwise isolated
+#   environment) must never be the first thing to attempt this fetch — it
+#   cannot reach github.com and will fail confusingly, or worse, silently
+#   produce nothing. Run this from an interactive host shell, or from a CI
+#   job stage that has real network egress, exactly like the two commands
+#   above. If you are an agent running in a fenced round and this script is
+#   missing its clones, that is expected — do not "fix" it by loosening this
+#   script; tell the operator to run it on the host, then re-run bin/verify-upstream.
+#
+# USAGE
+#
+#   bin/fetch-upstream                 # fetch/checkout everything the manifest names
+#   bin/fetch-upstream yjs-stable       # just one ref, by manifest `name`
+#
+# Idempotent: re-running when a ref is already at the pinned sha is a no-op
+# (fast, no network). Re-running after the manifest changes moves the clone
+# to the new pinned sha (fetches only the new tag, does not re-clone).
+
+set -euo pipefail
+
+REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+MANIFEST="$REPO_ROOT/upstream-refs.json"
+
+if [[ ! -f "$MANIFEST" ]]; then
+  echo "fetch-upstream: no manifest at $MANIFEST" >&2
+  exit 1
+fi
+
+if ! command -v jq >/dev/null 2>&1; then
+  echo "fetch-upstream: jq is required" >&2
+  exit 1
+fi
+
+WANT="${1:-}"
+
+count=$(jq '.refs | length' "$MANIFEST")
+for i in $(seq 0 $((count - 1))); do
+  row=$(jq -c ".refs[$i]" "$MANIFEST")
+  name=$(jq -r '.name' <<<"$row")
+  path=$(jq -r '.path' <<<"$row")
+  remote=$(jq -r '.remote' <<<"$row")
+  tag=$(jq -r '.tag' <<<"$row")
+  sha=$(jq -r '.sha' <<<"$row")
+
+  if [[ -n "$WANT" && "$WANT" != "$name" ]]; then
+    continue
+  fi
+
+  dest="$REPO_ROOT/$path"
+
+  if [[ -d "$dest/.git" ]]; then
+    have="$(git -C "$dest" rev-parse HEAD 2>/dev/null || echo "")"
+    if [[ "$have" == "$sha" ]]; then
+      echo "fetch-upstream: $name already at $sha ($tag) — no-op"
+      continue
+    fi
+    echo "fetch-upstream: $name present but at $have, manifest wants $sha ($tag) — updating"
+    git -C "$dest" fetch --depth 1 origin "tag" "$tag"
+    git -C "$dest" checkout --detach "$sha"
+  else
+    echo "fetch-upstream: cloning $name ($tag) from $remote into $path/"
+    git clone --depth 1 --branch "$tag" "$remote" "$dest"
+  fi
+
+  got="$(git -C "$dest" rev-parse HEAD)"
+  if [[ "$got" != "$sha" ]]; then
+    echo "fetch-upstream: FATAL — $name landed at $got, manifest names $sha. Refusing to proceed." >&2
+    exit 1
+  fi
+  echo "fetch-upstream: $name OK at $sha ($tag)"
+done
