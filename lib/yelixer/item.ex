@@ -227,7 +227,7 @@ defmodule Yelixer.Item do
   # `offset > 0 and offset < item.length`, so they need no clause.
 
   defp split_content({:string, s}, offset) do
-    {left, right} = String.split_at(s, offset)
+    {left, right} = utf16_split_at(s, offset)
     {{:string, left}, {:string, right}}
   end
 
@@ -260,10 +260,60 @@ defmodule Yelixer.Item do
   # tombstone variants store the count directly; all singletons
   # (embed, format, type, doc) cover one clock.
   defp content_length({:gc, n}), do: n
-  defp content_length({:string, s}), do: String.length(s)
+  defp content_length({:string, s}), do: utf16_length(s)
   defp content_length({:any, list}), do: length(list)
   defp content_length({:binary, b}), do: byte_size(b)
   defp content_length({:deleted, n}), do: n
   defp content_length({:json, list}), do: length(list)
   defp content_length(_), do: 1
+
+  # ── UTF-16 CODE UNITS ─────────────────────────────────────────────
+  #
+  # yjs mints one clock per UTF-16 CODE UNIT (`ContentString.getLength()`
+  # returns `this.str.length`, and JS string length is code units).
+  # Elixir's `String.length/1` counts GRAPHEMES. Those disagree for every
+  # astral character (2 units, 1 grapheme) and for every combining
+  # sequence (N units, 1 grapheme) -- so an NFD "e" + combining acute is
+  # 2 clocks in yjs and 1 in the old yelixer.
+  #
+  # ⛔ THESE TWO FUNCTIONS MUST MOVE TOGETHER WITH split_content/2's
+  # {:string, _} clause. `split/2` MEASURES with content_length/1 and
+  # SLICES with split_content/2, feeding the offset from one into the
+  # other. Converting only the measurer hands a UTF-16 offset to a
+  # grapheme splitter -- silent corruption introduced by the fix, in the
+  # exact path this change exists to repair. They share `utf16_split_at/2`
+  # for that reason: one unit, one place.
+
+  defp utf16_length(s) do
+    div(byte_size(:unicode.characters_to_binary(s, :utf8, {:utf16, :little})), 2)
+  end
+
+  # Splits at a UTF-16 code unit offset.
+  #
+  # An offset can land BETWEEN the two halves of a surrogate pair, which
+  # is a position no valid string can be cut at. We clamp UP -- the whole
+  # astral character goes to the left half -- following `yrs`, which
+  # resolves the same impossible boundary the same way. Clamping DOWN
+  # would be equally "valid" and would disagree with yrs on every astral
+  # split, so the direction is a compatibility choice, not an arbitrary one.
+  defp utf16_split_at(s, offset) do
+    u = :unicode.characters_to_binary(s, :utf8, {:utf16, :little})
+    at = offset * 2
+
+    case utf16_cut(u, at) do
+      {:ok, pair} -> pair
+      :surrogate -> {:ok, pair} = utf16_cut(u, at + 2); pair
+    end
+  end
+
+  defp utf16_cut(u, at) do
+    <<l::binary-size(at), r::binary>> = u
+
+    with left when is_binary(left) <- :unicode.characters_to_binary(l, {:utf16, :little}, :utf8),
+         right when is_binary(right) <- :unicode.characters_to_binary(r, {:utf16, :little}, :utf8) do
+      {:ok, {left, right}}
+    else
+      _ -> :surrogate
+    end
+  end
 end

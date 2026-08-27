@@ -260,3 +260,70 @@ gate; that converts the only progress signal the round has into a constant.
 behaviour change.** It is still Step 0, because a migration whose success
 signal is "the failure count went down" cannot start from a number nobody
 measured.
+
+## ✅ ROUND 1 LANDED — 5 → 2 ON THE CLOCK AXIS (19:29Z)
+
+Both coupled lines moved together. `content_length/1` and `split_content/2`
+now share `utf16_split_at/2`, so the measurer and the slicer cannot drift.
+
+```
+             BASELINE (19:26)              POST-FIX (19:29)
+clock        17 tests, 5 failures          17 tests, 2 failures
+content      12 tests, 5 failures          12 tests, 5 failures   (untouched — other root cause)
+conformance  11 tests, 0 failures          11 tests, 0 failures   ⇒ NO REGRESSION at the oracle
+```
+
+**WHICH ARMS MOVED, by line number rather than by impression:**
+
+| arm | before | after |
+|---|---|---|
+| `:886` READ/INTEGRATION, second txn dropped | RED | **RETIRED** |
+| `:360` LOSS, edit shorter than the gap | RED | **RETIRED** |
+| `:406` LOSS, edit longer than the gap | RED | **RETIRED** |
+| `:437` LOSS, deficit spent once then realigns | RED | **RETIRED** |
+| `:807` UNDER-DELETION, straddling space | RED | still RED — **but on a different line** |
+| `:711` NFC pos=7 negative control | GREEN | ⛔ **NEWLY RED** |
+
+⛔ **`:711` IS A REGRESSION AND I AM NOT BURYING IT IN A NET COUNT.** An arm
+that was green is red. The net 5→2 is real and it is not the whole story.
+
+What is checkable about it: the failure moved to line **741**, which means
+line 739 — `assert oracle_text == yelixer_text` — **passed**. yjs and yelixer
+now agree on this fixture; both render `"Café 👩X🏽‍💻\n"`. The failing
+assertion is `oracle_text == @nfc_string <> "X"`, a HARDCODED constant that
+encodes "index 7 is the end of the string", which is true in graphemes and
+false in UTF-16 units (👩 occupies units 5–6, so 7 sits between 👩 and 🏽).
+
+⛔ **I HAVE NOT EDITED THAT CONSTANT AND WILL NOT IN THIS ROUND.** "The code
+is right and the test's expected value is stale" is the most dangerous
+sentence available to someone who just changed the code, and my belief that
+it is true here is not the same as its being demonstrated. It stays RED and
+counted. A later round retires it with an oracle-derived expectation rather
+than a hand-written one — the arm should not carry a constant in *either*
+unit.
+
+`:807` moved from failing at `:844` (`assert oracle_text == yelixer_text`) to
+failing at `:845` (`refute String.starts_with?(oracle_text, " ")`). The
+parity assertion now passes; the remaining failure is the one its own
+RETIREMENT comment predicted: **the delete-set's clock range is still
+expressed in the old unit.** That is a different site, untouched by this
+round, and the arm names it.
+
+### ⛔ WHAT THIS ROUND DELIBERATELY DID NOT DO
+
+- **`content_length({:binary, b})` still returns `byte_size(b)`; yjs returns
+  1.** That is a real divergence and a real wire-format change, and NO arm in
+  either suite measures it. Landing it here would have made the 5→2 signal
+  un-attributable — I could not have said which change moved which count.
+  It is a separate round.
+- **Neither surviving test was edited.** No fix rides in on a measurement,
+  and no measurement gets adjusted to flatter a fix.
+- **`bin/land-round.sh`'s self-test hoist** — free per `plan`'s tier-2 ruling
+  and `markdown`'s split, declined on SCOPE, not on slot cost.
+
+### PERFORMANCE NOTE, STATED NOT HIDDEN
+
+`utf16_length/1` allocates a UTF-16 binary per call, where `String.length/1`
+did not. `content_length/1` is on the split path. No benchmark was run, so
+this is a named cost with no number attached — it is not a claim that the
+cost is small.
