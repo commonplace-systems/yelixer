@@ -119,15 +119,6 @@ if [[ -n "$EXACT" && "$SKIPPED" -gt 0 ]]; then
   exit 1
 fi
 
-if [[ -n "$EXACT" && "$TOTAL" -ne "$EXACT" ]]; then
-  echo "" >&2
-  echo "yx-test-guard: FAILED — expected exactly ${EXACT} tests, saw ${TOTAL}." >&2
-  echo "  If the suite legitimately changed, update the number DELIBERATELY in" >&2
-  echo "  the commit that changed it. Do not adjust it to get green." >&2
-  echo "  Command: $*" >&2
-  exit 1
-fi
-
 # ⛔ EXCLUDED TESTS ARE DEFINED, NOT RUN — AND ExUnit COUNTS THEM IN "N tests".
 # "411 tests, 0 failures, 17 excluded" means 394 executed. Comparing a floor
 # against the DEFINED count would let the floor be satisfied by tests that
@@ -150,6 +141,33 @@ SKIPPED_N=0
 while read -r n; do SKIPPED_N=$((SKIPPED_N + n)); done \
   < <(grep -oE '[0-9]+ skipped' "$OUT" | grep -oE '[0-9]+')
 EXECUTED=$((TOTAL + DOCTESTS - EXCLUDED - SKIPPED_N))
+
+# ⛔ AN EXCLUDED TEST IN AN EXACT-COUNT RUN IS THE SAME DEFECT AS A SKIPPED
+# ONE, AND ExUnit COUNTS IT IN THE TOTAL. "12 tests, 5 excluded" means SEVEN
+# ran, but a floor or an exact count compared against the summary's total sees
+# 12 and passes. Measured on this repo 2026-08-27: the guard printed
+# "7 test(s) ran (exact 12), 5 excluded" AND EXITED 0 -- announcing the
+# contradiction in its own success line. "Excluded" and "ran" shared an
+# observable inside the tool built to stop exactly that.
+if [[ -n "$EXACT" && "$EXCLUDED" -gt 0 ]]; then
+  echo "" >&2
+  echo "yx-test-guard: FAILED — ${EXCLUDED} test(s) EXCLUDED in an exact-count run." >&2
+  echo "  An exact count names a fixed, fully-required set; an exclusion there" >&2
+  echo "  means the selection silently dropped members. If the exclusion is" >&2
+  echo "  intended, add the tag filter that includes them, or assert the" >&2
+  echo "  smaller set deliberately." >&2
+  echo "  Command: $*" >&2
+  exit 1
+fi
+
+if [[ -n "$EXACT" && "$EXECUTED" -ne "$EXACT" ]]; then
+  echo "" >&2
+  echo "yx-test-guard: FAILED — expected exactly ${EXACT} tests to RUN, saw ${EXECUTED} (${TOTAL} tests + ${DOCTESTS} doctests − ${EXCLUDED} excluded − ${SKIPPED_N} skipped)." >&2
+  echo "  If the suite legitimately changed, update the number DELIBERATELY in" >&2
+  echo "  the commit that changed it. Do not adjust it to get green." >&2
+  echo "  Command: $*" >&2
+  exit 1
+fi
 
 if [[ -n "$MIN" && "$EXECUTED" -lt "$MIN" ]]; then
   echo "" >&2
