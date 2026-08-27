@@ -118,7 +118,18 @@ SAMPLER_PID=$!
 # ⛔ ONE trap, extended -- a second `trap ... EXIT` SILENTLY REPLACES the first
 # (measured elsewhere in the fleet today), which would leave the sampler alive
 # or the tempfiles behind depending on which won.
-trap 'kill "$SAMPLER_PID" 2>/dev/null; rm -f "$OUT" "$SAMPLES"' EXIT
+# ⛔ EACH CLEANUP STEP IS EXPLICITLY NEUTRALISED (`|| :`), NOT MERELY SAFE
+# BECAUSE `set -e` HAPPENS TO BE ABSENT ABOVE. Measured elsewhere in the fleet
+# today: `kill` on an already-dead pid exits 1 and `wait` on a killed child
+# exits 143, and under `set -e` either KILLS THE SCRIPT AFTER THE SUITES HAVE
+# RUN AND BEFORE IT REPORTS THEM -- a cleanup defect wearing the costume of a
+# gate refusal, which cost two landings there.
+# We do not use `set -e`, so this is currently safe by the ABSENCE OF A FLAG --
+# and adding `set -e` is the single most natural hardening anyone would later
+# apply to this file. It would arm the trap SILENTLY. So the safety is written
+# down rather than inherited from a line someone may "improve".
+# THE CLEANUP OF A SAMPLER MUST NEVER BE ABLE TO FAIL THE RUN IT MEASURED.
+trap 'kill "$SAMPLER_PID" 2>/dev/null || :; rm -f "$OUT" "$SAMPLES" 2>/dev/null || :' EXIT
 
 "$@" >"$OUT" 2>&1
 CMD_RC=$?
