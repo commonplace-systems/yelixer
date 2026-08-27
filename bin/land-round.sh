@@ -85,7 +85,7 @@ gate() {  # gate <label> <cmd...>: run, keep the verdict line, stop on non-zero
 # PROPERTY 1 of 4, matching .github/workflows/ci.yml — boundary check.
 gate "boundary check" elixir test/support/check_commonplace_refs.exs .
 # PROPERTY 2 of 4 — the suite, count-asserted (mix test exits 0 on zero selection).
-gate "mix test (count-asserted)" bin/yx-test-guard --min 380 -- mix test
+gate "mix test (count-asserted)" bin/yx-test-guard --min 395 -- mix test
 # PROPERTY 3 of 4 — Yjs stable conformance, oracle REQUIRED, count-asserted.
 YELIXER_REQUIRE_YJS_ORACLE=1 YJS_ORACLE=stable \
   gate "diff_yjs vs stable" bin/yx-test-guard --exact 11 -- mix test test/yelixer/diff_yjs_test.exs --include diff_yjs

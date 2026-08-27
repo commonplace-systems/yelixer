@@ -23,11 +23,15 @@
 #
 # USAGE
 #
-#   bin/yx-test-guard --min 390 -- mix test
+#   bin/yx-test-guard --min 395 -- mix test
 #   bin/yx-test-guard --exact 11 -- mix test test/yelixer/diff_yjs_test.exs --include diff_yjs
 #   bin/yx-test-guard --exact 17 --expect-failures 7 -- mix test --include divergence ...
 #
-# --min   the run must report at least N tests
+# --min   at least N tests must have EXECUTED (not merely been defined --
+#         see the executed-count note below; this is the DEFAULT so a caller
+#         who knows nothing about the distinction still gets the right
+#         population. An opt-in correction is a remembered rule wearing a
+#         script's clothes.)
 # --exact the run must report exactly N tests (use where the suite is a fixed,
 #         known set — a conformance matrix that silently shrinks is the defect)
 # --expect-failures
@@ -129,14 +133,27 @@ fi
 # against the DEFINED count would let the floor be satisfied by tests that
 # never ran, which is the very substitution this guard exists to refuse. The
 # floor is therefore checked against EXECUTED = TOTAL - EXCLUDED.
+# Executed = (tests + doctests) − excluded − skipped.
+# ⛔ THE DOCTEST TERM IS NOT DECORATION: ExUnit's "N doctests, M tests" are
+# DISJOINT counts and "excluded" spans BOTH. Omitting it undercounts by the
+# doctest count and makes a CORRECT floor read as red. Skipped must come off
+# for the same reason excluded does — a skip did not run either.
+# (Formula and its measurement are commonplace's bin/cp-test-guard, 2026-08-18;
+# this repo's copy was ported before that fix and lost it.)
+DOCTESTS=0
+while read -r n; do DOCTESTS=$((DOCTESTS + n)); done \
+  < <(grep -oE '[0-9]+ doctests?,' "$OUT" | grep -oE '[0-9]+')
 EXCLUDED=0
 while read -r n; do EXCLUDED=$((EXCLUDED + n)); done \
   < <(grep -oE '[0-9]+ excluded' "$OUT" | grep -oE '[0-9]+')
-EXECUTED=$((TOTAL - EXCLUDED))
+SKIPPED_N=0
+while read -r n; do SKIPPED_N=$((SKIPPED_N + n)); done \
+  < <(grep -oE '[0-9]+ skipped' "$OUT" | grep -oE '[0-9]+')
+EXECUTED=$((TOTAL + DOCTESTS - EXCLUDED - SKIPPED_N))
 
 if [[ -n "$MIN" && "$EXECUTED" -lt "$MIN" ]]; then
   echo "" >&2
-  echo "yx-test-guard: FAILED — expected at least ${MIN} tests to RUN, saw ${EXECUTED} (${TOTAL} defined, ${EXCLUDED} excluded)." >&2
+  echo "yx-test-guard: FAILED — expected at least ${MIN} tests to RUN, saw ${EXECUTED} (${TOTAL} tests + ${DOCTESTS} doctests − ${EXCLUDED} excluded − ${SKIPPED_N} skipped)." >&2
   echo "  If the suite legitimately shrank, lower this DELIBERATELY in the" >&2
   echo "  commit that shrank it. Do not lower it to get green." >&2
   echo "  Command: $*" >&2

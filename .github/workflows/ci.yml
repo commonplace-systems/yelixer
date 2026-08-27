@@ -51,13 +51,17 @@ jobs:
       #
       # Wrapped in yx-test-guard because `mix test` exits 0 when it selects
       # NOTHING — assert the COUNT, never an exit code.
-      # Floor raised 380 -> 394 deliberately: +4 doc-spec pins. The 17
-      # :divergence tests are EXCLUDED here and counted in their own job below.
-      # The guard compares this floor against EXECUTED tests, not DEFINED ones
-      # -- ExUnit's "N tests" includes excluded tests, so a floor checked
-      # against it could be satisfied by tests that never ran.
+      # Floor raised 380 -> 395 deliberately: +4 doc-spec pins, +1 doctest term
+      # that the old arithmetic dropped. The 17 :divergence tests are EXCLUDED
+      # here and counted in their own job below.
+      #
+      # The guard compares this floor against EXECUTED tests, not DEFINED ones:
+      # ExUnit's "N tests" counts every test in the loaded files INCLUDING the
+      # excluded ones, so a floor checked against it can be satisfied by tests
+      # that never ran. Executed = (tests + doctests) - excluded - skipped;
+      # "N doctests, M tests" are DISJOINT and "excluded" spans both.
       - name: Run the suite (count-asserted)
-        run: bin/yx-test-guard --min 394 -- mix test
+        run: bin/yx-test-guard --min 395 -- mix test
 
       # PROPERTY 3 of 3 — WIRE CONFORMANCE WITH YJS ITSELF. This is the
       # property the library exists to have, and between the extraction and
