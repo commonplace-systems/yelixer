@@ -96,6 +96,18 @@ migration's acceptance explicitly does not claim it.
 - ⛔ **`small-test-dataset.bin` cannot diverge**: 13,108 non-ASCII characters, all BMP
   and precomposed, gap 0 everywhere. **"We tested with non-ASCII" is not the safety it
   looks like** — the protective property is gap 0, and non-ASCII is not gap 0.
+- ⛔ **Auditing whether a thing is *recorded* needs an instrument that can say no.**
+  A batch of probes certifies itself only when it is **mixed** — hits prove the
+  search is not blind, zeros prove it can miss — and a batch is mixed **by luck**
+  unless you seed it. Seed one **known-present** and one **known-absent**, and the
+  absent one must be **real-but-absent** (a concept genuinely not in this tree),
+  never gibberish: the fear being tested is that the probe matches your own
+  vocabulary rather than your repo, and a nonsense token cannot fail that way.
+  ⚠️ A mixed batch proves the instrument is not *globally* blind and says nothing
+  about whether an individual zero used the right string — the failure is
+  per-probe. And a **hit** is conclusive about the *string*, not about
+  filed-ness: read the path, because a stale entry, a comment, and a live record
+  all hit identically. Zero → control it before; hit → read the path after.
 - ⛔ **`mix test --trace` disables per-test timeouts and forces `--max-cases 1`.** Never
   take a verdict from a traced run.
 
