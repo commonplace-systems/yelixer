@@ -55,7 +55,18 @@ shift 3
 [[ $# -gt 0 ]] || { echo "yx-mutate: no command given (did you forget '--'?)" >&2; exit 64; }
 [[ -f "$FILE" ]] || { echo "yx-mutate: no such file: $FILE" >&2; exit 64; }
 
-COUNT=$(grep -F -o -- "$OLD" "$FILE" | wc -l)
+# ⛔ COUNT WITH THE SAME MATCHER THE SUBSTITUTION USES.
+# `grep -F` is LINE-BASED: given a multi-line OLD it treats each line as a
+# separate pattern, so it counts lines matching ANY of them. That both
+# refuses valid multi-line mutations and -- worse -- can report a count
+# that has nothing to do with how many times the actual substring occurs.
+# The check must agree with the action, so both are exact substring counts
+# over the whole file. (Found 2026-08-27 by using this script: it refused a
+# unique multi-line mutation claiming 7 occurrences.)
+COUNT=$(OLD="$OLD" FILE="$FILE" python3 -c '
+import os
+print(open(os.environ["FILE"]).read().count(os.environ["OLD"]))
+')
 
 if [[ "$COUNT" -eq 0 ]]; then
   echo "yx-mutate: REFUSED — the old string does not appear in $FILE." >&2
