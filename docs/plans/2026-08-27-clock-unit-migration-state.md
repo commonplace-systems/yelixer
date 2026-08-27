@@ -204,3 +204,59 @@ not as observed at this sha. The FIRST act of Round 1, before any edit to
 suite under the current guard and record the observed counts — because the
 migration's entire success signal is *the failure count going DOWN*, and a
 baseline you inferred from a config file cannot go down.
+
+## ✅ FACE 5 TIMESTAMP CORRECTED BY A BETTER INSTRUMENT (19:22Z)
+
+The declaration above dated the last run from a task-output artifact at
+17:44:47Z. `markdown`'s instrument is stronger — the NEWEST `_build` mtime,
+which cannot be defeated by a later overwrite the way "files touched in a
+window" can:
+
+```
+_build/test/lib/yelixer/.mix/.mix_test_failures   2026-08-27 18:35:46Z
+CONTROL: _build visible to find                   163 files
+```
+
+⇒ The last `mix test` at this door was **18:35:46Z**, not 17:44:47Z. It is
+still BEFORE `852695a` (18:36:30Z) and before all three `bin/yx-test-guard`
+edits, so **the conclusion is unchanged**: no suite has run against the
+current guard. The base for the ungated set stays `d5a7aaa`.
+
+⭐ Recorded because a claim that survives a better instrument should say
+which instrument it now rests on. The 17:44 artifact was a real run; it was
+not the LAST one, and "the newest artifact I happened to find" and "the
+newest artifact" are different objects.
+
+## 📋 ROUND 1 PRE-REGISTRATION — THE BASELINE, FIXED BEFORE THE SLOT
+
+⛔ Written now, while the box belongs to another door, so it cannot be
+tuned after seeing a number. Pre-registration is only worth anything if it
+predates the result.
+
+**Step 0, before ANY edit to `lib/yelixer/item.ex` — the exact commands:**
+```
+bin/yx-test-guard --exact 17 --expect-failures 5 -- \
+    mix test test/yelixer/divergence_clock_test.exs   --include divergence
+bin/yx-test-guard --exact 12 --expect-failures 5 -- \
+    mix test test/yelixer/divergence_content_test.exs --include divergence
+bin/yx-test-guard --exact 11 -- \
+    mix test test/yelixer/diff_yjs_test.exs --include diff_yjs
+```
+
+**What each outcome MEANS, decided now:**
+
+| observed | verdict |
+|---|---|
+| both divergence suites report exactly 5 failures | baseline CONFIRMED; the CI config was right; proceed |
+| a different failure count, suite otherwise healthy | baseline is the OBSERVED number. Record it, do NOT edit the gate to match, and the success criterion becomes "below the observed number" |
+| a count assertion fires (`--exact` mismatch) | STOP. The instrument moved under me; no migration starts against an instrument I cannot read |
+| conformance `--exact 11` not green | STOP. The oracle is the thing the migration is measured against |
+
+⛔ **No arm of this table permits editing a gate before the baseline is
+recorded.** The temptation at the moment a count disagrees is to fix the
+gate; that converts the only progress signal the round has into a constant.
+
+⚠️ **This is three suites, not one — a real box cost, and it buys no
+behaviour change.** It is still Step 0, because a migration whose success
+signal is "the failure count went down" cannot start from a number nobody
+measured.
