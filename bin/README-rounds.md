@@ -47,3 +47,15 @@ prints how to undo it (`git reset --hard <before-sha>`); only if every gate
 passes does it push `main` and the round branch to origin, then verifies the
 landing against what `origin/main` actually reports (not the exit code of
 `git push`).
+
+## Before Round 1 (the clock-unit migration)
+
+⭐ Read `docs/plans/2026-08-27-clock-unit-migration-state.md` before touching
+`lib/yelixer/item.ex`. It is the durable handoff for the migration and it
+records a baseline gap: the divergence counts quoted anywhere else in this
+repo are *as configured in CI*, not *as observed at this sha*.
+
+⚠️ NOTE on the scratchpad path cited at the top of this file: it lives under
+`/tmp/claude-1000/<session-id>/`, which does not survive the session. That
+reference is already dead for any later reader. Left visible rather than
+deleted, because the same defect is worth seeing once.

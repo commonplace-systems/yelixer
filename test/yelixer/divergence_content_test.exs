@@ -1,5 +1,11 @@
 defmodule Yelixer.DivergenceContentTest do
   @moduledoc """
+  ⭐ BEFORE CHANGING `lib/yelixer/item.ex` TO CLOSE THIS, READ
+  `docs/plans/2026-08-27-clock-unit-migration-state.md` FIRST.
+  It carries the acceptance rules, the coupled-lines trap, and the
+  baseline caveat — this instrument's counts are only a progress
+  signal if you took a baseline under the CURRENT guard first.
+
   Differential INSTRUMENT for four MEASURED content/wire divergences that
   are NOT covered by `test/yelixer/divergence_clock_test.exs` (CX-divergence,
   the grapheme-vs-UTF-16 clock bug at `lib/yelixer/item.ex:266`).
