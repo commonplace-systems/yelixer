@@ -276,5 +276,12 @@
     "owned_history_break": "Accepted compatibility cost where needed to match the pinned official Yjs behavior; not an adoption gate.",
     "incoming_new_edit_divergence": "Still an adoption blocker.",
     "live_store_reset_or_deletion": "Not authorized by the compatibility-break ruling."
+  },
+  "subsequent_repair": {
+    "codec": "59b04eb1ba4c03d003e91f8867db3bd90a517bf5",
+    "consumer": "fbae5bc27a2d4ed09eb23694d8416a0047cc8ab5",
+    "outcome": "bounded original incremental receipt and acknowledged durable reopen converge with Yjs13.6.32",
+    "evidence": "unicode-inbound-consumer.json",
+    "limit": "prior observations retain their exact old pins; no main adoption or deployment clearance"
   }
 }

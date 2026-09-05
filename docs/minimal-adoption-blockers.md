@@ -1,7 +1,8 @@
 # Minimal adoption evidence: baseline versus candidate
 
 The subsequent [incoming codec repair](unicode-inbound-repair.md) has its own
-baseline/fixed comparison. The historical rows below retain their original pins.
+baseline/fixed comparison and passing acknowledged-write/reopen consumer evidence.
+The historical rows below retain their original pins.
 
 This supplement answers the delayed ranking-seat evidence request. No full suite
 was repeated. The [minimal packet](compatibility-evidence/minimal-blocker-packet.json)
@@ -85,8 +86,9 @@ without exclusions or missing oracles. The output records incremental and fresh
 full-state observations separately. The existing old/candidate history reports
 supply the replay and rollback rows; those suites were not repeated.
 
-**Adoption stays blocked by incoming new-edit divergence.** An enforced safe inbound
-boundary or convergence repair is required. The user ruling of 2026-09-05 18:52:45 UTC
+**These earlier pins are blocked by incoming new-edit divergence.** The subsequent
+repair above supplies bounded convergence evidence on its own exact pins; this
+historical packet does not grant adoption clearance. The user ruling of 2026-09-05 18:52:45 UTC
 permits breaking our own history where needed to match official Yjs 13.6.32. Legacy
 view changes and old-reader rollback limits are accepted compatibility costs, not
 adoption gates; the former required-migration proposal is withdrawn. This permission

@@ -2,7 +2,8 @@
 
 The bounded codec repair matches official Yjs **13.6.32** for the identical
 incremental surrogate-interior edit that both previous dependency sets accepted
-with wrong text. Consumer verification and adoption review remain outstanding.
+with wrong text. The isolated consumer now also passes the actual acknowledged
+write/reopen route. Adoption review and landing remain separate and outstanding.
 The [earlier application measurements](minimal-adoption-blockers.md) remain valid
 for their exact old and candidate pins; they are not measurements of this repair.
 
@@ -79,13 +80,48 @@ full-state control, stable conformance 11/0, and separate preview conformance
 extracted control's unused aliases were removed and its final one-case run
 also passes with test compilation warnings treated as errors.
 
+## Consumer acceptance
+
+Repaired codec: `59b04eb1ba4c03d003e91f8867db3bd90a517bf5`.
+Consumer candidate: `fbae5bc27a2d4ed09eb23694d8416a0047cc8ab5` on
+`compat/unicode-inbound-1`, based on the earlier isolated Next candidate
+`f041456b159d8dbd6f11fa3cb8991880cc17766a`. Only Next's top-level Yelixer pin
+changes; Yepochs `f184c9e9dd99b7baced407fb46632e887e3fb948`, Merkle
+`9e7caf43e541864c68e9374b7a7f414a05cdfdc4` and the reducer override remain
+unchanged. All 13 installed Git dependencies match the locks. The codec and app
+were force-compiled and their module hashes/timestamps captured. App `lib/` is
+unchanged.
+
+The same unchanged original consumer boundary arm runs first: one executed,
+zero failures, 25 excluded, rc 0. Its acknowledged text now matches real Yjs.
+The new fixed-byte arm then sends the original base and delta above as separate
+Attachment author frames: one executed, zero failures, 26 excluded, rc 0.
+The stored commit retains the exact delta. Both sides render `\u{FFFD}X\u{FFFD}A`
+followed by the synthetic welcome document. Its fixed root anchor places it before
+the welcome text, while the earlier Workspace-authored arm appends at the end.
+
+The delta is durably acknowledged with 11 log entries; duplicate delivery adds
+no write. Attachment/Realm/SQLite teardown and reopen retain the same head, text
+and 11 entries. A subsequent incremental browser `^` insertion converges and
+receives another durable acknowledgment, with 13 entries. Expected/actual text,
+heads, counts, wire transcripts and compiled identities are retained in the
+[consumer evidence packet](compatibility-evidence/unicode-inbound-consumer.json).
+Formatting and warnings-as-errors checks pass. No broad consumer suite or
+Chromium acceptance was repeated for this bounded repair verification.
+
 ## Limits and landing shape
 
-This phase establishes codec behavior, not correctness of the consumer's durable
-acknowledgment route. That route must separately pass against the repaired pin,
-including durable reopen, before the original incoming-edit blocker can close.
-Library landing, consumer pin adoption and deployment remain distinct actions.
+The bounded incoming-edit defect now converges in both the codec and the consumer's
+durable acknowledgment/reopen route at the exact revisions above. This is not
+blanket editing clearance. Library landing, consumer pin adoption and deployment
+remain distinct actions requiring their own review and applicable gates.
 No main branch or live store has been changed by this repair.
+
+Standalone Yepochs and Merkle candidate manifests still name the earlier codec
+`bcaec6a`; Next's explicit top-level override is what selects the repaired codec
+in this verification. Publishing the repaired library and coherently advancing
+its standalone consumers are follow-up adoption work, not completed pin changes
+in those repositories. This bounded window changed only the Next override.
 
 The previously accepted own-history semantic break is a compatibility cost, not
 a preservation requirement or an additional adoption blocker. Four unrelated

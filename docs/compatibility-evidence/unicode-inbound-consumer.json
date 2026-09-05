@@ -1,0 +1,1358 @@
+{
+  "scope": "Bounded UNICODE-INBOUND-1 consumer acceptance; no landing, deployment, or broad-suite claim",
+  "official_yjs": "13.6.32",
+  "consumer_base": "f041456b159d8dbd6f11fa3cb8991880cc17766a",
+  "codec": "59b04eb1ba4c03d003e91f8867db3bd90a517bf5",
+  "before": {
+    "head": "f041456b159d8dbd6f11fa3cb8991880cc17766a",
+    "files": {
+      "mix.exs": "26ea18ff309c36296ec0ccdb340d1999f0a2bc4b59b771b2c9d8a74dc50f952f",
+      "mix.lock": "46598d5d980f359c3cb7275fd3856d80e7fe3eedb8aad2e3c03bdb2236d2e3ec",
+      "test/commonplace_next/yjs/attachment_test.exs": "1df420f5c82b7ea713e7a5b72a2b2f530b225fa968b16e1c6c254baed639bc5e"
+    }
+  },
+  "closure": {
+    "git_dependencies": [
+      {
+        "name": "commonplace_attribute_map",
+        "url": "https://github.com/commonplace-systems/commonplace-log-reducer.git",
+        "lock": "4695d407d7fa5775ca375962eac978fabd78a8c5",
+        "installed": "4695d407d7fa5775ca375962eac978fabd78a8c5"
+      },
+      {
+        "name": "commonplace_biscuit",
+        "url": "https://github.com/commonplace-systems/commonplace-biscuit.git",
+        "lock": "1044bc35cfabcd91dff174f8c4e6cb3be42978ba",
+        "installed": "1044bc35cfabcd91dff174f8c4e6cb3be42978ba"
+      },
+      {
+        "name": "commonplace_cell",
+        "url": "https://github.com/commonplace-systems/commonplace-cell.git",
+        "lock": "68214dc6b4cc0bba927060b55fc8c166df34678b",
+        "installed": "68214dc6b4cc0bba927060b55fc8c166df34678b"
+      },
+      {
+        "name": "commonplace_dir",
+        "url": "https://github.com/commonplace-systems/commonplace-dir.git",
+        "lock": "8b525a9ff9c3e23121fcafd260f8209afa2f5ea7",
+        "installed": "8b525a9ff9c3e23121fcafd260f8209afa2f5ea7"
+      },
+      {
+        "name": "commonplace_doc",
+        "url": "https://github.com/commonplace-systems/commonplace-doc.git",
+        "lock": "faeea17d2bc053ac2e51d1e5722ce5ee257b199f",
+        "installed": "faeea17d2bc053ac2e51d1e5722ce5ee257b199f"
+      },
+      {
+        "name": "commonplace_doc_sync",
+        "url": "https://github.com/commonplace-systems/commonplace-doc-sync.git",
+        "lock": "9d8aba81728e68c9a9e49fd89179a5b499ba20da",
+        "installed": "9d8aba81728e68c9a9e49fd89179a5b499ba20da"
+      },
+      {
+        "name": "commonplace_log",
+        "url": "https://github.com/commonplace-systems/commonplace-log.git",
+        "lock": "778997e5b5e90d304343f3a7cb24b768c09de172",
+        "installed": "778997e5b5e90d304343f3a7cb24b768c09de172"
+      },
+      {
+        "name": "commonplace_log_reducer",
+        "url": "https://github.com/commonplace-systems/commonplace-log-reducer.git",
+        "lock": "4695d407d7fa5775ca375962eac978fabd78a8c5",
+        "installed": "4695d407d7fa5775ca375962eac978fabd78a8c5"
+      },
+      {
+        "name": "commonplace_markdown",
+        "url": "https://github.com/commonplace-systems/commonplace-markdown.git",
+        "lock": "04a2aa437ac472dff067fe0979854d5300da5769",
+        "installed": "04a2aa437ac472dff067fe0979854d5300da5769"
+      },
+      {
+        "name": "commonplace_merkle_crdt",
+        "url": "https://github.com/commonplace-systems/commonplace-merkle-crdt.git",
+        "lock": "9e7caf43e541864c68e9374b7a7f414a05cdfdc4",
+        "installed": "9e7caf43e541864c68e9374b7a7f414a05cdfdc4"
+      },
+      {
+        "name": "commonplace_value",
+        "url": "https://github.com/commonplace-systems/commonplace-value.git",
+        "lock": "177567aad51e1f48201cfd893a0f24d9c7166e19",
+        "installed": "177567aad51e1f48201cfd893a0f24d9c7166e19"
+      },
+      {
+        "name": "yelixer",
+        "url": "https://github.com/commonplace-systems/yelixer.git",
+        "lock": "59b04eb1ba4c03d003e91f8867db3bd90a517bf5",
+        "installed": "59b04eb1ba4c03d003e91f8867db3bd90a517bf5"
+      },
+      {
+        "name": "yepochs",
+        "url": "https://github.com/commonplace-systems/yepochs.git",
+        "lock": "f184c9e9dd99b7baced407fb46632e887e3fb948",
+        "installed": "f184c9e9dd99b7baced407fb46632e887e3fb948"
+      }
+    ],
+    "compiled_modules": {
+      "yelixer": [
+        {
+          "file": "Elixir.Yelixer.BlockStore.beam",
+          "sha256": "e1b549c8148cbdd85bcf12c7f941a0acc46734b5a7e2df7fae37aebfd6754b24",
+          "mtime_utc": "2026-09-05T20:12:34+00:00"
+        },
+        {
+          "file": "Elixir.Yelixer.DeleteSet.beam",
+          "sha256": "c996086644446f5e1bb6e9bf4c46dd30d41b63052559060d63af8e75ce5c701f",
+          "mtime_utc": "2026-09-05T20:12:34+00:00"
+        },
+        {
+          "file": "Elixir.Yelixer.Doc.beam",
+          "sha256": "a5634bacdd5174c1a7b8727a3b570dafb1090758efb626d8a46105f79cbc3ca4",
+          "mtime_utc": "2026-09-05T20:12:34+00:00"
+        },
+        {
+          "file": "Elixir.Yelixer.DocServer.beam",
+          "sha256": "2614432de1c2ab18892107b94c0562e1dfee119179d7c94a46824eda775d41a0",
+          "mtime_utc": "2026-09-05T20:12:34+00:00"
+        },
+        {
+          "file": "Elixir.Yelixer.Encoding.beam",
+          "sha256": "d7288a351be0c7e8a741f37a39f16aa2b27e7dcf13af6a050a5e6593e941ce06",
+          "mtime_utc": "2026-09-05T20:12:34+00:00"
+        },
+        {
+          "file": "Elixir.Yelixer.ID.beam",
+          "sha256": "2fd63badab04e1fe053b048ef4f644d54a8f0d9c199368d3066e90da21136ab6",
+          "mtime_utc": "2026-09-05T20:12:34+00:00"
+        },
+        {
+          "file": "Elixir.Yelixer.Integrate.beam",
+          "sha256": "afae57a3860bc2c75dbf5f0c3960fb4fc73900d9bdd1ff17046b95b958c8d8ec",
+          "mtime_utc": "2026-09-05T20:12:34+00:00"
+        },
+        {
+          "file": "Elixir.Yelixer.Item.beam",
+          "sha256": "46b030d3ee57dd8fb635b63c236abb71ce447fc001afe64e6d65bae350b04b8b",
+          "mtime_utc": "2026-09-05T20:12:34+00:00"
+        },
+        {
+          "file": "Elixir.Yelixer.StateVector.beam",
+          "sha256": "996d2b765ef6c24adb6699b49658c35df4759f54ad6c1e3f5ed767ad5c235096",
+          "mtime_utc": "2026-09-05T20:12:34+00:00"
+        },
+        {
+          "file": "Elixir.Yelixer.SyncProtocol.beam",
+          "sha256": "13d88ae703692bb8580fcbd6c7f6c146a6f2a2920c42c4948b522d57849d73ed",
+          "mtime_utc": "2026-09-05T20:12:34+00:00"
+        },
+        {
+          "file": "Elixir.Yelixer.Types.Array.beam",
+          "sha256": "4dbf1df975fc1ddf84c78d9d7a88af6d1d5edf9209a8cbca530f5bcec67a86bd",
+          "mtime_utc": "2026-09-05T20:12:34+00:00"
+        },
+        {
+          "file": "Elixir.Yelixer.Types.Text.beam",
+          "sha256": "2877efc1b4a9fbfd0d12492e9ba2b03cd73b4cc66a023527e958b3f5bf18c897",
+          "mtime_utc": "2026-09-05T20:12:34+00:00"
+        },
+        {
+          "file": "Elixir.Yelixer.Types.XMLElement.beam",
+          "sha256": "ff51cb88accec7eb0e3c6b25e6aa8bba4bfce5e3b9e51adb8bbe6255528acc73",
+          "mtime_utc": "2026-09-05T20:12:34+00:00"
+        },
+        {
+          "file": "Elixir.Yelixer.Types.XMLEscape.beam",
+          "sha256": "119b75f809d001a8eeb0eba9fc6ce951738d7d4a3892215a3250c2756edc002a",
+          "mtime_utc": "2026-09-05T20:12:34+00:00"
+        },
+        {
+          "file": "Elixir.Yelixer.Types.XMLFragment.beam",
+          "sha256": "6cdc1ee6fad8f4a12a2ed380c2456b3f30d054b0f8389c1fba96d7038da51aec",
+          "mtime_utc": "2026-09-05T20:12:34+00:00"
+        },
+        {
+          "file": "Elixir.Yelixer.Types.XMLText.beam",
+          "sha256": "aeeee29485acf9b270e714fe24b035bcfa7f7ba8129fd8599f0c253be17b0f40",
+          "mtime_utc": "2026-09-05T20:12:34+00:00"
+        },
+        {
+          "file": "Elixir.Yelixer.Types.YMap.beam",
+          "sha256": "efe5ff2e1e2c532b04ce33d0492be08f5393e7d1da5a490388ee1571600f8442",
+          "mtime_utc": "2026-09-05T20:12:34+00:00"
+        },
+        {
+          "file": "Elixir.Yelixer.Types.beam",
+          "sha256": "c296ab46f937393377314b12380863b3b1a6c86963057e68037d8d11a4d5d831",
+          "mtime_utc": "2026-09-05T20:12:34+00:00"
+        },
+        {
+          "file": "Elixir.Yelixer.beam",
+          "sha256": "fa2255614f30d85bdbc4b92272a2735aa31e7d69734e09f93ae68c87bf1fdcdd",
+          "mtime_utc": "2026-09-05T20:12:34+00:00"
+        }
+      ],
+      "yepochs": [
+        {
+          "file": "Elixir.Yepochs.Algorithm.beam",
+          "sha256": "abf172ad54fb31bb609aa6993c9a0324479638b4ec81d4ae852e8ac5176cfaef",
+          "mtime_utc": "2026-09-05T20:12:38+00:00"
+        },
+        {
+          "file": "Elixir.Yepochs.Bridge.Basis.beam",
+          "sha256": "c6feb87f0429a9a8f238a7f5817711326ac792d2fdd44d37f22cccb57eb66e3d",
+          "mtime_utc": "2026-09-05T20:12:38+00:00"
+        },
+        {
+          "file": "Elixir.Yepochs.Bridge.Delta.beam",
+          "sha256": "afb5f271a897d1d2186bbbd29c72a0c337751969e60bcb6dd8de7163005f0330",
+          "mtime_utc": "2026-09-05T20:12:38+00:00"
+        },
+        {
+          "file": "Elixir.Yepochs.Bridge.beam",
+          "sha256": "84afecfd5e7bcfe9786edb9970ed3c8576f2b64e79f68298f859a309dc5bf1b6",
+          "mtime_utc": "2026-09-05T20:12:38+00:00"
+        },
+        {
+          "file": "Elixir.Yepochs.Crossing.Receipt.beam",
+          "sha256": "a230bceaff076e18502e957e2550cd1de1f25d9557252146d0523566f4b2062b",
+          "mtime_utc": "2026-09-05T20:12:38+00:00"
+        },
+        {
+          "file": "Elixir.Yepochs.Crossing.beam",
+          "sha256": "8d986ee30bd30646fa714e2f19e746dda411b38b016dc4cd310b8e8ac2302f7f",
+          "mtime_utc": "2026-09-05T20:12:38+00:00"
+        },
+        {
+          "file": "Elixir.Yepochs.Derivation.beam",
+          "sha256": "5ad9fb825ee8bcef163d6698317448bfeba437dd2e78751bd099612180b638ef",
+          "mtime_utc": "2026-09-05T20:12:38+00:00"
+        },
+        {
+          "file": "Elixir.Yepochs.EpochToken.beam",
+          "sha256": "cbf9513915b36a322d59bb651ea0dc3f2f6512c7a8c78914099f71ba602c3aac",
+          "mtime_utc": "2026-09-05T20:12:38+00:00"
+        },
+        {
+          "file": "Elixir.Yepochs.Error.beam",
+          "sha256": "bed51ca45f74d27d81f71b4eba9939fc6d91a4016537412de293ca0a4db33e4c",
+          "mtime_utc": "2026-09-05T20:12:38+00:00"
+        },
+        {
+          "file": "Elixir.Yepochs.Limits.beam",
+          "sha256": "282632c20a3e8677c4a098bf01559468d56d99ea71d3dfcb8bc70fab99763b40",
+          "mtime_utc": "2026-09-05T20:12:38+00:00"
+        },
+        {
+          "file": "Elixir.Yepochs.Preflight.beam",
+          "sha256": "e88a7de918109b2bdad82290dbfe7bec8a7058508a7bdd227f80631de543c471",
+          "mtime_utc": "2026-09-05T20:12:38+00:00"
+        },
+        {
+          "file": "Elixir.Yepochs.Rebase.Adapter.beam",
+          "sha256": "59c4a950d867f6c81e3a7f282ae80acd8db1e83a32e4cadb401fdf44127c43b7",
+          "mtime_utc": "2026-09-05T20:12:38+00:00"
+        },
+        {
+          "file": "Elixir.Yepochs.Rebase.Result.beam",
+          "sha256": "c51a3e198f9dca2e28427c5464339cf74e70387a8c0a1c5f40db3e4b5c1e1bb1",
+          "mtime_utc": "2026-09-05T20:12:38+00:00"
+        },
+        {
+          "file": "Elixir.Yepochs.Rebase.beam",
+          "sha256": "4c8befe24bb81df7f87adaa65d5dd966dfa742679749d8eb11dda1da44af88dc",
+          "mtime_utc": "2026-09-05T20:12:38+00:00"
+        },
+        {
+          "file": "Elixir.Yepochs.Snapshot.beam",
+          "sha256": "80476b257f241c8b20e64951496606332f31ea2d40e8d1a68f252ba1c00cb296",
+          "mtime_utc": "2026-09-05T20:12:38+00:00"
+        },
+        {
+          "file": "Elixir.Yepochs.Snapshotter.beam",
+          "sha256": "86c933513223a895a2287bf81bf1e6faa0699f3bda07d43609c41222dfd2b304",
+          "mtime_utc": "2026-09-05T20:12:38+00:00"
+        },
+        {
+          "file": "Elixir.Yepochs.Span.beam",
+          "sha256": "c24f5345bc43d7cd5be07fd491a6904b456ef3aa1cf5bd18e593876339f6acde",
+          "mtime_utc": "2026-09-05T20:12:38+00:00"
+        },
+        {
+          "file": "Elixir.Yepochs.Translation.beam",
+          "sha256": "16c26429df7c6ad2a78a85873f13520c67f4d459dcd8e5400105c1297064826f",
+          "mtime_utc": "2026-09-05T20:12:38+00:00"
+        },
+        {
+          "file": "Elixir.Yepochs.Translator.beam",
+          "sha256": "99f4c8d2fcfb254a0ccbd9d0855a120f4c74c795f3a5d2ca64f03b631994e6a9",
+          "mtime_utc": "2026-09-05T20:12:38+00:00"
+        },
+        {
+          "file": "Elixir.Yepochs.Update.beam",
+          "sha256": "5b637209c9d54a94afcd5471290bab0991627a10f286aa5fefd5e9d7c3c9953c",
+          "mtime_utc": "2026-09-05T20:12:38+00:00"
+        },
+        {
+          "file": "Elixir.Yepochs.beam",
+          "sha256": "54fa10d85c72cc93af3799557431cb20c21f60c6ed735154fa414ba7ab4cb8b0",
+          "mtime_utc": "2026-09-05T20:12:38+00:00"
+        }
+      ],
+      "commonplace_merkle_crdt": [
+        {
+          "file": "Elixir.CommonplaceMerkleCrdt.CanonicalJson.beam",
+          "sha256": "5394fe3eef7b6699a407e38be08db6fd4fa6139e7ecf5b3e1278b5b577238339",
+          "mtime_utc": "2026-09-05T20:12:40+00:00"
+        },
+        {
+          "file": "Elixir.CommonplaceMerkleCrdt.State.beam",
+          "sha256": "485fe60f94d19134f7fe7ea5dac3ab4133606fff1894d9508d535485ae38085c",
+          "mtime_utc": "2026-09-05T20:12:40+00:00"
+        },
+        {
+          "file": "Elixir.CommonplaceMerkleCrdt.V1.beam",
+          "sha256": "fba9cd96bedd04af981df370155f28224470bc6ed020630173048ccefe731aee",
+          "mtime_utc": "2026-09-05T20:12:40+00:00"
+        }
+      ],
+      "commonplace_next": [
+        {
+          "file": "Elixir.CommonplaceNext.Application.beam",
+          "sha256": "d6d5aaa772e38c93bcfd40c8c7444f14e322302b45a31869cb802ce7b665d2eb",
+          "mtime_utc": "2026-09-05T20:12:48+00:00"
+        },
+        {
+          "file": "Elixir.CommonplaceNext.CaptureTimingFormatter.beam",
+          "sha256": "46cc5def6ce75d2784299babce0c01fb5dd45d8ec1530db81cba78324310af34",
+          "mtime_utc": "2026-09-05T20:12:48+00:00"
+        },
+        {
+          "file": "Elixir.CommonplaceNext.Cell.Adapters.Directory.beam",
+          "sha256": "af3382c1e213b9840952096644f7bc4781b48d77a7ca120edc351de245662677",
+          "mtime_utc": "2026-09-05T20:12:48+00:00"
+        },
+        {
+          "file": "Elixir.CommonplaceNext.Cell.Adapters.Document.beam",
+          "sha256": "bd42978dd70fe02c60eb910eb44433ce2defeafd3c07f7391ef361b3525a6637",
+          "mtime_utc": "2026-09-05T20:12:48+00:00"
+        },
+        {
+          "file": "Elixir.CommonplaceNext.Cell.Host.beam",
+          "sha256": "aa3818dfe144ac04802322ba1bbbab5532e11a62fe109f79d1f8653eb577ec1b",
+          "mtime_utc": "2026-09-05T20:12:48+00:00"
+        },
+        {
+          "file": "Elixir.CommonplaceNext.Cell.Supervisor.beam",
+          "sha256": "9da52d9fb25f3f739f1ad87b5751b508e11809e5920f57c887a603dac31f48af",
+          "mtime_utc": "2026-09-05T20:12:48+00:00"
+        },
+        {
+          "file": "Elixir.CommonplaceNext.Checkpoint.Telemetry.beam",
+          "sha256": "3969d12973dc86828637c48bf3e340f7fa49548b77d413fd89812a0470f635eb",
+          "mtime_utc": "2026-09-05T20:12:48+00:00"
+        },
+        {
+          "file": "Elixir.CommonplaceNext.Checkpoint.Worker.beam",
+          "sha256": "84d99bf956bc3a9bbf8e4845b90282866fed10ffbb4b5c5b9aeb43313a4295da",
+          "mtime_utc": "2026-09-05T20:12:48+00:00"
+        },
+        {
+          "file": "Elixir.CommonplaceNext.CloudflareAccess.AssertionVerifier.beam",
+          "sha256": "72774f3bafcf72d30fc65dc2e4d65109090080d8ccf2691816a70feae66c1689",
+          "mtime_utc": "2026-09-05T20:12:48+00:00"
+        },
+        {
+          "file": "Elixir.CommonplaceNext.CloudflareAccess.AuthenticatedHuman.beam",
+          "sha256": "edb9486cdbc7510814d235e3abb15bfdf271011ac18bebfc09ef637380b3b72e",
+          "mtime_utc": "2026-09-05T20:12:48+00:00"
+        },
+        {
+          "file": "Elixir.CommonplaceNext.CloudflareAccess.Config.beam",
+          "sha256": "668fdc44ee761f6c2b4817573afda3cfb6efe23ab26c3b78ca27ec495ebd1dd6",
+          "mtime_utc": "2026-09-05T20:12:48+00:00"
+        },
+        {
+          "file": "Elixir.CommonplaceNext.CloudflareAccess.KeySource.beam",
+          "sha256": "9b067a170f40736d91e60d8e85edb4a79b579e6bc65ad5b6130a6b8afff2a328",
+          "mtime_utc": "2026-09-05T20:12:48+00:00"
+        },
+        {
+          "file": "Elixir.CommonplaceNext.DocSync.CellEndpoint.beam",
+          "sha256": "10f97619d5aece113eaa88b1812c81291a84528dd8c43612d1f16d53b00a705a",
+          "mtime_utc": "2026-09-05T20:12:48+00:00"
+        },
+        {
+          "file": "Elixir.CommonplaceNext.DocSync.Factory.beam",
+          "sha256": "b2a28500cf0ff273afedcfcf5be3ff0360237d99a6ff11cf99fd93208d66d24f",
+          "mtime_utc": "2026-09-05T20:12:48+00:00"
+        },
+        {
+          "file": "Elixir.CommonplaceNext.DocSync.Journal.File.beam",
+          "sha256": "51e3d5e03a395ec4df3494d3e9d6039ad63eb0da0b0710e784829e9490673982",
+          "mtime_utc": "2026-09-05T20:12:48+00:00"
+        },
+        {
+          "file": "Elixir.CommonplaceNext.DocSync.Journal.Log.beam",
+          "sha256": "78fb495dc840bcd1e87af1819d0e4fe063489083ca153fc69ad85896397345df",
+          "mtime_utc": "2026-09-05T20:12:48+00:00"
+        },
+        {
+          "file": "Elixir.CommonplaceNext.DocSync.Journal.beam",
+          "sha256": "fb87228794ef50dfef03bd7fd5a6e162da8111e58ed85a16346a9e32e90ca9a3",
+          "mtime_utc": "2026-09-05T20:12:48+00:00"
+        },
+        {
+          "file": "Elixir.CommonplaceNext.DocSync.Store.beam",
+          "sha256": "cf59f530aa849a55cd261042ebe0265e4f67fc080e3f8810f25f36fc218b5399",
+          "mtime_utc": "2026-09-05T20:12:48+00:00"
+        },
+        {
+          "file": "Elixir.CommonplaceNext.EditorCell.MirrorSupervisor.beam",
+          "sha256": "7d2015e853de8c4f096692fb25ef372dd5d5bcfb66af3043516ad339a6f2ce3a",
+          "mtime_utc": "2026-09-05T20:12:48+00:00"
+        },
+        {
+          "file": "Elixir.CommonplaceNext.EditorCell.Mirrors.beam",
+          "sha256": "137bdb88cb127dddd21a60e85d0f1436f8b3f81d9557bd4b275a9947b2442d28",
+          "mtime_utc": "2026-09-05T20:12:48+00:00"
+        },
+        {
+          "file": "Elixir.CommonplaceNext.EditorCell.SyncStatus.beam",
+          "sha256": "89c45457b1529b02eb9604e1e9deb5208ae056716700d453a39ef984553f844e",
+          "mtime_utc": "2026-09-05T20:12:48+00:00"
+        },
+        {
+          "file": "Elixir.CommonplaceNext.EditorCell.beam",
+          "sha256": "adec1b50091685dc29baf5ca5d07790c15f02ecb6bfd194b7cc8b1f23751deb2",
+          "mtime_utc": "2026-09-05T20:12:48+00:00"
+        },
+        {
+          "file": "Elixir.CommonplaceNext.EditorPlacementTestHelper.beam",
+          "sha256": "ad0e52a1dacd8dfaf4c81610fb497511bcf869df33f3a1a39f6e9689eb3cce15",
+          "mtime_utc": "2026-09-05T20:12:48+00:00"
+        },
+        {
+          "file": "Elixir.CommonplaceNext.HostLocalSession.beam",
+          "sha256": "5b9f196751c838bd9dd55c42348e30bfa0b455f11adbefc03b3989819596212a",
+          "mtime_utc": "2026-09-05T20:12:48+00:00"
+        },
+        {
+          "file": "Elixir.CommonplaceNext.Hosts.beam",
+          "sha256": "ee4486c566d7d526e555d9e561048d99718c56a19cd5770360f2869761482b20",
+          "mtime_utc": "2026-09-05T20:12:48+00:00"
+        },
+        {
+          "file": "Elixir.CommonplaceNext.Logins.beam",
+          "sha256": "6b716f0b175309d39a042160368f21a1329aec87ab51073a7e062fccc4a4ff2b",
+          "mtime_utc": "2026-09-05T20:12:48+00:00"
+        },
+        {
+          "file": "Elixir.CommonplaceNext.Organization.EditorPlacement.beam",
+          "sha256": "183415d8abadfe6a0015de4fa27a744a2de21d3858442caeae65089e42d27572",
+          "mtime_utc": "2026-09-05T20:12:48+00:00"
+        },
+        {
+          "file": "Elixir.CommonplaceNext.Organization.ExternalGrant.beam",
+          "sha256": "378bab6bab00634859320a0ed971fa0486f90a2935beec2f1f66165699b11a43",
+          "mtime_utc": "2026-09-05T20:12:48+00:00"
+        },
+        {
+          "file": "Elixir.CommonplaceNext.Organization.Identity.beam",
+          "sha256": "84dd1f06ec8cc497d0e210e0f9f15c7e2d6971419abcc4e977211ce0ec76bf60",
+          "mtime_utc": "2026-09-05T20:12:48+00:00"
+        },
+        {
+          "file": "Elixir.CommonplaceNext.Organization.Membership.beam",
+          "sha256": "5495a25be4bf92bbdd1f9995b52061db0a629a803d934c3097d96005206cdc06",
+          "mtime_utc": "2026-09-05T20:12:48+00:00"
+        },
+        {
+          "file": "Elixir.CommonplaceNext.Organization.Policy.Compiled.beam",
+          "sha256": "1a357969b2d993c94ceb4582ef835749aeb8b9e387984514b456de80cb085b39",
+          "mtime_utc": "2026-09-05T20:12:48+00:00"
+        },
+        {
+          "file": "Elixir.CommonplaceNext.Organization.Policy.beam",
+          "sha256": "1752fc91cc0f9ab86d1060758155047f6f3644c58b53ed1b6e1c5ab1b34b490a",
+          "mtime_utc": "2026-09-05T20:12:48+00:00"
+        },
+        {
+          "file": "Elixir.CommonplaceNext.Organization.Provisioner.beam",
+          "sha256": "25542f4e0589a06d3afc6d76aca4417d61883088ac6a3dbde896fdca8da4f6d6",
+          "mtime_utc": "2026-09-05T20:12:48+00:00"
+        },
+        {
+          "file": "Elixir.CommonplaceNext.Organization.SessionCell.beam",
+          "sha256": "e2790a9f455f6852b51a08d08ed87e00a43c113a9f774dba22cda5b8affdf78b",
+          "mtime_utc": "2026-09-05T20:12:48+00:00"
+        },
+        {
+          "file": "Elixir.CommonplaceNext.Organization.Space.beam",
+          "sha256": "fdd66d90aece56ae639ea7c1491b544bca6e8c9008806a66b4d8495b1edf6865",
+          "mtime_utc": "2026-09-05T20:12:48+00:00"
+        },
+        {
+          "file": "Elixir.CommonplaceNext.Organization.beam",
+          "sha256": "b453c6948d4e762d00b410a9df6a5bb7c82ae47719e5524c69fabc2b3c8a17b3",
+          "mtime_utc": "2026-09-05T20:12:48+00:00"
+        },
+        {
+          "file": "Elixir.CommonplaceNext.Realm.DirectoryIssuer.beam",
+          "sha256": "9b98df5ae514ce1aac275657c5fca818f6f313dbd14ef1b2b65a367e1086adf4",
+          "mtime_utc": "2026-09-05T20:12:48+00:00"
+        },
+        {
+          "file": "Elixir.CommonplaceNext.Realm.EditorIssuer.beam",
+          "sha256": "7586b08540f099948df5f524ba8103d1ab7f155dd609e4f61436313648e7aeba",
+          "mtime_utc": "2026-09-05T20:12:48+00:00"
+        },
+        {
+          "file": "Elixir.CommonplaceNext.Realm.Gateway.Bootstrap.beam",
+          "sha256": "98343aa38c587ec48240d429fd231f85fbd7a088d09d40d3211d90350d3fcdf0",
+          "mtime_utc": "2026-09-05T20:12:48+00:00"
+        },
+        {
+          "file": "Elixir.CommonplaceNext.Realm.Gateway.Client.beam",
+          "sha256": "a8bff659b04ddf765e10373e520292371200987e30ea97e7419a01315a9a87f5",
+          "mtime_utc": "2026-09-05T20:12:48+00:00"
+        },
+        {
+          "file": "Elixir.CommonplaceNext.Realm.Gateway.Credentials.beam",
+          "sha256": "0cd244b6881a2c15b8f7d85780ebe95741e27242484aab85a2be670f8238e5b5",
+          "mtime_utc": "2026-09-05T20:12:48+00:00"
+        },
+        {
+          "file": "Elixir.CommonplaceNext.Realm.Gateway.Deadline.beam",
+          "sha256": "ddabd33aa26c4f132deb8b56cd3f3bbdf31a11274c7f0ea42af4ef961728f419",
+          "mtime_utc": "2026-09-05T20:12:48+00:00"
+        },
+        {
+          "file": "Elixir.CommonplaceNext.Realm.Gateway.Grant.beam",
+          "sha256": "315073d0a911ec8bec652e4f5bd2fb2c37f5b55057ea78dd13082c6d307b1a87",
+          "mtime_utc": "2026-09-05T20:12:48+00:00"
+        },
+        {
+          "file": "Elixir.CommonplaceNext.Realm.Gateway.Listener.beam",
+          "sha256": "869b025dd3a4a4e8760e85704a1cae587f61ab9e6d04d4ac130aaab2cebc73ec",
+          "mtime_utc": "2026-09-05T20:12:48+00:00"
+        },
+        {
+          "file": "Elixir.CommonplaceNext.Realm.Gateway.Sessions.beam",
+          "sha256": "b8ec5489e26a4b4ac8439fe9f6e1582457bf2ab53736498f9230c2b07c39fc6c",
+          "mtime_utc": "2026-09-05T20:12:48+00:00"
+        },
+        {
+          "file": "Elixir.CommonplaceNext.Realm.Gateway.Subscription.beam",
+          "sha256": "4407367b0ef2f053092e771c89a5cd7827fd62aa624f25d19948b946c347251c",
+          "mtime_utc": "2026-09-05T20:12:48+00:00"
+        },
+        {
+          "file": "Elixir.CommonplaceNext.Realm.Gateway.TransportIdentity.beam",
+          "sha256": "99bda9a364c3e2bb86ed5d208aeca7407f8c41319ab3046dfda34af9d10201bf",
+          "mtime_utc": "2026-09-05T20:12:48+00:00"
+        },
+        {
+          "file": "Elixir.CommonplaceNext.Realm.Gateway.beam",
+          "sha256": "a0530b52c436a06b1512103df35ba873fdd2b525f9861158710660e16832b8c4",
+          "mtime_utc": "2026-09-05T20:12:48+00:00"
+        },
+        {
+          "file": "Elixir.CommonplaceNext.Realm.Keystore.beam",
+          "sha256": "ceb20963280e82ce24a19bf1a389f3defd9461ce57936be02774e5ef6d20831c",
+          "mtime_utc": "2026-09-05T20:12:48+00:00"
+        },
+        {
+          "file": "Elixir.CommonplaceNext.Realm.Placement.beam",
+          "sha256": "34b89076e1ae8383ebfc81ef18f5505efe375bc42184065fa008284dd797a1d1",
+          "mtime_utc": "2026-09-05T20:12:48+00:00"
+        },
+        {
+          "file": "Elixir.CommonplaceNext.Realm.Route.beam",
+          "sha256": "fbf6c82ec7bb527d8589248836cdff40d7e9cc88d7eec5fcc3bc08a55b03a028",
+          "mtime_utc": "2026-09-05T20:12:48+00:00"
+        },
+        {
+          "file": "Elixir.CommonplaceNext.Realm.Router.beam",
+          "sha256": "fc086c905a0a66aae3b534126c9c9c2a88a87529e4cba40ece92fde8bbe20a1b",
+          "mtime_utc": "2026-09-05T20:12:48+00:00"
+        },
+        {
+          "file": "Elixir.CommonplaceNext.Realm.beam",
+          "sha256": "03dca67af19d72ca11264d50abf9e3341374b286e6a34269d3c83b1806865658",
+          "mtime_utc": "2026-09-05T20:12:48+00:00"
+        },
+        {
+          "file": "Elixir.CommonplaceNext.SecondBeam.beam",
+          "sha256": "7c087eae2145c129958e0f36645fd7baf87259cb451ecc104b4aacda4a91e39c",
+          "mtime_utc": "2026-09-05T20:12:48+00:00"
+        },
+        {
+          "file": "Elixir.CommonplaceNext.Storage.Lane.beam",
+          "sha256": "a5920ff3d2fc2e75df642ea1f4cbc238b732ed602170450c338e65718721472f",
+          "mtime_utc": "2026-09-05T20:12:48+00:00"
+        },
+        {
+          "file": "Elixir.CommonplaceNext.Telemetry.beam",
+          "sha256": "ca7c32756cfe3a36200a8a87a2b383757515537ce59a1fc0b0c45c74cb5d579f",
+          "mtime_utc": "2026-09-05T20:12:48+00:00"
+        },
+        {
+          "file": "Elixir.CommonplaceNext.Test.CheckpointDirHost.beam",
+          "sha256": "81fe6981415af3c0c7c42293856312db0b4f58816a1aafd8e7c55cc9a6cc69d2",
+          "mtime_utc": "2026-09-05T20:12:48+00:00"
+        },
+        {
+          "file": "Elixir.CommonplaceNext.Test.SidecarTransport.beam",
+          "sha256": "4f9d0022e6981604b2158869e2f07a81e1bb2cfac9c38a037195c1afc2b9cadc",
+          "mtime_utc": "2026-09-05T20:12:48+00:00"
+        },
+        {
+          "file": "Elixir.CommonplaceNext.Test.WorkOSTransport.beam",
+          "sha256": "dbb1799d9b9f5b37a66b592618ea6fde06bb78241c4c50b6e58eaa9792684104",
+          "mtime_utc": "2026-09-05T20:12:48+00:00"
+        },
+        {
+          "file": "Elixir.CommonplaceNext.TestAccess.beam",
+          "sha256": "e7710813b8b82d51a01f4683568e281fc237ab89fa23817883cb593b3764fd76",
+          "mtime_utc": "2026-09-05T20:12:48+00:00"
+        },
+        {
+          "file": "Elixir.CommonplaceNext.TestAdmission.beam",
+          "sha256": "d2b5a8e5646097d00868248daec4021d0737efe871d73dd7e75718fff1fcef61",
+          "mtime_utc": "2026-09-05T20:12:48+00:00"
+        },
+        {
+          "file": "Elixir.CommonplaceNext.TestFixtures.beam",
+          "sha256": "cbacc455f35c740d2960be8621c074b9a42bed39d4112622a0dd8427d7dab097",
+          "mtime_utc": "2026-09-05T20:12:48+00:00"
+        },
+        {
+          "file": "Elixir.CommonplaceNext.TestWebSocket.beam",
+          "sha256": "760c8ac0996c6bf96312cb6fd9ef87b13a47b91574676620fb4b05df996a84c7",
+          "mtime_utc": "2026-09-05T20:12:48+00:00"
+        },
+        {
+          "file": "Elixir.CommonplaceNext.Web.AccessAuthentication.beam",
+          "sha256": "13f0815f0800982b62b695d274ddc03933354ad5eee0a2be54bec51631c4b9e3",
+          "mtime_utc": "2026-09-05T20:12:48+00:00"
+        },
+        {
+          "file": "Elixir.CommonplaceNext.Web.Endpoint.beam",
+          "sha256": "d710ee06195964dc3424b6d645f0a87d684532fea41fd6489974510de418040a",
+          "mtime_utc": "2026-09-05T20:12:48+00:00"
+        },
+        {
+          "file": "Elixir.CommonplaceNext.Web.OrganizationCoordinate.beam",
+          "sha256": "94d746edf098314e1b01a5d34dd9a983e7fc640290aaf6eddb4d19a336e55fcd",
+          "mtime_utc": "2026-09-05T20:12:48+00:00"
+        },
+        {
+          "file": "Elixir.CommonplaceNext.Web.PageController.beam",
+          "sha256": "d4e788a0ebde375c285ebd78e166c14488b8d547e6743422568450944cbd7d49",
+          "mtime_utc": "2026-09-05T20:12:48+00:00"
+        },
+        {
+          "file": "Elixir.CommonplaceNext.Web.Router.Helpers.beam",
+          "sha256": "38a0502d1890a5570246b9ecf70f5b8a8709e0f816050d2a51f0e048277fd69a",
+          "mtime_utc": "2026-09-05T20:12:48+00:00"
+        },
+        {
+          "file": "Elixir.CommonplaceNext.Web.Router.beam",
+          "sha256": "2d815f3d37ed0cff84205147726c19d9e989f6d906a39a2b419ff4c1cbc4bc65",
+          "mtime_utc": "2026-09-05T20:12:48+00:00"
+        },
+        {
+          "file": "Elixir.CommonplaceNext.Web.SecretKeyBase.beam",
+          "sha256": "59b2ce367a46078c61f2a74722afe339ee57d85e6e5a9e4f0b6ca1ce32a8e0eb",
+          "mtime_utc": "2026-09-05T20:12:48+00:00"
+        },
+        {
+          "file": "Elixir.CommonplaceNext.Web.Session.beam",
+          "sha256": "5fa59246b00e12f0a40c4fc8a576e1363aeda6a9121700e1e39a1cb4b4ebeb4f",
+          "mtime_utc": "2026-09-05T20:12:48+00:00"
+        },
+        {
+          "file": "Elixir.CommonplaceNext.Web.WorkOSController.beam",
+          "sha256": "daa659d2d2ad9cc3cb1b4136468c030e3d533d446879b1f80a59b6fb43559dec",
+          "mtime_utc": "2026-09-05T20:12:48+00:00"
+        },
+        {
+          "file": "Elixir.CommonplaceNext.Web.YjsSocket.beam",
+          "sha256": "7f5a5341ba8f2b7248dbd1da5355ef8df11a634af29e215c21583863e277acda",
+          "mtime_utc": "2026-09-05T20:12:48+00:00"
+        },
+        {
+          "file": "Elixir.CommonplaceNext.WorkOS.KeySource.beam",
+          "sha256": "c0be5450e8380329b652a093810480d0fe518fd419335d0d9a8b2fc44453d934",
+          "mtime_utc": "2026-09-05T20:12:48+00:00"
+        },
+        {
+          "file": "Elixir.CommonplaceNext.WorkOS.Login.beam",
+          "sha256": "228e9ca76a125d48575f5198ad9ac962688dc60b7a0c0fee77a4b7b3c8b55b7b",
+          "mtime_utc": "2026-09-05T20:12:48+00:00"
+        },
+        {
+          "file": "Elixir.CommonplaceNext.Workspace.Seed.beam",
+          "sha256": "a94fb0cb44c8ced8275692163ab929f91ccfdf536d37823efe0d515440595b41",
+          "mtime_utc": "2026-09-05T20:12:48+00:00"
+        },
+        {
+          "file": "Elixir.CommonplaceNext.Workspace.beam",
+          "sha256": "5bc099fc4a14bdf5ea3319b9683a3d1f15146befa6ce8c82e2550eb529571702",
+          "mtime_utc": "2026-09-05T20:12:48+00:00"
+        },
+        {
+          "file": "Elixir.CommonplaceNext.WorkspaceCell.beam",
+          "sha256": "2df940670f4bf8303adcca8bb9f7dd35cee782abf7efe42ec212d2debc3a4c45",
+          "mtime_utc": "2026-09-05T20:12:48+00:00"
+        },
+        {
+          "file": "Elixir.CommonplaceNext.Yjs.Attachment.beam",
+          "sha256": "a497b81147462c564526e3c0562453494c1e221dacb9046d01aefb5034e30633",
+          "mtime_utc": "2026-09-05T20:12:48+00:00"
+        },
+        {
+          "file": "Elixir.CommonplaceNext.Yjs.Attachments.beam",
+          "sha256": "270958df2d73b51e409507cc0cb3e7348e2521c2d3ca1efb1466ac42e98f5eed",
+          "mtime_utc": "2026-09-05T20:12:48+00:00"
+        },
+        {
+          "file": "Elixir.CommonplaceNext.Yjs.Author.beam",
+          "sha256": "21162ffca9075059f2f06dae81f1e65c73b6d54f4ad40c759ce4fdf1da84dd6e",
+          "mtime_utc": "2026-09-05T20:12:48+00:00"
+        },
+        {
+          "file": "Elixir.CommonplaceNext.Yjs.Awareness.beam",
+          "sha256": "11ef8a135f3bc5e2f5f1e07042d88f8647f7b09e6e41b73a566b2d4b2f981234",
+          "mtime_utc": "2026-09-05T20:12:48+00:00"
+        },
+        {
+          "file": "Elixir.CommonplaceNext.Yjs.Envelope.beam",
+          "sha256": "048f062f9193f7170a83fcdf40f0f135183284ac8f9b885e4b74d7d12a205ff6",
+          "mtime_utc": "2026-09-05T20:12:48+00:00"
+        },
+        {
+          "file": "Elixir.CommonplaceNext.Yjs.Protocol.beam",
+          "sha256": "93c1596a4bc9ee82f6f2f80802bbfb0552baa28d4617556ed2292543f017b7d8",
+          "mtime_utc": "2026-09-05T20:12:48+00:00"
+        },
+        {
+          "file": "Elixir.Mix.Tasks.CommonplaceNext.CheckTrustRoots.beam",
+          "sha256": "4340b14b303376adbb53eaecb5bc07e6bfc57ac9a3aa03c0a3780c60b9c023f3",
+          "mtime_utc": "2026-09-05T20:12:48+00:00"
+        },
+        {
+          "file": "Elixir.Mix.Tasks.CommonplaceNext.Demo.beam",
+          "sha256": "757dbb36bc3794ff1ea1f7a944684584dd52848d9278eb2904bf9e7e594592ba",
+          "mtime_utc": "2026-09-05T20:12:48+00:00"
+        },
+        {
+          "file": "Elixir.Mix.Tasks.CommonplaceNext.MeasureLogGrowth.beam",
+          "sha256": "c5ea4d0859096aebbb24689db41c498c213349bd066970c06af0e903d22865b2",
+          "mtime_utc": "2026-09-05T20:12:48+00:00"
+        }
+      ]
+    },
+    "test_sha256": "1df420f5c82b7ea713e7a5b72a2b2f530b225fa968b16e1c6c254baed639bc5e",
+    "app_lib_diff": ""
+  },
+  "manifest_diff": "diff --git a/mix.exs b/mix.exs\nindex f68ebb2..b8ce8e3 100644\n--- a/mix.exs\n+++ b/mix.exs\n@@ -152,7 +152,7 @@ defmodule CommonplaceNext.MixProject do\n        override: true},\n       {:yelixer,\n        git: \"https://github.com/commonplace-systems/yelixer.git\",\n-       ref: \"bcaec6a3520c59464bab87daaab7e4f76546c9c5\",\n+       ref: \"59b04eb1ba4c03d003e91f8867db3bd90a517bf5\",\n        override: true}\n     ]\n   end\ndiff --git a/mix.lock b/mix.lock\nindex 9d6f145..5f20f24 100644\n--- a/mix.lock\n+++ b/mix.lock\n@@ -33,6 +33,6 @@\n   \"toml\": {:hex, :toml, \"0.7.0\", \"fbcd773caa937d0c7a02c301a1feea25612720ac3fa1ccb8bfd9d30d822911de\", [:mix], [], \"hexpm\", \"0690246a2478c1defd100b0c9b89b4ea280a22be9a7b313a8a058a2408a2fa70\"},\n   \"websock\": {:hex, :websock, \"0.5.3\", \"2f69a6ebe810328555b6fe5c831a851f485e303a7c8ce6c5f675abeb20ebdadc\", [:mix], [], \"hexpm\", \"6105453d7fac22c712ad66fab1d45abdf049868f253cf719b625151460b8b453\"},\n   \"websock_adapter\": {:hex, :websock_adapter, \"0.6.0\", \"73db5ab8aaefd1a876a97ce3e6afc96562625de69ef17a4e04426e034849d0b8\", [:mix], [{:bandit, \">= 0.6.0\", [hex: :bandit, repo: \"hexpm\", optional: true]}, {:plug, \"~> 1.14\", [hex: :plug, repo: \"hexpm\", optional: false]}, {:plug_cowboy, \"~> 2.6\", [hex: :plug_cowboy, repo: \"hexpm\", optional: true]}, {:websock, \"~> 0.5\", [hex: :websock, repo: \"hexpm\", optional: false]}], \"hexpm\", \"50021a85bce8f203b086705d9e0c5415e2c7eb05d319111b0428fe71f9934617\"},\n-  \"yelixer\": {:git, \"https://github.com/commonplace-systems/yelixer.git\", \"bcaec6a3520c59464bab87daaab7e4f76546c9c5\", [ref: \"bcaec6a3520c59464bab87daaab7e4f76546c9c5\"]},\n+  \"yelixer\": {:git, \"https://github.com/commonplace-systems/yelixer.git\", \"59b04eb1ba4c03d003e91f8867db3bd90a517bf5\", [ref: \"59b04eb1ba4c03d003e91f8867db3bd90a517bf5\"]},\n   \"yepochs\": {:git, \"https://github.com/commonplace-systems/yepochs.git\", \"f184c9e9dd99b7baced407fb46632e887e3fb948\", [ref: \"f184c9e9dd99b7baced407fb46632e887e3fb948\"]},\n }\n",
+  "consumer_lib_tree": "8cd6980ad2829f11f6e22963a2fd063c1da6d5da",
+  "consumer_lib_diff": "",
+  "files": {
+    "mix.exs": "e470630fbe633132ff2dafe1e08a63d80580a4f738ea41ba0b075a6fa6a00dcd",
+    "mix.lock": "71ec89d7c63655755261c338e7b7a3aa9919603c9c511e988136a55473f66cb8",
+    "test/commonplace_next/yjs/attachment_test.exs": "83d8e0e4d32d1b193b199ccf08857cca11f72b122a8212165bca643c32046491"
+  },
+  "original_base_hex": "01016400040107636f6e74656e7405f09f98804100",
+  "original_delta_hex": "01016403c464006401015800",
+  "runs": {
+    "consumer-unchanged": {
+      "summary": [
+        "26 tests, 0 failures, 25 excluded"
+      ],
+      "rc": 0,
+      "cases": [
+        {
+          "module": "CommonplaceNext.Yjs.AttachmentTest",
+          "name": "test Unicode survives real Workspace authors, browser attachment ack, SQLite reload and another edit",
+          "state": "{:excluded, \"due to test filter\"}",
+          "time_us": 0
+        },
+        {
+          "module": "CommonplaceNext.Yjs.AttachmentTest",
+          "name": "test an authored update becomes one mirror commit parented on the head it was authored against",
+          "state": "{:excluded, \"due to test filter\"}",
+          "time_us": 0
+        },
+        {
+          "module": "CommonplaceNext.Yjs.AttachmentTest",
+          "name": "test the author id equals the id the host computes",
+          "state": "{:excluded, \"due to test filter\"}",
+          "time_us": 0
+        },
+        {
+          "module": "CommonplaceNext.Yjs.AttachmentTest",
+          "name": "test the ack arrives only after the mirror log holds the commit",
+          "state": "{:excluded, \"due to test filter\"}",
+          "time_us": 0
+        },
+        {
+          "module": "CommonplaceNext.Yjs.AttachmentTest",
+          "name": "test a retried batch with the same op id produces no second commit and is acked",
+          "state": "{:excluded, \"due to test filter\"}",
+          "time_us": 0
+        },
+        {
+          "module": "CommonplaceNext.Yjs.AttachmentTest",
+          "name": "test a malformed update is refused and the mirror log is unchanged",
+          "state": "{:excluded, \"due to test filter\"}",
+          "time_us": 0
+        },
+        {
+          "module": "CommonplaceNext.Yjs.AttachmentTest",
+          "name": "test an oversize update is refused and the mirror log is unchanged",
+          "state": "{:excluded, \"due to test filter\"}",
+          "time_us": 0
+        },
+        {
+          "module": "CommonplaceNext.Yjs.AttachmentTest",
+          "name": "test an authored update reaches the other clients after the ack not before",
+          "state": "{:excluded, \"due to test filter\"}",
+          "time_us": 0
+        },
+        {
+          "module": "CommonplaceNext.Yjs.AttachmentTest",
+          "name": "test the attachment ignores its own commits arriving on the watch",
+          "state": "{:excluded, \"due to test filter\"}",
+          "time_us": 0
+        },
+        {
+          "module": "CommonplaceNext.Yjs.AttachmentTest",
+          "name": "test a head that moved underneath is retried once against the new head",
+          "state": "{:excluded, \"due to test filter\"}",
+          "time_us": 0
+        },
+        {
+          "module": "CommonplaceNext.Yjs.AttachmentTest",
+          "name": "test the mirror markdown after a burst of edits equals the browser text",
+          "state": "{:excluded, \"due to test filter\"}",
+          "time_us": 0
+        },
+        {
+          "module": "CommonplaceNext.Yjs.AttachmentTest",
+          "name": "test an epoch change refuses pending batches as blocked",
+          "state": "{:excluded, \"due to test filter\"}",
+          "time_us": 0
+        },
+        {
+          "module": "CommonplaceNext.Yjs.AttachmentTest",
+          "name": "test the canonical document is untouched by mirror editing",
+          "state": "{:excluded, \"due to test filter\"}",
+          "time_us": 0
+        },
+        {
+          "module": "CommonplaceNext.Yjs.AttachmentTest",
+          "name": "test attachment builds its doc from the library byte door and renders the mirror markdown",
+          "state": "{:excluded, \"due to test filter\"}",
+          "time_us": 0
+        },
+        {
+          "module": "CommonplaceNext.Yjs.AttachmentTest",
+          "name": "test the attachment status reports its text under a profile neutral key",
+          "state": "{:excluded, \"due to test filter\"}",
+          "time_us": 0
+        },
+        {
+          "module": "CommonplaceNext.Yjs.AttachmentTest",
+          "name": "test an append to a fixture carrying a format mark lands at the end of the rendered text",
+          "state": "{:excluded, \"due to test filter\"}",
+          "time_us": 0
+        },
+        {
+          "module": "CommonplaceNext.Yjs.AttachmentTest",
+          "name": "test a joining client receives the server step1 and gets step2 for its step1",
+          "state": "{:excluded, \"due to test filter\"}",
+          "time_us": 0
+        },
+        {
+          "module": "CommonplaceNext.Yjs.AttachmentTest",
+          "name": "test an update from one client reaches every other client and not itself",
+          "state": "{:excluded, \"due to test filter\"}",
+          "time_us": 0
+        },
+        {
+          "module": "CommonplaceNext.Yjs.AttachmentTest",
+          "name": "test a reconnecting client with a state vector receives only the diff",
+          "state": "{:excluded, \"due to test filter\"}",
+          "time_us": 0
+        },
+        {
+          "module": "CommonplaceNext.Yjs.AttachmentTest",
+          "name": "test a commit landing on the mirror from elsewhere is diffed into the attachment and fanned out",
+          "state": "{:excluded, \"due to test filter\"}",
+          "time_us": 0
+        },
+        {
+          "module": "CommonplaceNext.Yjs.AttachmentTest",
+          "name": "test an epoch change rebuilds the attachment and tells clients to reload",
+          "state": "{:excluded, \"due to test filter\"}",
+          "time_us": 0
+        },
+        {
+          "module": "CommonplaceNext.Yjs.AttachmentTest",
+          "name": "test watch loss re-attaches and resynchronises",
+          "state": "{:excluded, \"due to test filter\"}",
+          "time_us": 0
+        },
+        {
+          "module": "CommonplaceNext.Yjs.AttachmentTest",
+          "name": "test awareness updates fan out and a leaving client is removed",
+          "state": "{:excluded, \"due to test filter\"}",
+          "time_us": 0
+        },
+        {
+          "module": "CommonplaceNext.Yjs.AttachmentTest",
+          "name": "test no browser frame appends to any log in this round",
+          "state": "{:excluded, \"due to test filter\"}",
+          "time_us": 0
+        },
+        {
+          "module": "CommonplaceNext.Yjs.AttachmentTest",
+          "name": "test the last client leaving stops the attachment after idle",
+          "state": "{:excluded, \"due to test filter\"}",
+          "time_us": 0
+        },
+        {
+          "module": "CommonplaceNext.Yjs.AttachmentTest",
+          "name": "test incoming browser half-surrogate author must be refused or converge",
+          "state": "nil",
+          "time_us": 1785003
+        }
+      ],
+      "defined": 26,
+      "executed": 1,
+      "timing": [
+        "start=2026-09-05T20:12:59Z",
+        "end=2026-09-05T20:13:07Z"
+      ],
+      "stdout_sha256": "5c51b506d544db42d43a00226733b5563d428aa4b214a6e2c46941f610b97bd6",
+      "synthetic_oracle_transcript": [
+        {
+          "command": {
+            "cmd": "reset",
+            "client_id": 730003
+          },
+          "reply": {
+            "ok": true
+          }
+        },
+        {
+          "command": {
+            "cmd": "apply_update",
+            "update_hex": "02018f97e8eb0d00040107636f6e74656e742b232057656c636f6d650a0a54686973206973206120436f6d6d6f6e706c61636520646f63756d656e742e0a01ad98ee9b0700848f97e8eb0d2a05f09f98804100"
+          },
+          "reply": {
+            "ok": true
+          }
+        },
+        {
+          "command": {
+            "cmd": "state_vector"
+          },
+          "reply": {
+            "ok": true,
+            "sv": {
+              "1937476653": 3,
+              "3715763087": 43
+            }
+          }
+        },
+        {
+          "command": {
+            "text": "X",
+            "cmd": "insert_text",
+            "pos": 44
+          },
+          "reply": {
+            "length": 47,
+            "ok": true
+          }
+        },
+        {
+          "command": {
+            "cmd": "encode",
+            "sv": {
+              "1937476653": 3,
+              "3715763087": 43
+            }
+          },
+          "reply": {
+            "ok": true,
+            "update_hex": "010193c72c00c4ad98ee9b0700ad98ee9b0701015800"
+          }
+        },
+        {
+          "command": {
+            "name": "content",
+            "cmd": "text_content"
+          },
+          "reply": {
+            "ok": true,
+            "text": "# Welcome\n\nThis is a Commonplace document.\n\ufffdX\ufffdA"
+          }
+        }
+      ]
+    },
+    "consumer-fixed": {
+      "summary": [
+        "27 tests, 0 failures, 26 excluded"
+      ],
+      "rc": 0,
+      "cases": [
+        {
+          "module": "CommonplaceNext.Yjs.AttachmentTest",
+          "name": "test Unicode survives real Workspace authors, browser attachment ack, SQLite reload and another edit",
+          "state": "{:excluded, \"due to test filter\"}",
+          "time_us": 0
+        },
+        {
+          "module": "CommonplaceNext.Yjs.AttachmentTest",
+          "name": "test incoming browser half-surrogate author must be refused or converge",
+          "state": "{:excluded, \"due to test filter\"}",
+          "time_us": 0
+        },
+        {
+          "module": "CommonplaceNext.Yjs.AttachmentTest",
+          "name": "test an authored update becomes one mirror commit parented on the head it was authored against",
+          "state": "{:excluded, \"due to test filter\"}",
+          "time_us": 0
+        },
+        {
+          "module": "CommonplaceNext.Yjs.AttachmentTest",
+          "name": "test the author id equals the id the host computes",
+          "state": "{:excluded, \"due to test filter\"}",
+          "time_us": 0
+        },
+        {
+          "module": "CommonplaceNext.Yjs.AttachmentTest",
+          "name": "test the ack arrives only after the mirror log holds the commit",
+          "state": "{:excluded, \"due to test filter\"}",
+          "time_us": 0
+        },
+        {
+          "module": "CommonplaceNext.Yjs.AttachmentTest",
+          "name": "test a retried batch with the same op id produces no second commit and is acked",
+          "state": "{:excluded, \"due to test filter\"}",
+          "time_us": 0
+        },
+        {
+          "module": "CommonplaceNext.Yjs.AttachmentTest",
+          "name": "test a malformed update is refused and the mirror log is unchanged",
+          "state": "{:excluded, \"due to test filter\"}",
+          "time_us": 0
+        },
+        {
+          "module": "CommonplaceNext.Yjs.AttachmentTest",
+          "name": "test an oversize update is refused and the mirror log is unchanged",
+          "state": "{:excluded, \"due to test filter\"}",
+          "time_us": 0
+        },
+        {
+          "module": "CommonplaceNext.Yjs.AttachmentTest",
+          "name": "test an authored update reaches the other clients after the ack not before",
+          "state": "{:excluded, \"due to test filter\"}",
+          "time_us": 0
+        },
+        {
+          "module": "CommonplaceNext.Yjs.AttachmentTest",
+          "name": "test the attachment ignores its own commits arriving on the watch",
+          "state": "{:excluded, \"due to test filter\"}",
+          "time_us": 0
+        },
+        {
+          "module": "CommonplaceNext.Yjs.AttachmentTest",
+          "name": "test a head that moved underneath is retried once against the new head",
+          "state": "{:excluded, \"due to test filter\"}",
+          "time_us": 0
+        },
+        {
+          "module": "CommonplaceNext.Yjs.AttachmentTest",
+          "name": "test the mirror markdown after a burst of edits equals the browser text",
+          "state": "{:excluded, \"due to test filter\"}",
+          "time_us": 0
+        },
+        {
+          "module": "CommonplaceNext.Yjs.AttachmentTest",
+          "name": "test an epoch change refuses pending batches as blocked",
+          "state": "{:excluded, \"due to test filter\"}",
+          "time_us": 0
+        },
+        {
+          "module": "CommonplaceNext.Yjs.AttachmentTest",
+          "name": "test the canonical document is untouched by mirror editing",
+          "state": "{:excluded, \"due to test filter\"}",
+          "time_us": 0
+        },
+        {
+          "module": "CommonplaceNext.Yjs.AttachmentTest",
+          "name": "test attachment builds its doc from the library byte door and renders the mirror markdown",
+          "state": "{:excluded, \"due to test filter\"}",
+          "time_us": 0
+        },
+        {
+          "module": "CommonplaceNext.Yjs.AttachmentTest",
+          "name": "test the attachment status reports its text under a profile neutral key",
+          "state": "{:excluded, \"due to test filter\"}",
+          "time_us": 0
+        },
+        {
+          "module": "CommonplaceNext.Yjs.AttachmentTest",
+          "name": "test an append to a fixture carrying a format mark lands at the end of the rendered text",
+          "state": "{:excluded, \"due to test filter\"}",
+          "time_us": 0
+        },
+        {
+          "module": "CommonplaceNext.Yjs.AttachmentTest",
+          "name": "test a joining client receives the server step1 and gets step2 for its step1",
+          "state": "{:excluded, \"due to test filter\"}",
+          "time_us": 0
+        },
+        {
+          "module": "CommonplaceNext.Yjs.AttachmentTest",
+          "name": "test an update from one client reaches every other client and not itself",
+          "state": "{:excluded, \"due to test filter\"}",
+          "time_us": 0
+        },
+        {
+          "module": "CommonplaceNext.Yjs.AttachmentTest",
+          "name": "test a reconnecting client with a state vector receives only the diff",
+          "state": "{:excluded, \"due to test filter\"}",
+          "time_us": 0
+        },
+        {
+          "module": "CommonplaceNext.Yjs.AttachmentTest",
+          "name": "test a commit landing on the mirror from elsewhere is diffed into the attachment and fanned out",
+          "state": "{:excluded, \"due to test filter\"}",
+          "time_us": 0
+        },
+        {
+          "module": "CommonplaceNext.Yjs.AttachmentTest",
+          "name": "test an epoch change rebuilds the attachment and tells clients to reload",
+          "state": "{:excluded, \"due to test filter\"}",
+          "time_us": 0
+        },
+        {
+          "module": "CommonplaceNext.Yjs.AttachmentTest",
+          "name": "test watch loss re-attaches and resynchronises",
+          "state": "{:excluded, \"due to test filter\"}",
+          "time_us": 0
+        },
+        {
+          "module": "CommonplaceNext.Yjs.AttachmentTest",
+          "name": "test awareness updates fan out and a leaving client is removed",
+          "state": "{:excluded, \"due to test filter\"}",
+          "time_us": 0
+        },
+        {
+          "module": "CommonplaceNext.Yjs.AttachmentTest",
+          "name": "test no browser frame appends to any log in this round",
+          "state": "{:excluded, \"due to test filter\"}",
+          "time_us": 0
+        },
+        {
+          "module": "CommonplaceNext.Yjs.AttachmentTest",
+          "name": "test the last client leaving stops the attachment after idle",
+          "state": "{:excluded, \"due to test filter\"}",
+          "time_us": 0
+        },
+        {
+          "module": "CommonplaceNext.Yjs.AttachmentTest",
+          "name": "test original incremental surrogate bytes converge through durable ack and reopen",
+          "state": "nil",
+          "time_us": 2043852
+        }
+      ],
+      "defined": 27,
+      "executed": 1,
+      "timing": [
+        "start=2026-09-05T20:13:31Z",
+        "end=2026-09-05T20:13:38Z"
+      ],
+      "stdout_sha256": "48fcaa6c1229a502146d65c8477bcd92eb217793640c05da3c3e24feac905f46",
+      "synthetic_oracle_transcript": [
+        {
+          "command": {
+            "cmd": "reset",
+            "client_id": 900
+          },
+          "reply": {
+            "ok": true
+          }
+        },
+        {
+          "command": {
+            "cmd": "apply_update",
+            "update_hex": "01018f97e8eb0d00040107636f6e74656e742b232057656c636f6d650a0a54686973206973206120436f6d6d6f6e706c61636520646f63756d656e742e0a00"
+          },
+          "reply": {
+            "ok": true
+          }
+        },
+        {
+          "command": {
+            "cmd": "apply_update",
+            "update_hex": "01016400040107636f6e74656e7405f09f98804100"
+          },
+          "reply": {
+            "ok": true
+          }
+        },
+        {
+          "command": {
+            "name": "content",
+            "cmd": "text_content"
+          },
+          "reply": {
+            "ok": true,
+            "text": "\ud83d\ude00A# Welcome\n\nThis is a Commonplace document.\n"
+          }
+        },
+        {
+          "command": {
+            "cmd": "apply_update",
+            "update_hex": "01016403c464006401015800"
+          },
+          "reply": {
+            "ok": true
+          }
+        },
+        {
+          "command": {
+            "name": "content",
+            "cmd": "text_content"
+          },
+          "reply": {
+            "ok": true,
+            "text": "\ufffdX\ufffdA# Welcome\n\nThis is a Commonplace document.\n"
+          }
+        },
+        {
+          "command": {
+            "cmd": "apply_update",
+            "update_hex": "02018f97e8eb0d00040107636f6e74656e742b232057656c636f6d650a0a54686973206973206120436f6d6d6f6e706c61636520646f63756d656e742e0a036400040107636f6e74656e7403efbfbd84640004efbfbd41c464006401015800"
+          },
+          "reply": {
+            "ok": true
+          }
+        },
+        {
+          "command": {
+            "name": "content",
+            "cmd": "text_content"
+          },
+          "reply": {
+            "ok": true,
+            "text": "\ufffdX\ufffdA# Welcome\n\nThis is a Commonplace document.\n"
+          }
+        },
+        {
+          "command": {
+            "cmd": "state_vector"
+          },
+          "reply": {
+            "ok": true,
+            "sv": {
+              "100": 4,
+              "3715763087": 43
+            }
+          }
+        },
+        {
+          "command": {
+            "text": "^",
+            "cmd": "insert_text",
+            "pos": 0
+          },
+          "reply": {
+            "length": 48,
+            "ok": true
+          }
+        },
+        {
+          "command": {
+            "cmd": "encode",
+            "sv": {
+              "100": 4,
+              "3715763087": 43
+            }
+          },
+          "reply": {
+            "ok": true,
+            "update_hex": "0101840700446400015e00"
+          }
+        }
+      ]
+    }
+  },
+  "durable_events": [
+    {
+      "head": "ef70806ec89511633de2d75d44a7e451c422f43f74bf7c224d43b5dbe1cfd9df",
+      "actual": "\ufffdX\ufffdA# Welcome\n\nThis is a Commonplace document.\n",
+      "phase": "ack",
+      "expected": "\ufffdX\ufffdA# Welcome\n\nThis is a Commonplace document.\n",
+      "entries": 11
+    },
+    {
+      "head": "ef70806ec89511633de2d75d44a7e451c422f43f74bf7c224d43b5dbe1cfd9df",
+      "actual": "\ufffdX\ufffdA# Welcome\n\nThis is a Commonplace document.\n",
+      "phase": "reopened",
+      "expected": "\ufffdX\ufffdA# Welcome\n\nThis is a Commonplace document.\n",
+      "entries": 11
+    },
+    {
+      "head": "04fb7096ab8b43d3c3ddb0f25f0a250ba610c6f6fb9e6181889dcdaacd176578",
+      "actual": "^\ufffdX\ufffdA# Welcome\n\nThis is a Commonplace document.\n",
+      "phase": "subsequent-edit",
+      "expected": "^\ufffdX\ufffdA# Welcome\n\nThis is a Commonplace document.\n",
+      "entries": 13
+    }
+  ],
+  "consumer-codec-force": {
+    "sha256": "d5b5c53ddd54a5fbcbb7ce7a3c19e4dd3bc70767a80476d8b33d4f6af7cdc805",
+    "compile_lines": [
+      "==> yelixer",
+      "Compiling 19 files (.ex)",
+      "Generated yelixer app"
+    ]
+  },
+  "consumer-app-force": {
+    "sha256": "dd816a456bc6b33224653b6b642e61347441a76ccdef0fca2ca51b0dfa8860fb",
+    "compile_lines": [
+      "==> yepochs",
+      "Compiling 20 files (.ex)",
+      "Generated yepochs app",
+      "==> commonplace_merkle_crdt",
+      "Compiling 3 files (.ex)",
+      "Generated commonplace_merkle_crdt app",
+      "==> commonplace_doc",
+      "Compiling 18 files (.ex)",
+      "Generated commonplace_doc app",
+      "==> commonplace_markdown",
+      "Compiling 2 files (.ex)",
+      "Generated commonplace_markdown app",
+      "==> commonplace_doc_sync",
+      "Compiling 15 files (.ex)",
+      "Generated commonplace_doc_sync app",
+      "==> commonplace_dir",
+      "Compiling 15 files (.ex)",
+      "Generated commonplace_dir app",
+      "==> commonplace_cell",
+      "Compiling 31 files (.ex)",
+      "Generated commonplace_cell app",
+      "==> commonplace_next",
+      "Compiling 86 files (.ex)",
+      "Generated commonplace_next app"
+    ]
+  },
+  "consumer_candidate_commit": "fbae5bc27a2d4ed09eb23694d8416a0047cc8ab5"
+}

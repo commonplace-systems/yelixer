@@ -1,9 +1,10 @@
 # Cross-runtime compatibility report — 2026-09-05
 
 **Later repair:** [Incoming Unicode repair](unicode-inbound-repair.md) records
-the subsequent codec fix and separates its evidence from the original pins below.
+the subsequent codec fix and passing actual consumer acknowledgment/reopen tests.
+It separates that repaired candidate's evidence from the original pins below.
 
-**Verdict: blocked for consumer adoption.** The candidate repairs plain-text
+**Original round verdict: blocked for consumer adoption.** The candidate repairs plain-text
 UTF-16 scalar-boundary editing through Yelixer, Yepochs, Merkle, and Next's actual
 durable route. The supported application tests and real Chromium durability arms
 pass. Incoming browser half-surrogate updates remain an adoption blocker. The
