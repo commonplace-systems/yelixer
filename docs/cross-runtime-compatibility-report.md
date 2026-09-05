@@ -11,7 +11,8 @@ It is no longer an adoption gate. These experimental branches are not deployed.
 The [minimal baseline/candidate blocker supplement](minimal-adoption-blockers.md)
 adds identical-byte evidence: the old pinned codec also diverges on the incoming
 half-surrogate delta, with different output. It separates that codec result from
-the measured candidate application admission and unmeasured old application admission.
+both measured candidate and published-pin application admissions. The published-pin
+arm also durably acknowledges divergent text; neither comparison is a live-target test.
 
 ## Configurations and provenance
 

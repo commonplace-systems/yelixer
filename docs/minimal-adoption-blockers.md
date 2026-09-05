@@ -28,9 +28,15 @@ under both codecs, so a full-state-only probe would miss the divergence.
 
 The candidate's **actual Next route** also accepted and durably acknowledged the
 browser operation with its divergent suffix. That desired-behavior test executed
-and failed; its default exclusion is not evidence of safety. **Old Next application
-admission for this exact half-surrogate operation has not been measured.** Codec
-reproduction must not be promoted into a claim about admission. Separately, the
+and failed; its default exclusion is not evidence of safety. **Old Next application admission is now measured too:** the same single arm,
+with the unchanged published dependency set, durably acknowledged the edit and
+retained `\u{1F600}XA`. The acknowledged head matched the snapshot head before the
+text assertion failed. One case executed and failed, 25 were excluded, rc 2.
+The application source was `94abc915`; subsequent main `a538fa18` has identical
+manifest and lock bytes (Git-verified). This is an isolated application test, not
+a live-target observation. A first attempt retained copied candidate dependency
+BEAMs and is invalidated; the verified attempt forced compilation of the exact
+old dependencies as well as the application. Separately, the
 old application dependency set already failed the actual Workspace scalar-boundary
 Unicode second-append test (`unsupported_edit`), while the candidate passed it.
 

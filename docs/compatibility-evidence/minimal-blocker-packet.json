@@ -128,8 +128,25 @@
       ]
     },
     "candidate_application_admission": "Measured: actual Workspace/Attachment route durably acknowledged the divergent incremental update.",
-    "old_application_admission": "Unmeasured for this exact half-surrogate edit. Old pinned codec reproduction does not prove application admission.",
-    "baseline_application_unicode": "Separately measured: old actual Workspace path refused the second scalar-boundary Unicode append as unsupported_edit; candidate supported route passed."
+    "old_application_admission": "Measured on unchanged published pins at Next94abc915 after forcing old dependency compilation: durable ack; acknowledged head equals snapshot head; server suffix U+1F600 X A versus real Yjs U+FFFD X U+FFFD A. One executed failure,25 excluded,rc2. Not a live-target test.",
+    "baseline_application_unicode": "Separately measured: old actual Workspace path refused the second scalar-boundary Unicode append as unsupported_edit; candidate supported route passed.",
+    "published_application_comparison": {
+      "application_head": "94abc915604cf93ee6c604d33bc2e14ae2d61441",
+      "later_main": "a538fa18ccfc5ab50fd9adcf1a69dfa75c08d616",
+      "manifest_lock_diff": "empty, verified with git diff",
+      "official_yjs": "13.6.32",
+      "same_test_file_sha256": "1df420f5c82b7ea713e7a5b72a2b2f530b225fa968b16e1c6c254baed639bc5e",
+      "durable_ack": true,
+      "acknowledged_head_equals_snapshot": true,
+      "server_text": "# Welcome\n\nThis is a Commonplace document.\n\ud83d\ude00XA",
+      "browser_text": "# Welcome\n\nThis is a Commonplace document.\n\ufffdX\ufffdA",
+      "executed": 1,
+      "failed": 1,
+      "excluded": 25,
+      "rc": 2,
+      "first_attempt": "Invalidated copied candidate dependency BEAM cache; force-app-only did not rebuild dependencies. Not counted as old-pin behavior.",
+      "verified_compile": "yelixer19,yepochs20,merkle3,application86 modules recompiled from exact old sources."
+    }
   },
   "legacy_replay": {
     "fixture": "test/fixtures/old-grapheme-history.json",
