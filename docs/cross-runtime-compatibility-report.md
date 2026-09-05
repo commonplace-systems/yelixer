@@ -3,8 +3,10 @@
 **Verdict: blocked for consumer adoption.** The candidate repairs plain-text
 UTF-16 scalar-boundary editing through Yelixer, Yepochs, Merkle, and Next's actual
 durable route. The supported application tests and real Chromium durability arms
-pass. Incoming browser half-surrogate updates and legacy history interpretation
-remain adoption blockers. These experimental branches are not deployed.
+pass. Incoming browser half-surrogate updates remain an adoption blocker. The
+known break with our own saved history is an accepted compatibility cost where
+needed to match official Yjs 13.6.32, under the user ruling of 2026-09-05 18:52:45 UTC.
+It is no longer an adoption gate. These experimental branches are not deployed.
 
 The [minimal baseline/candidate blocker supplement](minimal-adoption-blockers.md)
 adds identical-byte evidence: the old pinned codec also diverges on the incoming
@@ -204,19 +206,18 @@ replica agreement nor a larger state vector recovers lost authorial intent. The
 old-reader observations demonstrate that rolling back after candidate Unicode writes
 is unsafe; old and new writers cannot share an unversioned Unicode history safely.
 
-The bounded adoption proposal is an explicit interpretation transition, not a replay
-rewrite: preserve canonical entries, update bytes, commit IDs and VersionRefs; retain
-the old reader for old references; classify provenance as unknown when unavailable;
-validate the selected view against independent evidence; and create a separately
-identified UTF-16 epoch/snapshot from an approved view, recording source references
-and the transition. Reject unsupported shapes and ambiguous histories for review.
-Never relabel an existing version or silently reinterpret its entries. New writers
-must be fenced from old interpretation versions, and rollback must retain the new
-reader for new writes. Yepochs snapshot version 3/rebase version 1 and Merkle reducer
-version 6 remain unchanged on these experimental branches: deciding and implementing
-the version transition is still required before adoption. The executable fixture
-comparison above demonstrates why it is required. No migration or live rewrite was
-performed in this pass.
+The later user ruling explicitly permits breaking compatibility with our own saved
+history where needed to match the pinned official Yjs behavior. The earlier proposal
+to require a versioned history transition before adoption is therefore withdrawn.
+The observations above remain measurements of the accepted compatibility cost,
+including changed old views and unsafe rollback to the old reader. They are not
+failing acceptance conditions and do not authorize a migration project or deletion
+or reset of live stores. Yepochs snapshot version 3/rebase version 1 and Merkle
+reducer version 6 are unchanged in the tested candidate; that fact is recorded for
+reproducibility, not imposed as a new history-preservation gate. No live history
+was rewritten. Incoming new edits must still match official Yjs or encounter an
+explicitly enforced safe boundary; permission to break owned history does not
+permit silent browser/server divergence.
 
 ## Reproduction and remaining action
 
@@ -240,8 +241,8 @@ fixture with the candidate. New-history tests specify the intermediate strings
 independently of recorded candidate writer observations.
 
 Remaining adoption work is concrete: enforce a safe inbound surrogate contract or
-repair convergence; specify/version the durable interpretation transition; inspect
-an authorized real-history corpus without exporting private data; and retest the
-final adoption set through the application. Broader type support needs separate
+repair convergence, then retest the final adoption set through the application.
+Legacy-history preservation and a migration project are not required for adoption
+under the later ruling. The limits of the inspected synthetic corpus remain explicit. Broader type support needs separate
 evidence if those document profiles are enabled. Deployment and beta feature work
 remain outside this pass.

@@ -34,7 +34,7 @@ reproduction must not be promoted into a claim about admission. Separately, the
 old application dependency set already failed the actual Workspace scalar-boundary
 Unicode second-append test (`unsupported_edit`), while the candidate passed it.
 
-## Legacy replay — old browser disagreement and upgrade regression
+## Legacy replay — measured and accepted compatibility cost
 
 The minimal old-writer example inserts `e\u{0301}b`, then appends `!` at its old
 grapheme position 2. The two original updates and exact writer revision are in the
@@ -52,7 +52,7 @@ for this saved synthetic history. Neither observation establishes what any live
 user intended; no live corpus was inspected. Wire bytes do not reliably identify
 which clock convention authored them.
 
-## Candidate-write rollback — unsafe under the old reader
+## Candidate-write rollback — measured limit of the accepted break
 
 With the candidate writer, append `!` to the same base at UTF-16 position 3. The
 candidate and real Yjs retain `e\u{0301}b!`; the old reader yields `e\u{0301}b`.
@@ -76,6 +76,10 @@ without exclusions or missing oracles. The output records incremental and fresh
 full-state observations separately. The existing old/candidate history reports
 supply the replay and rollback rows; those suites were not repeated.
 
-**Adoption stays blocked.** An enforced safe inbound boundary or convergence repair,
-plus an explicit durable interpretation transition, is required. Experimental
-candidate branch pins are evidence configurations, not adoption into main or deployment.
+**Adoption stays blocked by incoming new-edit divergence.** An enforced safe inbound
+boundary or convergence repair is required. The user ruling of 2026-09-05 18:52:45 UTC
+permits breaking our own history where needed to match official Yjs 13.6.32. Legacy
+view changes and old-reader rollback limits are accepted compatibility costs, not
+adoption gates; the former required-migration proposal is withdrawn. This permission
+does not authorize deleting or resetting live stores. Experimental candidate branch
+pins remain evidence configurations, not adoption into main or deployment.

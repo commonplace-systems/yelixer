@@ -252,5 +252,12 @@
     "authors": [
       100
     ]
+  },
+  "acceptance_policy": {
+    "official_yjs": "13.6.32",
+    "user_ruling_at": "2026-09-05T18:52:45Z",
+    "owned_history_break": "Accepted compatibility cost where needed to match the pinned official Yjs behavior; not an adoption gate.",
+    "incoming_new_edit_divergence": "Still an adoption blocker.",
+    "live_store_reset_or_deletion": "Not authorized by the compatibility-break ruling."
   }
 }

@@ -51,3 +51,5 @@ in an isolated checkout of that exact pin. Preserve the original update bytes.
 A single old Unicode insertion is byte-identical to an independently authored
 Yjs insertion: bytes alone cannot label the writer's coordinate convention.
 No real application history corpus has been inspected in this pass.
+
+The user ruling of 2026-09-05 18:52:45 UTC accepts breaking our own history where needed to match official Yjs 13.6.32. History preservation and a migration project are no longer adoption gates. The remaining blocker is silently divergent incoming browser edits; no live-store deletion or reset is authorized by that ruling.
