@@ -1,0 +1,5039 @@
+{
+  "scope": "UNICODE-INBOUND-1 codec verification; consumer durable correctness not measured by these runs",
+  "official_yjs": "13.6.32",
+  "preview_separate": "14.0.0-16",
+  "same_test_file_sha256": "aeee565f39027f71d5f953fde2207f0abb544e6524fddc07f9069033d07157b4",
+  "baseline_same_test_file_sha256": "aeee565f39027f71d5f953fde2207f0abb544e6524fddc07f9069033d07157b4",
+  "unchanged_fixture_sha256": "6badaafdd9f223c608a0cda631fe3265408db4ab5fd588e65395f15f0eb6793f",
+  "official_ContentString_source_sha256": "07ad2962b6d0cba38aa6c4b57fe59a1e585b023b8d744a2aeb9257b77ad1cc94",
+  "mix_lock_sha256": "6427c1300926eeb652f8beb4bc818baa7ed041f8801eaf34a6c21190f1b2f89a",
+  "node_lock_sha256": "38e80221c68f50b6d2e86ebb0fbd75758be77b73fbb0d8d8ea7f8c090d591591",
+  "codec_identities": {
+    "baseline": {
+      "head_before_repair_commit": "7a4d9cb2797501a535d3726b1a39a1a7131bedeb",
+      "lib_diff": "",
+      "source_sha256": {
+        "lib/yelixer/block_store.ex": "57c4478825c5881ac771c20dbb9a5fd1779cbc2633deb555c823822627e3ecc1",
+        "lib/yelixer/delete_set.ex": "1804cb9c547bdeed65d9217f4c9e485a00884ae277e3dbddcef82c04da13bd46",
+        "lib/yelixer/doc.ex": "39d6860a9ddee33a21c796042979aa05b163d84fb9bdc8c6f03f6395155d979c",
+        "lib/yelixer/doc_server.ex": "bd414f53e953e75a417f415df0a167125dcfa08d19ee49d6b702f8fe92aefc8b",
+        "lib/yelixer/encoding.ex": "9bd7b454293ca933c727cca10ea4de1eeea686b154754c553f23ce5ebf5edc55",
+        "lib/yelixer/id.ex": "64d5b13dd70b339460eb984a3fe32f3cde72e468e0ac645111635c44059af1d7",
+        "lib/yelixer/integrate.ex": "8f35004fca38c6ecf4d45da9e3c2ee2e008a00d851d0d7419ce406e1b0ce56a5",
+        "lib/yelixer/item.ex": "82825d80c150cdfead0a8fbb60e74d28dbe7418c1b534ac1305f7c4ab6665ae7",
+        "lib/yelixer/state_vector.ex": "5da4adab05339a4702f771fc42602858e17177908affa6d0988f1a71f6de2640",
+        "lib/yelixer/sync_protocol.ex": "efa45c046211a3310e1120da2b4a258a6cb6ba2eb9ecf68a5bd82e93fc77fa6b",
+        "lib/yelixer/types/array.ex": "6ff869dcf55004fe1919731ea18c0eb316d983fb4e5c1f7742e8a3fd9e7c3244",
+        "lib/yelixer/types/text.ex": "b92476fcbb2516c1822b472399138a110010f09a5e226bd34821aca3e0734774",
+        "lib/yelixer/types/types.ex": "99ae9b4ca5e4674b495e37ac55aad00d0f3bf66a36559d868de91f1411cb1aaf",
+        "lib/yelixer/types/xml_element.ex": "5eab1105670ce740a94b7482025e40deaf12c4d054176ebebea368db188d1b65",
+        "lib/yelixer/types/xml_escape.ex": "6bf6fdc4cf0a2a4c9e927cd9470ca8fb9238e005d93fcc3790f79092a8fbcd63",
+        "lib/yelixer/types/xml_fragment.ex": "4b02f69e2567fffa1d16a3988fecab6be1b884337d8364310a3155cd8edd1166",
+        "lib/yelixer/types/xml_text.ex": "b6afe11c455a8d30fe09cebb1bd142aa4bcef3ce3dbec9d41a0af947a7a52dfe",
+        "lib/yelixer/types/y_map.ex": "f1c94f498d9c8cdba769d4f6c45d53ce70489243e0e255938f6ac045dd23f2df",
+        "lib/yelixer.ex": "df02f61ea9abab80673cea4c6e115b95bcc0e4cb8c87cc4d01c434fd2a18933b"
+      },
+      "compiled_modules": [
+        {
+          "file": "Elixir.Yelixer.BlockStore.beam",
+          "sha256": "da7e9e92658ddf5c6ba3608486f96b1002e8e31084fea379c8c2c25c4d972659",
+          "mtime_utc": "2026-09-05T19:40:47+00:00"
+        },
+        {
+          "file": "Elixir.Yelixer.DeleteSet.beam",
+          "sha256": "463b2b29e2006efd00bd169f0820ed131f6dea719c26b11d148ad1d14f813540",
+          "mtime_utc": "2026-09-05T19:40:47+00:00"
+        },
+        {
+          "file": "Elixir.Yelixer.Doc.beam",
+          "sha256": "d6d57beadbdf7afa53fe6f39652b075cf67b846ba0a68d6cdb7c2d40165d4392",
+          "mtime_utc": "2026-09-05T19:40:47+00:00"
+        },
+        {
+          "file": "Elixir.Yelixer.DocServer.beam",
+          "sha256": "ed1cd875478a13624694a0a65117cadb8d139be7c702c037c8fa103f8d081338",
+          "mtime_utc": "2026-09-05T19:40:47+00:00"
+        },
+        {
+          "file": "Elixir.Yelixer.Encoding.beam",
+          "sha256": "4f0c0a797cd57bcdbbed20f3a1d1b7a98e958757c5fb8080590c97e3dfa56225",
+          "mtime_utc": "2026-09-05T19:40:47+00:00"
+        },
+        {
+          "file": "Elixir.Yelixer.ID.beam",
+          "sha256": "3bda4ccb8ca563209fb48bdb6acf46c38b646e1eae9266d2fe7aed0c10fa8aa9",
+          "mtime_utc": "2026-09-05T19:40:47+00:00"
+        },
+        {
+          "file": "Elixir.Yelixer.Integrate.beam",
+          "sha256": "f5d5b12a840c67d1e24d0b514f6c187b63c1696e52bc08ea4fff82e80adc24a3",
+          "mtime_utc": "2026-09-05T19:40:47+00:00"
+        },
+        {
+          "file": "Elixir.Yelixer.Item.beam",
+          "sha256": "08d2ffef5fa0415a687da3e233767ca63d759d76e6571332dda4c0cddaa5b64d",
+          "mtime_utc": "2026-09-05T19:40:47+00:00"
+        },
+        {
+          "file": "Elixir.Yelixer.StateVector.beam",
+          "sha256": "9da86c117b0cb2fe8398ff096caecb0d82f818d7831506dd91a97e5b1f53d076",
+          "mtime_utc": "2026-09-05T19:40:47+00:00"
+        },
+        {
+          "file": "Elixir.Yelixer.SyncProtocol.beam",
+          "sha256": "6ce0d68165cbefbe0ff51feb1161e9bf6567ed5e1bc0aa2c8d03ba052612bcc2",
+          "mtime_utc": "2026-09-05T19:40:47+00:00"
+        },
+        {
+          "file": "Elixir.Yelixer.Types.Array.beam",
+          "sha256": "cc2dbaa9d976c0aa43333a778c62e61679c4448e256fdf4381d83a476a699e6b",
+          "mtime_utc": "2026-09-05T19:40:47+00:00"
+        },
+        {
+          "file": "Elixir.Yelixer.Types.Text.beam",
+          "sha256": "908de1d4e601112fbec958b394fdf5611b5d9144da2517e704ef1d4b07916b54",
+          "mtime_utc": "2026-09-05T19:40:47+00:00"
+        },
+        {
+          "file": "Elixir.Yelixer.Types.XMLElement.beam",
+          "sha256": "2f40e597d5e4ab4ff39cbbc777f374e2c531e37d2fa1bc4ec7efb1f29d5140f2",
+          "mtime_utc": "2026-09-05T19:40:47+00:00"
+        },
+        {
+          "file": "Elixir.Yelixer.Types.XMLEscape.beam",
+          "sha256": "4ae112237b7de16564a8c7cc345dd5d347d53d88de16664f072be7df141537c7",
+          "mtime_utc": "2026-09-05T19:40:47+00:00"
+        },
+        {
+          "file": "Elixir.Yelixer.Types.XMLFragment.beam",
+          "sha256": "08105f3f77297df29fd81aa707bb6f9b1c0578304bfa719dc01be9bf1d537f71",
+          "mtime_utc": "2026-09-05T19:40:47+00:00"
+        },
+        {
+          "file": "Elixir.Yelixer.Types.XMLText.beam",
+          "sha256": "f3c992e6d83e76d585fc0ae386b469ca0674103afdc5592dd657bfa92a781f7c",
+          "mtime_utc": "2026-09-05T19:40:47+00:00"
+        },
+        {
+          "file": "Elixir.Yelixer.Types.YMap.beam",
+          "sha256": "1b2454b737076ea9150b49516e4a513ce9ab4b68e5fc7adc0fd2b0b836061e0f",
+          "mtime_utc": "2026-09-05T19:40:47+00:00"
+        },
+        {
+          "file": "Elixir.Yelixer.Types.beam",
+          "sha256": "4f09376d0d77d40ed83627fbfc5d8721b2f10b39a6fa90e9077a9e5c24060fbe",
+          "mtime_utc": "2026-09-05T19:40:47+00:00"
+        },
+        {
+          "file": "Elixir.Yelixer.beam",
+          "sha256": "33e9d294019d592e10613741d3fb1698b8980833eb978c51e85ed93ac54be223",
+          "mtime_utc": "2026-09-05T19:40:47+00:00"
+        }
+      ],
+      "forced_compile_output": "Compiling 19 files (.ex)\nGenerated yelixer app\n"
+    },
+    "repair": {
+      "head_before_repair_commit": "5f8a5f0befa4e78cf442add6f87d6bbd35369214",
+      "lib_diff": "diff --git a/lib/yelixer/block_store.ex b/lib/yelixer/block_store.ex\nindex fc1e6e4..e73a7a6 100644\n--- a/lib/yelixer/block_store.ex\n+++ b/lib/yelixer/block_store.ex\n@@ -529,7 +529,21 @@ defmodule Yelixer.BlockStore do\n   boundaries, so a split is the prerequisite for anchoring a new YATA\n   insertion at an interior clock.\n   \"\"\"\n-  def split_block(%__MODULE__{} = store, %ID{client: client, clock: clock} = id, type_name) do\n+  def split_block(%__MODULE__{} = store, %ID{} = id, type_name) do\n+    do_split_block(store, id, type_name, &Item.split/2)\n+  end\n+\n+  @doc false\n+  def split_block_at_clock(%__MODULE__{} = store, %ID{} = id, type_name) do\n+    do_split_block(store, id, type_name, &Item.split_at_clock/2)\n+  end\n+\n+  defp do_split_block(\n+         %__MODULE__{} = store,\n+         %ID{client: client, clock: clock} = id,\n+         type_name,\n+         split\n+       ) do\n     # get/2 checks client_pending first, so this doesn't force a\n     # materialize for the common \"already a boundary\" no-op case (the\n     # last item pushed for `client`, still pending, exactly on a\n@@ -550,7 +564,7 @@ defmodule Yelixer.BlockStore do\n         tuple = get_tuple(store, client)\n         {idx, item} = bsearch_index(tuple, clock)\n         offset = clock - item.id.clock\n-        {left, right} = Item.split(item, offset)\n+        {left, right} = split.(item, offset)\n \n         clients =\n           Map.update!(store.clients, client, fn blocks ->\ndiff --git a/lib/yelixer/encoding.ex b/lib/yelixer/encoding.ex\nindex cae4470..539daa2 100644\n--- a/lib/yelixer/encoding.ex\n+++ b/lib/yelixer/encoding.ex\n@@ -513,7 +513,7 @@ defmodule Yelixer.Encoding do\n        iteration, which is unspecified.\n     2. **Blocks split at the remote clock boundary** \u2014 when a block\n        straddles the cutoff (`clock < remote_clock < clock + len`),\n-       only its tail is encoded via `Item.split/2`.\n+       only its tail is encoded via `Item.split_at_clock/2`.\n     3. **Tombstoned items emit `:deleted` content** \u2014 the original\n        payload is dropped but the ID-range slot is preserved, matching\n        the in-memory `:deleted` content variant.\n@@ -570,7 +570,7 @@ defmodule Yelixer.Encoding do\n               if item.id.clock < remote_clock do\n                 # Partial item \u2014 only encode the portion after remote_clock\n                 offset = remote_clock - item.id.clock\n-                {_left, right} = Item.split(item, offset)\n+                {_left, right} = Item.split_at_clock(item, offset)\n                 <<iacc::binary, encode_item(right, store)::binary>>\n               else\n                 <<iacc::binary, encode_item(item, store)::binary>>\n@@ -1302,7 +1302,7 @@ defmodule Yelixer.Encoding do\n     type_key = parent_type_key(item)\n     store = if type_key, do: BlockStore.materialize_sequence(store, type_key), else: store\n \n-    {left, right} = Item.split(item, offset)\n+    {left, right} = Item.split_at_clock(item, offset)\n \n     clients =\n       Map.update!(store.clients, client, fn blocks ->\n@@ -1411,7 +1411,7 @@ defmodule Yelixer.Encoding do\n       item.id.clock < client_clock ->\n         # Partial overlap \u2014 trim the already-known portion and integrate the rest\n         offset = client_clock - item.id.clock\n-        {_left, trimmed} = Item.split(item, offset)\n+        {_left, trimmed} = Item.split_at_clock(item, offset)\n \n         case try_integrate_item(trimmed, doc, sv) do\n           {:ok, doc, sv} ->\ndiff --git a/lib/yelixer/integrate.ex b/lib/yelixer/integrate.ex\nindex afa09dc..de705ea 100644\n--- a/lib/yelixer/integrate.ex\n+++ b/lib/yelixer/integrate.ex\n@@ -173,7 +173,11 @@ defmodule Yelixer.Integrate do\n           split_clock = origin_id.clock + 1\n \n           {store, _} =\n-            BlockStore.split_block(store, ID.new(origin_id.client, split_clock), type_name)\n+            BlockStore.split_block_at_clock(\n+              store,\n+              ID.new(origin_id.client, split_clock),\n+              type_name\n+            )\n \n           store\n         else\n@@ -193,7 +197,7 @@ defmodule Yelixer.Integrate do\n \n       item ->\n         if ro_id.clock > item.id.clock do\n-          {store, _} = BlockStore.split_block(store, ro_id, type_name)\n+          {store, _} = BlockStore.split_block_at_clock(store, ro_id, type_name)\n           store\n         else\n           store\ndiff --git a/lib/yelixer/item.ex b/lib/yelixer/item.ex\nindex 861dc5b..58c8969 100644\n--- a/lib/yelixer/item.ex\n+++ b/lib/yelixer/item.ex\n@@ -199,8 +199,29 @@ defmodule Yelixer.Item do\n   \"\"\"\n   def split(%__MODULE__{} = item, offset) when offset > 0 and offset < item.length do\n     {left_content, right_content} = split_content(item.content, offset)\n+    split_item(item, left_content, right_content)\n+  end\n+\n+  @doc \"\"\"\n+  Splits at an exact wire clock, preserving both clock intervals.\n+\n+  Unlike local position clamping in `split/2`, a remote origin, delete range,\n+  or state vector cannot move to a neighboring clock. When that clock bisects\n+  a surrogate pair, replace each orphan half with U+FFFD, matching official\n+  Yjs 13.6.32 `ContentString.splice`. Each replacement still occupies one unit.\n+  \"\"\"\n+  def split_at_clock(%__MODULE__{content: {:string, s}} = item, offset)\n+      when offset > 0 and offset < item.length do\n+    {left, right} = utf16_split_at_clock(s, offset)\n+    split_item(item, {:string, left}, {:string, right})\n+  end\n+\n+  def split_at_clock(%__MODULE__{} = item, offset), do: split(item, offset)\n+\n+  defp split_item(item, left_content, right_content) do\n     # A surrogate-interior request clamps the content upward. IDs must use\n-    # that same boundary, otherwise the resulting clock ranges overlap.\n+    # that same boundary for local splits. Wire splits keep the exact offset\n+    # by replacing orphan halves without changing their clock lengths.\n     offset = content_length(left_content)\n \n     right_id = ID.new(item.id.client, item.id.clock + offset)\n@@ -301,6 +322,24 @@ defmodule Yelixer.Item do\n     div(byte_size(:unicode.characters_to_binary(s, :utf8, {:utf16, :little})), 2)\n   end\n \n+  defp utf16_split_at_clock(s, offset) do\n+    u = :unicode.characters_to_binary(s, :utf8, {:utf16, :little})\n+    at = offset * 2\n+\n+    case utf16_cut(u, at) do\n+      {:ok, pair} ->\n+        pair\n+\n+      :surrogate ->\n+        # Input is valid UTF-8. A failed interior UTF-16 cut therefore bisects\n+        # one pair; the prefix and suffix outside that pair remain valid.\n+        <<prefix::binary-size(at - 2), _high::little-16, _low::little-16, suffix::binary>> = u\n+        left = :unicode.characters_to_binary(prefix, {:utf16, :little}, :utf8)\n+        right = :unicode.characters_to_binary(suffix, {:utf16, :little}, :utf8)\n+        {left <> \"\\u{FFFD}\", \"\\u{FFFD}\" <> right}\n+    end\n+  end\n+\n   # Splits at a UTF-16 code unit offset.\n   #\n   # An offset can land BETWEEN the two halves of a surrogate pair, which",
+      "source_sha256": {
+        "lib/yelixer/block_store.ex": "d3ce268754e60f7c08c413a4be7cb5b5fdf586223465714bb6ccc82187a31d2d",
+        "lib/yelixer/delete_set.ex": "1804cb9c547bdeed65d9217f4c9e485a00884ae277e3dbddcef82c04da13bd46",
+        "lib/yelixer/doc.ex": "39d6860a9ddee33a21c796042979aa05b163d84fb9bdc8c6f03f6395155d979c",
+        "lib/yelixer/doc_server.ex": "bd414f53e953e75a417f415df0a167125dcfa08d19ee49d6b702f8fe92aefc8b",
+        "lib/yelixer/encoding.ex": "56e8fa37ec74c1abce65255fae6fc1012b43c6229d70ff3c8186ccdbe7140774",
+        "lib/yelixer/id.ex": "64d5b13dd70b339460eb984a3fe32f3cde72e468e0ac645111635c44059af1d7",
+        "lib/yelixer/integrate.ex": "d0ce32c26835ce2c800421a89f32da2159069a6a02562e11a7a36a7bbaa47818",
+        "lib/yelixer/item.ex": "30d17e5b567340846e6853cd0bee8c7094b0ee913ed68572f2283a55d268e85c",
+        "lib/yelixer/state_vector.ex": "5da4adab05339a4702f771fc42602858e17177908affa6d0988f1a71f6de2640",
+        "lib/yelixer/sync_protocol.ex": "efa45c046211a3310e1120da2b4a258a6cb6ba2eb9ecf68a5bd82e93fc77fa6b",
+        "lib/yelixer/types/array.ex": "6ff869dcf55004fe1919731ea18c0eb316d983fb4e5c1f7742e8a3fd9e7c3244",
+        "lib/yelixer/types/text.ex": "b92476fcbb2516c1822b472399138a110010f09a5e226bd34821aca3e0734774",
+        "lib/yelixer/types/types.ex": "99ae9b4ca5e4674b495e37ac55aad00d0f3bf66a36559d868de91f1411cb1aaf",
+        "lib/yelixer/types/xml_element.ex": "5eab1105670ce740a94b7482025e40deaf12c4d054176ebebea368db188d1b65",
+        "lib/yelixer/types/xml_escape.ex": "6bf6fdc4cf0a2a4c9e927cd9470ca8fb9238e005d93fcc3790f79092a8fbcd63",
+        "lib/yelixer/types/xml_fragment.ex": "4b02f69e2567fffa1d16a3988fecab6be1b884337d8364310a3155cd8edd1166",
+        "lib/yelixer/types/xml_text.ex": "b6afe11c455a8d30fe09cebb1bd142aa4bcef3ce3dbec9d41a0af947a7a52dfe",
+        "lib/yelixer/types/y_map.ex": "f1c94f498d9c8cdba769d4f6c45d53ce70489243e0e255938f6ac045dd23f2df",
+        "lib/yelixer.ex": "df02f61ea9abab80673cea4c6e115b95bcc0e4cb8c87cc4d01c434fd2a18933b"
+      },
+      "compiled_modules": [
+        {
+          "file": "Elixir.Yelixer.BlockStore.beam",
+          "sha256": "29db83ca8ad26bfe59c0da3f8268c2d413df04d788956dff5c82528df58a807e",
+          "mtime_utc": "2026-09-05T19:44:53+00:00"
+        },
+        {
+          "file": "Elixir.Yelixer.DeleteSet.beam",
+          "sha256": "374f0a4a0f21f5a0eaec63bfbb31552f19bed8f0a287b770b7484beb93b88e3a",
+          "mtime_utc": "2026-09-05T19:44:53+00:00"
+        },
+        {
+          "file": "Elixir.Yelixer.Doc.beam",
+          "sha256": "03351837903bae1e47ee0e029284134971ef1658b286fa7f373a60d19b032312",
+          "mtime_utc": "2026-09-05T19:44:53+00:00"
+        },
+        {
+          "file": "Elixir.Yelixer.DocServer.beam",
+          "sha256": "4d91993b83ce32326c67152fb14bb8f449c5dfe5b03ce145ac11dbda15f00d15",
+          "mtime_utc": "2026-09-05T19:44:53+00:00"
+        },
+        {
+          "file": "Elixir.Yelixer.Encoding.beam",
+          "sha256": "3c010796ffdb5513fb5f43ccafd54d27fb0d21eb32d43131312f6c2f00949c70",
+          "mtime_utc": "2026-09-05T19:44:53+00:00"
+        },
+        {
+          "file": "Elixir.Yelixer.ID.beam",
+          "sha256": "7f0c3bb16029a30b5fc4ed1cdb1441c68ea09f521283ca3393aaf0cda1f2b06b",
+          "mtime_utc": "2026-09-05T19:44:53+00:00"
+        },
+        {
+          "file": "Elixir.Yelixer.Integrate.beam",
+          "sha256": "ce44955b40b5b249e1ceec00f1276795cd268819948b3af6bbd48210c0fd7bb1",
+          "mtime_utc": "2026-09-05T19:44:53+00:00"
+        },
+        {
+          "file": "Elixir.Yelixer.Item.beam",
+          "sha256": "cccb260aad089aa57a294ea78ffbd1645391c82d350d28c5714b972e275306a0",
+          "mtime_utc": "2026-09-05T19:44:53+00:00"
+        },
+        {
+          "file": "Elixir.Yelixer.StateVector.beam",
+          "sha256": "2f5b9977aea2c3691baa5cd803bf8402106d7cfa69efce352792fe529f51c69f",
+          "mtime_utc": "2026-09-05T19:44:53+00:00"
+        },
+        {
+          "file": "Elixir.Yelixer.SyncProtocol.beam",
+          "sha256": "7683fcad22b3362c94a9dd58a22e375704a310eb35947d8a864b28d790c1a35f",
+          "mtime_utc": "2026-09-05T19:44:53+00:00"
+        },
+        {
+          "file": "Elixir.Yelixer.Types.Array.beam",
+          "sha256": "a9d184cb3413d7fb183a3f36d7fcca142bf130ad09fe196156958fcf70216d4c",
+          "mtime_utc": "2026-09-05T19:44:53+00:00"
+        },
+        {
+          "file": "Elixir.Yelixer.Types.Text.beam",
+          "sha256": "b7c9630948de032a4f4f968e1d06c9ecb38833f8332a9c9e2dad92ab2b24dd49",
+          "mtime_utc": "2026-09-05T19:44:53+00:00"
+        },
+        {
+          "file": "Elixir.Yelixer.Types.XMLElement.beam",
+          "sha256": "98661b4f90694277c6514de89cdfce6a9d6984d150324f76ca9946726db7978c",
+          "mtime_utc": "2026-09-05T19:44:53+00:00"
+        },
+        {
+          "file": "Elixir.Yelixer.Types.XMLEscape.beam",
+          "sha256": "522b53e054371ba3bc80a06ab5cb2442005028533d9612f3bb515e3fa1915485",
+          "mtime_utc": "2026-09-05T19:44:53+00:00"
+        },
+        {
+          "file": "Elixir.Yelixer.Types.XMLFragment.beam",
+          "sha256": "9a56d48593ca355e11594ab11b956bdf60ea2d3497acf006f2f0d1a875daf99e",
+          "mtime_utc": "2026-09-05T19:44:53+00:00"
+        },
+        {
+          "file": "Elixir.Yelixer.Types.XMLText.beam",
+          "sha256": "01187219866d72be7a595bd957315043f9b2eb3ff7c4cccfb19522ef8849c0ed",
+          "mtime_utc": "2026-09-05T19:44:53+00:00"
+        },
+        {
+          "file": "Elixir.Yelixer.Types.YMap.beam",
+          "sha256": "b2a6b6ceb05dd6997b48d6cee487e80f8f6d4a566ba3e342bd249dbd9572e80e",
+          "mtime_utc": "2026-09-05T19:44:53+00:00"
+        },
+        {
+          "file": "Elixir.Yelixer.Types.beam",
+          "sha256": "16963e89a5339b5ce05359e7658c06adff3d908405216729f0fdcbc44d2c1e18",
+          "mtime_utc": "2026-09-05T19:44:53+00:00"
+        },
+        {
+          "file": "Elixir.Yelixer.beam",
+          "sha256": "e38efc308928ce9082bb04de5b941a0b3cd23fb55e1451118185407768b9c6f0",
+          "mtime_utc": "2026-09-05T19:44:53+00:00"
+        }
+      ],
+      "forced_compile_output": "Compiling 19 files (.ex)\nGenerated yelixer app\n"
+    }
+  },
+  "runs": {
+    "baseline-incremental": {
+      "cases": [
+        {
+          "module": "Yelixer.UnicodeBoundaryTest",
+          "name": "test fresh final full-state loading is a separate passing control",
+          "state": "{:excluded, \"due to full_state_control filter\"}",
+          "time_us": 0
+        },
+        {
+          "module": "Yelixer.UnicodeBoundaryTest",
+          "name": "test a browser half-surrogate edit cannot silently diverge on receipt",
+          "state": "{:failed, [{:error, %ExUnit.AssertionError{left: \"\ud83d\ude00XAA\", right: \"\ufffdX\ufffdA\", message: \"Assertion with == failed\", expr: {:assert, [line: 32], [{:==, [line: 32], [{{:., [line: 32], [{:__aliases__, [line: 32], [:Text]}, :to_string]}, [line: 32], [{:doc, [line: 32], nil}, \"content\"]}, {:@, [line: 32], [{:expected, [line: 32], nil}]}]}]}, args: :ex_unit_no_meaningful_value, doctest: :ex_unit_no_meaningful_value, context: :==}, [{Yelixer.UnicodeBoundaryTest, :\"test a browser half-surrogate edit cannot silently diverge on receipt\", 1, [file: ~c\"test/yelixer/unicode_boundary_test.exs\", line: 32]}]}]}",
+          "time_us": 322248
+        },
+        {
+          "module": "Yelixer.UnicodeBoundaryTest",
+          "name": "test adjacent valid scalar control: ASCII interior",
+          "state": "nil",
+          "time_us": 324228
+        },
+        {
+          "module": "Yelixer.UnicodeBoundaryTest",
+          "name": "test adjacent valid scalar control: before astral scalar",
+          "state": "nil",
+          "time_us": 321709
+        },
+        {
+          "module": "Yelixer.UnicodeBoundaryTest",
+          "name": "test adjacent valid scalar control: after astral scalar",
+          "state": "nil",
+          "time_us": 290737
+        },
+        {
+          "module": "Yelixer.UnicodeBoundaryTest",
+          "name": "test adjacent valid scalar control: end of astral document",
+          "state": "nil",
+          "time_us": 260761
+        },
+        {
+          "module": "Yelixer.UnicodeBoundaryTest",
+          "name": "test incoming delete of surrogate unit 0 keeps the exact wire interval",
+          "state": "{:failed, [{:error, %ExUnit.AssertionError{left: \"A\", right: \"\ufffdA\", message: \"Assertion with == failed\", expr: {:assert, [line: 97], [{:==, [line: 97], [{{:., [line: 97], [{:__aliases__, [line: 97], [:Text]}, :to_string]}, [line: 97], [{{:., [line: 97], [{:__aliases__, [line: 97], [:O]}, :reload]}, [line: 97], [{:doc, [line: 97], nil}]}, \"content\"]}, \"\ufffdA\"]}]}, args: :ex_unit_no_meaningful_value, doctest: :ex_unit_no_meaningful_value, context: :==}, [{Yelixer.UnicodeBoundaryTest, :\"test incoming delete of surrogate unit 0 keeps the exact wire interval\", 1, [file: ~c\"test/yelixer/unicode_boundary_test.exs\", line: 97]}]}]}",
+          "time_us": 251312
+        },
+        {
+          "module": "Yelixer.UnicodeBoundaryTest",
+          "name": "test incoming delete of surrogate unit 1 keeps the exact wire interval",
+          "state": "{:failed, [{:error, %ExUnit.AssertionError{left: \"A\", right: \"\ufffdA\", message: \"Assertion with == failed\", expr: {:assert, [line: 97], [{:==, [line: 97], [{{:., [line: 97], [{:__aliases__, [line: 97], [:Text]}, :to_string]}, [line: 97], [{{:., [line: 97], [{:__aliases__, [line: 97], [:O]}, :reload]}, [line: 97], [{:doc, [line: 97], nil}]}, \"content\"]}, \"\ufffdA\"]}]}, args: :ex_unit_no_meaningful_value, doctest: :ex_unit_no_meaningful_value, context: :==}, [{Yelixer.UnicodeBoundaryTest, :\"test incoming delete of surrogate unit 1 keeps the exact wire interval\", 1, [file: ~c\"test/yelixer/unicode_boundary_test.exs\", line: 97]}]}]}",
+          "time_us": 264083
+        },
+        {
+          "module": "Yelixer.UnicodeBoundaryTest",
+          "name": "test a state-vector diff beginning inside a surrogate preserves its clock boundary",
+          "state": "{:failed, [{:error, %ExUnit.AssertionError{left: <<1, 1, 100, 1, 132, 100, 1, 1, 65, 0>>, right: <<1, 1, 100, 1, 132, 100, 0, 4, 239, 191, 189, 65, 0>>, message: \"Assertion with == failed\", expr: {:assert, [line: 110], [{:==, [line: 110], [{{:., [line: 110], [{:__aliases__, [line: 110], [:Encoding]}, :encode_diff]}, [line: 110], [{:doc, [line: 110], nil}, {:remote, [line: 110], nil}]}, {{:., [line: 110], [{:__aliases__, [line: 110], [:O]}, :update]}, [line: 110], [{:p, [line: 110], nil}, {:remote, [line: 110], nil}]}]}]}, args: :ex_unit_no_meaningful_value, doctest: :ex_unit_no_meaningful_value, context: :==}, [{Yelixer.UnicodeBoundaryTest, :\"test a state-vector diff beginning inside a surrogate preserves its clock boundary\", 1, [file: ~c\"test/yelixer/unicode_boundary_test.exs\", line: 110]}]}]}",
+          "time_us": 335769
+        }
+      ],
+      "defined": 9,
+      "executed": 8,
+      "failures": 4,
+      "timing": [
+        "start=2026-09-05T19:40:50Z",
+        "end=2026-09-05T19:40:54Z"
+      ],
+      "summary": [
+        "9 tests, 4 failures, 1 excluded"
+      ],
+      "rc": 2,
+      "stdout_sha256": "ade9b0f87b13cbd81468ffa94c5c143ba4c822b403acc230ad3ef1cd02b9e293",
+      "stdout": "yelixer rm-rf guard active: Yelixer.Test.FileRmRfGuard\nRunning ExUnit with seed: 0, max_cases: 1\nExcluding tags: [:full_state_control, :divergence]\n\n\n\n  1) test a browser half-surrogate edit cannot silently diverge on receipt (Yelixer.UnicodeBoundaryTest)\n     test/yelixer/unicode_boundary_test.exs:23\n     Assertion with == failed\n     code:  assert Text.to_string(doc, \"content\") == @expected\n     left:  \"\ud83d\ude00XAA\"\n     right: \"\ufffdX\ufffdA\"\n     stacktrace:\n       test/yelixer/unicode_boundary_test.exs:32: (test)\n\n....\n\n  2) test incoming delete of surrogate unit 0 keeps the exact wire interval (Yelixer.UnicodeBoundaryTest)\n     test/yelixer/unicode_boundary_test.exs:87\n     Assertion with == failed\n     code:  assert Text.to_string(O.reload(doc), \"content\") == \"\ufffdA\"\n     left:  \"A\"\n     right: \"\ufffdA\"\n     stacktrace:\n       test/yelixer/unicode_boundary_test.exs:97: (test)\n\n\n\n  3) test incoming delete of surrogate unit 1 keeps the exact wire interval (Yelixer.UnicodeBoundaryTest)\n     test/yelixer/unicode_boundary_test.exs:87\n     Assertion with == failed\n     code:  assert Text.to_string(O.reload(doc), \"content\") == \"\ufffdA\"\n     left:  \"A\"\n     right: \"\ufffdA\"\n     stacktrace:\n       test/yelixer/unicode_boundary_test.exs:97: (test)\n\n\n\n  4) test a state-vector diff beginning inside a surrogate preserves its clock boundary (Yelixer.UnicodeBoundaryTest)\n     test/yelixer/unicode_boundary_test.exs:104\n     Assertion with == failed\n     code:  assert Encoding.encode_diff(doc, remote) == O.update(p, remote)\n     left:  <<1, 1, 100, 1, 132, 100, 1, 1, 65, 0>>\n     right: <<1, 1, 100, 1, 132, 100, 0, 4, 239, 191, 189, 65, 0>>\n     stacktrace:\n       test/yelixer/unicode_boundary_test.exs:110: (test)\n\n\nFinished in 2.6 seconds (0.00s async, 2.6s sync)\n9 tests, 4 failures, 1 excluded\n\nrc=2\n",
+      "synthetic_oracle_transcript": [
+        {
+          "command": {
+            "cmd": "reset",
+            "client_id": 900
+          },
+          "reply": {
+            "ok": true
+          }
+        },
+        {
+          "command": {
+            "cmd": "apply_update",
+            "update_hex": "01016400040107636f6e74656e7405f09f98804100"
+          },
+          "reply": {
+            "ok": true
+          }
+        },
+        {
+          "command": {
+            "cmd": "apply_update",
+            "update_hex": "01016403c464006401015800"
+          },
+          "reply": {
+            "ok": true
+          }
+        },
+        {
+          "command": {
+            "name": "content",
+            "cmd": "text_content"
+          },
+          "reply": {
+            "ok": true,
+            "text": "\ufffdX\ufffdA"
+          }
+        },
+        {
+          "command": {
+            "cmd": "reset",
+            "client_id": 100
+          },
+          "reply": {
+            "ok": true
+          }
+        },
+        {
+          "command": {
+            "text": "ab",
+            "cmd": "insert_text",
+            "pos": 0
+          },
+          "reply": {
+            "length": 2,
+            "ok": true
+          }
+        },
+        {
+          "command": {
+            "cmd": "encode"
+          },
+          "reply": {
+            "ok": true,
+            "update_hex": "01016400040107636f6e74656e7402616200"
+          }
+        },
+        {
+          "command": {
+            "cmd": "state_vector"
+          },
+          "reply": {
+            "ok": true,
+            "sv": {
+              "100": 2
+            }
+          }
+        },
+        {
+          "command": {
+            "text": "X",
+            "cmd": "insert_text",
+            "pos": 1
+          },
+          "reply": {
+            "length": 3,
+            "ok": true
+          }
+        },
+        {
+          "command": {
+            "cmd": "encode",
+            "sv": {
+              "100": 2
+            }
+          },
+          "reply": {
+            "ok": true,
+            "update_hex": "01016402c464006401015800"
+          }
+        },
+        {
+          "command": {
+            "name": "content",
+            "cmd": "text_content"
+          },
+          "reply": {
+            "ok": true,
+            "text": "aXb"
+          }
+        },
+        {
+          "command": {
+            "cmd": "state_vector"
+          },
+          "reply": {
+            "ok": true,
+            "sv": {
+              "100": 3
+            }
+          }
+        },
+        {
+          "command": {
+            "cmd": "reset",
+            "client_id": 100
+          },
+          "reply": {
+            "ok": true
+          }
+        },
+        {
+          "command": {
+            "text": "\ud83d\ude00A",
+            "cmd": "insert_text",
+            "pos": 0
+          },
+          "reply": {
+            "length": 3,
+            "ok": true
+          }
+        },
+        {
+          "command": {
+            "cmd": "encode"
+          },
+          "reply": {
+            "ok": true,
+            "update_hex": "01016400040107636f6e74656e7405f09f98804100"
+          }
+        },
+        {
+          "command": {
+            "cmd": "state_vector"
+          },
+          "reply": {
+            "ok": true,
+            "sv": {
+              "100": 3
+            }
+          }
+        },
+        {
+          "command": {
+            "text": "X",
+            "cmd": "insert_text",
+            "pos": 0
+          },
+          "reply": {
+            "length": 4,
+            "ok": true
+          }
+        },
+        {
+          "command": {
+            "cmd": "encode",
+            "sv": {
+              "100": 3
+            }
+          },
+          "reply": {
+            "ok": true,
+            "update_hex": "01016403446400015800"
+          }
+        },
+        {
+          "command": {
+            "name": "content",
+            "cmd": "text_content"
+          },
+          "reply": {
+            "ok": true,
+            "text": "X\ud83d\ude00A"
+          }
+        },
+        {
+          "command": {
+            "cmd": "state_vector"
+          },
+          "reply": {
+            "ok": true,
+            "sv": {
+              "100": 4
+            }
+          }
+        },
+        {
+          "command": {
+            "cmd": "reset",
+            "client_id": 100
+          },
+          "reply": {
+            "ok": true
+          }
+        },
+        {
+          "command": {
+            "text": "\ud83d\ude00A",
+            "cmd": "insert_text",
+            "pos": 0
+          },
+          "reply": {
+            "length": 3,
+            "ok": true
+          }
+        },
+        {
+          "command": {
+            "cmd": "encode"
+          },
+          "reply": {
+            "ok": true,
+            "update_hex": "01016400040107636f6e74656e7405f09f98804100"
+          }
+        },
+        {
+          "command": {
+            "cmd": "state_vector"
+          },
+          "reply": {
+            "ok": true,
+            "sv": {
+              "100": 3
+            }
+          }
+        },
+        {
+          "command": {
+            "text": "X",
+            "cmd": "insert_text",
+            "pos": 2
+          },
+          "reply": {
+            "length": 4,
+            "ok": true
+          }
+        },
+        {
+          "command": {
+            "cmd": "encode",
+            "sv": {
+              "100": 3
+            }
+          },
+          "reply": {
+            "ok": true,
+            "update_hex": "01016403c464016402015800"
+          }
+        },
+        {
+          "command": {
+            "name": "content",
+            "cmd": "text_content"
+          },
+          "reply": {
+            "ok": true,
+            "text": "\ud83d\ude00XA"
+          }
+        },
+        {
+          "command": {
+            "cmd": "state_vector"
+          },
+          "reply": {
+            "ok": true,
+            "sv": {
+              "100": 4
+            }
+          }
+        },
+        {
+          "command": {
+            "cmd": "reset",
+            "client_id": 100
+          },
+          "reply": {
+            "ok": true
+          }
+        },
+        {
+          "command": {
+            "text": "\ud83d\ude00A",
+            "cmd": "insert_text",
+            "pos": 0
+          },
+          "reply": {
+            "length": 3,
+            "ok": true
+          }
+        },
+        {
+          "command": {
+            "cmd": "encode"
+          },
+          "reply": {
+            "ok": true,
+            "update_hex": "01016400040107636f6e74656e7405f09f98804100"
+          }
+        },
+        {
+          "command": {
+            "cmd": "state_vector"
+          },
+          "reply": {
+            "ok": true,
+            "sv": {
+              "100": 3
+            }
+          }
+        },
+        {
+          "command": {
+            "text": "X",
+            "cmd": "insert_text",
+            "pos": 3
+          },
+          "reply": {
+            "length": 4,
+            "ok": true
+          }
+        },
+        {
+          "command": {
+            "cmd": "encode",
+            "sv": {
+              "100": 3
+            }
+          },
+          "reply": {
+            "ok": true,
+            "update_hex": "01016403846402015800"
+          }
+        },
+        {
+          "command": {
+            "name": "content",
+            "cmd": "text_content"
+          },
+          "reply": {
+            "ok": true,
+            "text": "\ud83d\ude00AX"
+          }
+        },
+        {
+          "command": {
+            "cmd": "state_vector"
+          },
+          "reply": {
+            "ok": true,
+            "sv": {
+              "100": 4
+            }
+          }
+        },
+        {
+          "command": {
+            "cmd": "reset",
+            "client_id": 100
+          },
+          "reply": {
+            "ok": true
+          }
+        },
+        {
+          "command": {
+            "text": "\ud83d\ude00A",
+            "cmd": "insert_text",
+            "pos": 0
+          },
+          "reply": {
+            "length": 3,
+            "ok": true
+          }
+        },
+        {
+          "command": {
+            "cmd": "encode"
+          },
+          "reply": {
+            "ok": true,
+            "update_hex": "01016400040107636f6e74656e7405f09f98804100"
+          }
+        },
+        {
+          "command": {
+            "cmd": "state_vector"
+          },
+          "reply": {
+            "ok": true,
+            "sv": {
+              "100": 3
+            }
+          }
+        },
+        {
+          "command": {
+            "len": 1,
+            "cmd": "delete_text",
+            "pos": 0
+          },
+          "reply": {
+            "length": 2,
+            "ok": true
+          }
+        },
+        {
+          "command": {
+            "cmd": "encode",
+            "sv": {
+              "100": 3
+            }
+          },
+          "reply": {
+            "ok": true,
+            "update_hex": "000164010001"
+          }
+        },
+        {
+          "command": {
+            "name": "content",
+            "cmd": "text_content"
+          },
+          "reply": {
+            "ok": true,
+            "text": "\ufffdA"
+          }
+        },
+        {
+          "command": {
+            "cmd": "reset",
+            "client_id": 100
+          },
+          "reply": {
+            "ok": true
+          }
+        },
+        {
+          "command": {
+            "text": "\ud83d\ude00A",
+            "cmd": "insert_text",
+            "pos": 0
+          },
+          "reply": {
+            "length": 3,
+            "ok": true
+          }
+        },
+        {
+          "command": {
+            "cmd": "encode"
+          },
+          "reply": {
+            "ok": true,
+            "update_hex": "01016400040107636f6e74656e7405f09f98804100"
+          }
+        },
+        {
+          "command": {
+            "cmd": "state_vector"
+          },
+          "reply": {
+            "ok": true,
+            "sv": {
+              "100": 3
+            }
+          }
+        },
+        {
+          "command": {
+            "len": 1,
+            "cmd": "delete_text",
+            "pos": 1
+          },
+          "reply": {
+            "length": 2,
+            "ok": true
+          }
+        },
+        {
+          "command": {
+            "cmd": "encode",
+            "sv": {
+              "100": 3
+            }
+          },
+          "reply": {
+            "ok": true,
+            "update_hex": "000164010101"
+          }
+        },
+        {
+          "command": {
+            "name": "content",
+            "cmd": "text_content"
+          },
+          "reply": {
+            "ok": true,
+            "text": "\ufffdA"
+          }
+        },
+        {
+          "command": {
+            "cmd": "reset",
+            "client_id": 100
+          },
+          "reply": {
+            "ok": true
+          }
+        },
+        {
+          "command": {
+            "text": "\ud83d\ude00A",
+            "cmd": "insert_text",
+            "pos": 0
+          },
+          "reply": {
+            "length": 3,
+            "ok": true
+          }
+        },
+        {
+          "command": {
+            "cmd": "encode"
+          },
+          "reply": {
+            "ok": true,
+            "update_hex": "01016400040107636f6e74656e7405f09f98804100"
+          }
+        },
+        {
+          "command": {
+            "cmd": "encode",
+            "sv": {
+              "100": 1
+            }
+          },
+          "reply": {
+            "ok": true,
+            "update_hex": "0101640184640004efbfbd4100"
+          }
+        }
+      ]
+    },
+    "baseline-full-control": {
+      "cases": [
+        {
+          "module": "Yelixer.UnicodeBoundaryTest",
+          "name": "test a browser half-surrogate edit cannot silently diverge on receipt",
+          "state": "{:excluded, \"due to test filter\"}",
+          "time_us": 0
+        },
+        {
+          "module": "Yelixer.UnicodeBoundaryTest",
+          "name": "test adjacent valid scalar control: ASCII interior",
+          "state": "{:excluded, \"due to test filter\"}",
+          "time_us": 0
+        },
+        {
+          "module": "Yelixer.UnicodeBoundaryTest",
+          "name": "test adjacent valid scalar control: before astral scalar",
+          "state": "{:excluded, \"due to test filter\"}",
+          "time_us": 0
+        },
+        {
+          "module": "Yelixer.UnicodeBoundaryTest",
+          "name": "test adjacent valid scalar control: after astral scalar",
+          "state": "{:excluded, \"due to test filter\"}",
+          "time_us": 0
+        },
+        {
+          "module": "Yelixer.UnicodeBoundaryTest",
+          "name": "test adjacent valid scalar control: end of astral document",
+          "state": "{:excluded, \"due to test filter\"}",
+          "time_us": 0
+        },
+        {
+          "module": "Yelixer.UnicodeBoundaryTest",
+          "name": "test incoming delete of surrogate unit 0 keeps the exact wire interval",
+          "state": "{:excluded, \"due to test filter\"}",
+          "time_us": 0
+        },
+        {
+          "module": "Yelixer.UnicodeBoundaryTest",
+          "name": "test incoming delete of surrogate unit 1 keeps the exact wire interval",
+          "state": "{:excluded, \"due to test filter\"}",
+          "time_us": 0
+        },
+        {
+          "module": "Yelixer.UnicodeBoundaryTest",
+          "name": "test a state-vector diff beginning inside a surrogate preserves its clock boundary",
+          "state": "{:excluded, \"due to test filter\"}",
+          "time_us": 0
+        },
+        {
+          "module": "Yelixer.UnicodeBoundaryTest",
+          "name": "test fresh final full-state loading is a separate passing control",
+          "state": "nil",
+          "time_us": 313474
+        }
+      ],
+      "defined": 9,
+      "executed": 1,
+      "failures": 0,
+      "timing": [
+        "start=2026-09-05T19:40:54Z",
+        "end=2026-09-05T19:40:57Z"
+      ],
+      "summary": [
+        "9 tests, 0 failures, 8 excluded"
+      ],
+      "rc": 0,
+      "stdout_sha256": "2f5528b1cebafa12b6a1c8bc13ea4a50a35d9bc88e65ae7464e0fed29882a5b7",
+      "stdout": "yelixer rm-rf guard active: Yelixer.Test.FileRmRfGuard\nRunning ExUnit with seed: 0, max_cases: 1\nExcluding tags: [:test, :divergence]\nIncluding tags: [:full_state_control]\n\n.\nFinished in 0.5 seconds (0.00s async, 0.5s sync)\n9 tests, 0 failures, 8 excluded\n\nrc=0\n",
+      "synthetic_oracle_transcript": [
+        {
+          "command": {
+            "cmd": "reset",
+            "client_id": 900
+          },
+          "reply": {
+            "ok": true
+          }
+        },
+        {
+          "command": {
+            "cmd": "apply_update",
+            "update_hex": "01036400040107636f6e74656e7403efbfbd84640004efbfbd41c464006401015800"
+          },
+          "reply": {
+            "ok": true
+          }
+        },
+        {
+          "command": {
+            "name": "content",
+            "cmd": "text_content"
+          },
+          "reply": {
+            "ok": true,
+            "text": "\ufffdX\ufffdA"
+          }
+        },
+        {
+          "command": {
+            "cmd": "state_vector"
+          },
+          "reply": {
+            "ok": true,
+            "sv": {
+              "100": 4
+            }
+          }
+        }
+      ]
+    },
+    "repair-incremental": {
+      "cases": [
+        {
+          "module": "Yelixer.UnicodeBoundaryTest",
+          "name": "test fresh final full-state loading is a separate passing control",
+          "state": "{:excluded, \"due to full_state_control filter\"}",
+          "time_us": 0
+        },
+        {
+          "module": "Yelixer.UnicodeBoundaryTest",
+          "name": "test a browser half-surrogate edit cannot silently diverge on receipt",
+          "state": "nil",
+          "time_us": 300636
+        },
+        {
+          "module": "Yelixer.UnicodeBoundaryTest",
+          "name": "test adjacent valid scalar control: ASCII interior",
+          "state": "nil",
+          "time_us": 295830
+        },
+        {
+          "module": "Yelixer.UnicodeBoundaryTest",
+          "name": "test adjacent valid scalar control: before astral scalar",
+          "state": "nil",
+          "time_us": 323043
+        },
+        {
+          "module": "Yelixer.UnicodeBoundaryTest",
+          "name": "test adjacent valid scalar control: after astral scalar",
+          "state": "nil",
+          "time_us": 266496
+        },
+        {
+          "module": "Yelixer.UnicodeBoundaryTest",
+          "name": "test adjacent valid scalar control: end of astral document",
+          "state": "nil",
+          "time_us": 281145
+        },
+        {
+          "module": "Yelixer.UnicodeBoundaryTest",
+          "name": "test incoming delete of surrogate unit 0 keeps the exact wire interval",
+          "state": "nil",
+          "time_us": 257616
+        },
+        {
+          "module": "Yelixer.UnicodeBoundaryTest",
+          "name": "test incoming delete of surrogate unit 1 keeps the exact wire interval",
+          "state": "nil",
+          "time_us": 315224
+        },
+        {
+          "module": "Yelixer.UnicodeBoundaryTest",
+          "name": "test a state-vector diff beginning inside a surrogate preserves its clock boundary",
+          "state": "nil",
+          "time_us": 335221
+        }
+      ],
+      "defined": 9,
+      "executed": 8,
+      "failures": 0,
+      "timing": [
+        "start=2026-09-05T19:44:56Z",
+        "end=2026-09-05T19:45:00Z"
+      ],
+      "summary": [
+        "9 tests, 0 failures, 1 excluded"
+      ],
+      "rc": 0,
+      "stdout_sha256": "2b5d788baa9e2348740871ac6e0ca2fdfacf297d81d68a71bae7f763f32bd87c",
+      "stdout": "yelixer rm-rf guard active: Yelixer.Test.FileRmRfGuard\nRunning ExUnit with seed: 0, max_cases: 1\nExcluding tags: [:full_state_control, :divergence]\n\n........\nFinished in 2.6 seconds (0.00s async, 2.6s sync)\n9 tests, 0 failures, 1 excluded\n\nrc=0\n",
+      "synthetic_oracle_transcript": [
+        {
+          "command": {
+            "cmd": "reset",
+            "client_id": 900
+          },
+          "reply": {
+            "ok": true
+          }
+        },
+        {
+          "command": {
+            "cmd": "apply_update",
+            "update_hex": "01016400040107636f6e74656e7405f09f98804100"
+          },
+          "reply": {
+            "ok": true
+          }
+        },
+        {
+          "command": {
+            "cmd": "apply_update",
+            "update_hex": "01016403c464006401015800"
+          },
+          "reply": {
+            "ok": true
+          }
+        },
+        {
+          "command": {
+            "name": "content",
+            "cmd": "text_content"
+          },
+          "reply": {
+            "ok": true,
+            "text": "\ufffdX\ufffdA"
+          }
+        },
+        {
+          "command": {
+            "cmd": "state_vector"
+          },
+          "reply": {
+            "ok": true,
+            "sv": {
+              "100": 4
+            }
+          }
+        },
+        {
+          "command": {
+            "cmd": "apply_update",
+            "update_hex": "01016403c464006401015800"
+          },
+          "reply": {
+            "ok": true
+          }
+        },
+        {
+          "command": {
+            "cmd": "state_vector"
+          },
+          "reply": {
+            "ok": true,
+            "sv": {
+              "100": 4
+            }
+          }
+        },
+        {
+          "command": {
+            "cmd": "reload"
+          },
+          "reply": {
+            "ok": true,
+            "update_hex": "01036400040107636f6e74656e7403efbfbd84640004efbfbd41c464006401015800"
+          }
+        },
+        {
+          "command": {
+            "cmd": "state_vector"
+          },
+          "reply": {
+            "ok": true,
+            "sv": {
+              "100": 4
+            }
+          }
+        },
+        {
+          "command": {
+            "cmd": "apply_update",
+            "update_hex": "0101c80100846402012400"
+          },
+          "reply": {
+            "ok": true
+          }
+        },
+        {
+          "command": {
+            "name": "content",
+            "cmd": "text_content"
+          },
+          "reply": {
+            "ok": true,
+            "text": "\ufffdX\ufffdA$"
+          }
+        },
+        {
+          "command": {
+            "text": "^",
+            "cmd": "insert_text",
+            "pos": 0
+          },
+          "reply": {
+            "length": 6,
+            "ok": true
+          }
+        },
+        {
+          "command": {
+            "cmd": "encode",
+            "sv": {
+              "100": 4,
+              "200": 1
+            }
+          },
+          "reply": {
+            "ok": true,
+            "update_hex": "0101840700446400015e00"
+          }
+        },
+        {
+          "command": {
+            "cmd": "state_vector"
+          },
+          "reply": {
+            "ok": true,
+            "sv": {
+              "100": 4,
+              "200": 1,
+              "900": 1
+            }
+          }
+        },
+        {
+          "command": {
+            "cmd": "reset",
+            "client_id": 100
+          },
+          "reply": {
+            "ok": true
+          }
+        },
+        {
+          "command": {
+            "text": "ab",
+            "cmd": "insert_text",
+            "pos": 0
+          },
+          "reply": {
+            "length": 2,
+            "ok": true
+          }
+        },
+        {
+          "command": {
+            "cmd": "encode"
+          },
+          "reply": {
+            "ok": true,
+            "update_hex": "01016400040107636f6e74656e7402616200"
+          }
+        },
+        {
+          "command": {
+            "cmd": "state_vector"
+          },
+          "reply": {
+            "ok": true,
+            "sv": {
+              "100": 2
+            }
+          }
+        },
+        {
+          "command": {
+            "text": "X",
+            "cmd": "insert_text",
+            "pos": 1
+          },
+          "reply": {
+            "length": 3,
+            "ok": true
+          }
+        },
+        {
+          "command": {
+            "cmd": "encode",
+            "sv": {
+              "100": 2
+            }
+          },
+          "reply": {
+            "ok": true,
+            "update_hex": "01016402c464006401015800"
+          }
+        },
+        {
+          "command": {
+            "name": "content",
+            "cmd": "text_content"
+          },
+          "reply": {
+            "ok": true,
+            "text": "aXb"
+          }
+        },
+        {
+          "command": {
+            "cmd": "state_vector"
+          },
+          "reply": {
+            "ok": true,
+            "sv": {
+              "100": 3
+            }
+          }
+        },
+        {
+          "command": {
+            "cmd": "reset",
+            "client_id": 100
+          },
+          "reply": {
+            "ok": true
+          }
+        },
+        {
+          "command": {
+            "text": "\ud83d\ude00A",
+            "cmd": "insert_text",
+            "pos": 0
+          },
+          "reply": {
+            "length": 3,
+            "ok": true
+          }
+        },
+        {
+          "command": {
+            "cmd": "encode"
+          },
+          "reply": {
+            "ok": true,
+            "update_hex": "01016400040107636f6e74656e7405f09f98804100"
+          }
+        },
+        {
+          "command": {
+            "cmd": "state_vector"
+          },
+          "reply": {
+            "ok": true,
+            "sv": {
+              "100": 3
+            }
+          }
+        },
+        {
+          "command": {
+            "text": "X",
+            "cmd": "insert_text",
+            "pos": 0
+          },
+          "reply": {
+            "length": 4,
+            "ok": true
+          }
+        },
+        {
+          "command": {
+            "cmd": "encode",
+            "sv": {
+              "100": 3
+            }
+          },
+          "reply": {
+            "ok": true,
+            "update_hex": "01016403446400015800"
+          }
+        },
+        {
+          "command": {
+            "name": "content",
+            "cmd": "text_content"
+          },
+          "reply": {
+            "ok": true,
+            "text": "X\ud83d\ude00A"
+          }
+        },
+        {
+          "command": {
+            "cmd": "state_vector"
+          },
+          "reply": {
+            "ok": true,
+            "sv": {
+              "100": 4
+            }
+          }
+        },
+        {
+          "command": {
+            "cmd": "reset",
+            "client_id": 100
+          },
+          "reply": {
+            "ok": true
+          }
+        },
+        {
+          "command": {
+            "text": "\ud83d\ude00A",
+            "cmd": "insert_text",
+            "pos": 0
+          },
+          "reply": {
+            "length": 3,
+            "ok": true
+          }
+        },
+        {
+          "command": {
+            "cmd": "encode"
+          },
+          "reply": {
+            "ok": true,
+            "update_hex": "01016400040107636f6e74656e7405f09f98804100"
+          }
+        },
+        {
+          "command": {
+            "cmd": "state_vector"
+          },
+          "reply": {
+            "ok": true,
+            "sv": {
+              "100": 3
+            }
+          }
+        },
+        {
+          "command": {
+            "text": "X",
+            "cmd": "insert_text",
+            "pos": 2
+          },
+          "reply": {
+            "length": 4,
+            "ok": true
+          }
+        },
+        {
+          "command": {
+            "cmd": "encode",
+            "sv": {
+              "100": 3
+            }
+          },
+          "reply": {
+            "ok": true,
+            "update_hex": "01016403c464016402015800"
+          }
+        },
+        {
+          "command": {
+            "name": "content",
+            "cmd": "text_content"
+          },
+          "reply": {
+            "ok": true,
+            "text": "\ud83d\ude00XA"
+          }
+        },
+        {
+          "command": {
+            "cmd": "state_vector"
+          },
+          "reply": {
+            "ok": true,
+            "sv": {
+              "100": 4
+            }
+          }
+        },
+        {
+          "command": {
+            "cmd": "reset",
+            "client_id": 100
+          },
+          "reply": {
+            "ok": true
+          }
+        },
+        {
+          "command": {
+            "text": "\ud83d\ude00A",
+            "cmd": "insert_text",
+            "pos": 0
+          },
+          "reply": {
+            "length": 3,
+            "ok": true
+          }
+        },
+        {
+          "command": {
+            "cmd": "encode"
+          },
+          "reply": {
+            "ok": true,
+            "update_hex": "01016400040107636f6e74656e7405f09f98804100"
+          }
+        },
+        {
+          "command": {
+            "cmd": "state_vector"
+          },
+          "reply": {
+            "ok": true,
+            "sv": {
+              "100": 3
+            }
+          }
+        },
+        {
+          "command": {
+            "text": "X",
+            "cmd": "insert_text",
+            "pos": 3
+          },
+          "reply": {
+            "length": 4,
+            "ok": true
+          }
+        },
+        {
+          "command": {
+            "cmd": "encode",
+            "sv": {
+              "100": 3
+            }
+          },
+          "reply": {
+            "ok": true,
+            "update_hex": "01016403846402015800"
+          }
+        },
+        {
+          "command": {
+            "name": "content",
+            "cmd": "text_content"
+          },
+          "reply": {
+            "ok": true,
+            "text": "\ud83d\ude00AX"
+          }
+        },
+        {
+          "command": {
+            "cmd": "state_vector"
+          },
+          "reply": {
+            "ok": true,
+            "sv": {
+              "100": 4
+            }
+          }
+        },
+        {
+          "command": {
+            "cmd": "reset",
+            "client_id": 100
+          },
+          "reply": {
+            "ok": true
+          }
+        },
+        {
+          "command": {
+            "text": "\ud83d\ude00A",
+            "cmd": "insert_text",
+            "pos": 0
+          },
+          "reply": {
+            "length": 3,
+            "ok": true
+          }
+        },
+        {
+          "command": {
+            "cmd": "encode"
+          },
+          "reply": {
+            "ok": true,
+            "update_hex": "01016400040107636f6e74656e7405f09f98804100"
+          }
+        },
+        {
+          "command": {
+            "cmd": "state_vector"
+          },
+          "reply": {
+            "ok": true,
+            "sv": {
+              "100": 3
+            }
+          }
+        },
+        {
+          "command": {
+            "len": 1,
+            "cmd": "delete_text",
+            "pos": 0
+          },
+          "reply": {
+            "length": 2,
+            "ok": true
+          }
+        },
+        {
+          "command": {
+            "cmd": "encode",
+            "sv": {
+              "100": 3
+            }
+          },
+          "reply": {
+            "ok": true,
+            "update_hex": "000164010001"
+          }
+        },
+        {
+          "command": {
+            "name": "content",
+            "cmd": "text_content"
+          },
+          "reply": {
+            "ok": true,
+            "text": "\ufffdA"
+          }
+        },
+        {
+          "command": {
+            "cmd": "state_vector"
+          },
+          "reply": {
+            "ok": true,
+            "sv": {
+              "100": 3
+            }
+          }
+        },
+        {
+          "command": {
+            "cmd": "encode"
+          },
+          "reply": {
+            "ok": true,
+            "update_hex": "01026400040107636f6e74656e7403efbfbd84640004efbfbd410164010001"
+          }
+        },
+        {
+          "command": {
+            "cmd": "reset",
+            "client_id": 100
+          },
+          "reply": {
+            "ok": true
+          }
+        },
+        {
+          "command": {
+            "text": "\ud83d\ude00A",
+            "cmd": "insert_text",
+            "pos": 0
+          },
+          "reply": {
+            "length": 3,
+            "ok": true
+          }
+        },
+        {
+          "command": {
+            "cmd": "encode"
+          },
+          "reply": {
+            "ok": true,
+            "update_hex": "01016400040107636f6e74656e7405f09f98804100"
+          }
+        },
+        {
+          "command": {
+            "cmd": "state_vector"
+          },
+          "reply": {
+            "ok": true,
+            "sv": {
+              "100": 3
+            }
+          }
+        },
+        {
+          "command": {
+            "len": 1,
+            "cmd": "delete_text",
+            "pos": 1
+          },
+          "reply": {
+            "length": 2,
+            "ok": true
+          }
+        },
+        {
+          "command": {
+            "cmd": "encode",
+            "sv": {
+              "100": 3
+            }
+          },
+          "reply": {
+            "ok": true,
+            "update_hex": "000164010101"
+          }
+        },
+        {
+          "command": {
+            "name": "content",
+            "cmd": "text_content"
+          },
+          "reply": {
+            "ok": true,
+            "text": "\ufffdA"
+          }
+        },
+        {
+          "command": {
+            "cmd": "state_vector"
+          },
+          "reply": {
+            "ok": true,
+            "sv": {
+              "100": 3
+            }
+          }
+        },
+        {
+          "command": {
+            "cmd": "encode"
+          },
+          "reply": {
+            "ok": true,
+            "update_hex": "01036400040107636f6e74656e7403efbfbd84640003efbfbd84640101410164010101"
+          }
+        },
+        {
+          "command": {
+            "cmd": "reset",
+            "client_id": 100
+          },
+          "reply": {
+            "ok": true
+          }
+        },
+        {
+          "command": {
+            "text": "\ud83d\ude00A",
+            "cmd": "insert_text",
+            "pos": 0
+          },
+          "reply": {
+            "length": 3,
+            "ok": true
+          }
+        },
+        {
+          "command": {
+            "cmd": "encode"
+          },
+          "reply": {
+            "ok": true,
+            "update_hex": "01016400040107636f6e74656e7405f09f98804100"
+          }
+        },
+        {
+          "command": {
+            "cmd": "encode",
+            "sv": {
+              "100": 1
+            }
+          },
+          "reply": {
+            "ok": true,
+            "update_hex": "0101640184640004efbfbd4100"
+          }
+        }
+      ]
+    },
+    "repair-full-control": {
+      "cases": [
+        {
+          "module": "Yelixer.UnicodeBoundaryTest",
+          "name": "test a browser half-surrogate edit cannot silently diverge on receipt",
+          "state": "{:excluded, \"due to test filter\"}",
+          "time_us": 0
+        },
+        {
+          "module": "Yelixer.UnicodeBoundaryTest",
+          "name": "test adjacent valid scalar control: ASCII interior",
+          "state": "{:excluded, \"due to test filter\"}",
+          "time_us": 0
+        },
+        {
+          "module": "Yelixer.UnicodeBoundaryTest",
+          "name": "test adjacent valid scalar control: before astral scalar",
+          "state": "{:excluded, \"due to test filter\"}",
+          "time_us": 0
+        },
+        {
+          "module": "Yelixer.UnicodeBoundaryTest",
+          "name": "test adjacent valid scalar control: after astral scalar",
+          "state": "{:excluded, \"due to test filter\"}",
+          "time_us": 0
+        },
+        {
+          "module": "Yelixer.UnicodeBoundaryTest",
+          "name": "test adjacent valid scalar control: end of astral document",
+          "state": "{:excluded, \"due to test filter\"}",
+          "time_us": 0
+        },
+        {
+          "module": "Yelixer.UnicodeBoundaryTest",
+          "name": "test incoming delete of surrogate unit 0 keeps the exact wire interval",
+          "state": "{:excluded, \"due to test filter\"}",
+          "time_us": 0
+        },
+        {
+          "module": "Yelixer.UnicodeBoundaryTest",
+          "name": "test incoming delete of surrogate unit 1 keeps the exact wire interval",
+          "state": "{:excluded, \"due to test filter\"}",
+          "time_us": 0
+        },
+        {
+          "module": "Yelixer.UnicodeBoundaryTest",
+          "name": "test a state-vector diff beginning inside a surrogate preserves its clock boundary",
+          "state": "{:excluded, \"due to test filter\"}",
+          "time_us": 0
+        },
+        {
+          "module": "Yelixer.UnicodeBoundaryTest",
+          "name": "test fresh final full-state loading is a separate passing control",
+          "state": "nil",
+          "time_us": 276315
+        }
+      ],
+      "defined": 9,
+      "executed": 1,
+      "failures": 0,
+      "timing": [
+        "start=2026-09-05T19:45:16Z",
+        "end=2026-09-05T19:45:19Z"
+      ],
+      "summary": [
+        "9 tests, 0 failures, 8 excluded"
+      ],
+      "rc": 0,
+      "stdout_sha256": "2f5528b1cebafa12b6a1c8bc13ea4a50a35d9bc88e65ae7464e0fed29882a5b7",
+      "stdout": "yelixer rm-rf guard active: Yelixer.Test.FileRmRfGuard\nRunning ExUnit with seed: 0, max_cases: 1\nExcluding tags: [:test, :divergence]\nIncluding tags: [:full_state_control]\n\n.\nFinished in 0.5 seconds (0.00s async, 0.5s sync)\n9 tests, 0 failures, 8 excluded\n\nrc=0\n",
+      "synthetic_oracle_transcript": [
+        {
+          "command": {
+            "cmd": "reset",
+            "client_id": 900
+          },
+          "reply": {
+            "ok": true
+          }
+        },
+        {
+          "command": {
+            "cmd": "apply_update",
+            "update_hex": "01036400040107636f6e74656e7403efbfbd84640004efbfbd41c464006401015800"
+          },
+          "reply": {
+            "ok": true
+          }
+        },
+        {
+          "command": {
+            "name": "content",
+            "cmd": "text_content"
+          },
+          "reply": {
+            "ok": true,
+            "text": "\ufffdX\ufffdA"
+          }
+        },
+        {
+          "command": {
+            "cmd": "state_vector"
+          },
+          "reply": {
+            "ok": true,
+            "sv": {
+              "100": 4
+            }
+          }
+        }
+      ]
+    },
+    "repair-full-suite": {
+      "cases": [
+        {
+          "module": "Yelixer.CX2xn1SnapshotPlanesTest",
+          "name": "test dual-plane snapshot replay explicit-ref direction: both map and text planes survive snapshot_update",
+          "state": "nil",
+          "time_us": 60079
+        },
+        {
+          "module": "Yelixer.CX2xn1SnapshotPlanesTest",
+          "name": "test dual-plane snapshot replay decoded-ref direction: both planes survive when the source's own type ref is :unknown",
+          "state": "nil",
+          "time_us": 531
+        },
+        {
+          "module": "Yelixer.CX2xn1SnapshotPlanesTest",
+          "name": "test single-plane regression guards pure-text doc snapshots to the same text",
+          "state": "nil",
+          "time_us": 151
+        },
+        {
+          "module": "Yelixer.CX2xn1SnapshotPlanesTest",
+          "name": "test single-plane regression guards pure-map doc snapshots to the same keys",
+          "state": "nil",
+          "time_us": 118
+        },
+        {
+          "module": "Yelixer.CX2xn1SnapshotPlanesTest",
+          "name": "test single-plane regression guards pure-array doc snapshots to the same list",
+          "state": "nil",
+          "time_us": 7033
+        },
+        {
+          "module": "Yelixer.SnapshotSinglePlaneBytesTest",
+          "name": "test a text-only doc snapshots to exactly these bytes",
+          "state": "nil",
+          "time_us": 122
+        },
+        {
+          "module": "Yelixer.SnapshotSinglePlaneBytesTest",
+          "name": "test a map-only doc snapshots to exactly these bytes",
+          "state": "nil",
+          "time_us": 92
+        },
+        {
+          "module": "Yelixer.SnapshotSinglePlaneBytesTest",
+          "name": "test an array-only doc snapshots to exactly these bytes",
+          "state": "nil",
+          "time_us": 128
+        },
+        {
+          "module": "Yelixer.SnapshotSinglePlaneBytesTest",
+          "name": "test snapshotting is deterministic across repeated calls on equal docs",
+          "state": "nil",
+          "time_us": 140
+        },
+        {
+          "module": "Yelixer.AdversarialBoundsTest",
+          "name": "test H2(a): delete-set ranges over absent clocks a huge range mostly over absent clocks completes promptly and deletes only real clocks",
+          "state": "nil",
+          "time_us": 132
+        },
+        {
+          "module": "Yelixer.AdversarialBoundsTest",
+          "name": "test H2(b): clock/length poisoning via crafted varints a {:gc, huge} block beyond the safe bound is rejected, doc unchanged",
+          "state": "nil",
+          "time_us": 5231
+        },
+        {
+          "module": "Yelixer.AdversarialBoundsTest",
+          "name": "test H2(b): clock/length poisoning via crafted varints an item whose clock + length exceeds the safe bound is rejected",
+          "state": "nil",
+          "time_us": 29
+        },
+        {
+          "module": "Yelixer.AdversarialBoundsTest",
+          "name": "test H2(b): clock/length poisoning via crafted varints an item whose clock + length is exactly at the safe bound is accepted",
+          "state": "nil",
+          "time_us": 54
+        },
+        {
+          "module": "Yelixer.AdversarialBoundsTest",
+          "name": "test H2(b): clock/length poisoning via crafted varints a delete-set range whose end exceeds the safe bound is rejected",
+          "state": "nil",
+          "time_us": 27
+        },
+        {
+          "module": "Yelixer.AdversarialBoundsTest",
+          "name": "test H2(b): clock/length poisoning via crafted varints a struct count claiming more structs than remaining bytes is rejected, not crashed",
+          "state": "nil",
+          "time_us": 19
+        },
+        {
+          "module": "Yelixer.BlockStoreBenchTest",
+          "name": "test binary search correctness find_block_index returns nil for empty list",
+          "state": "nil",
+          "time_us": 4
+        },
+        {
+          "module": "Yelixer.BlockStoreBenchTest",
+          "name": "test binary search correctness find_block_index finds single block",
+          "state": "nil",
+          "time_us": 18
+        },
+        {
+          "module": "Yelixer.BlockStoreBenchTest",
+          "name": "test binary search correctness find_block_index finds block by clock within range",
+          "state": "nil",
+          "time_us": 12
+        },
+        {
+          "module": "Yelixer.BlockStoreBenchTest",
+          "name": "test binary search correctness find_block_index returns nil for clock beyond range",
+          "state": "nil",
+          "time_us": 14
+        },
+        {
+          "module": "Yelixer.BlockStoreBenchTest",
+          "name": "test binary search correctness find_block_index searches multiple blocks correctly",
+          "state": "nil",
+          "time_us": 17
+        },
+        {
+          "module": "Yelixer.BlockStoreBenchTest",
+          "name": "test binary search correctness find_block_index handles gaps between blocks",
+          "state": "nil",
+          "time_us": 15
+        },
+        {
+          "module": "Yelixer.BlockStoreBenchTest",
+          "name": "test binary search correctness get/2 works correctly with binary search for large stores",
+          "state": "nil",
+          "time_us": 11009
+        },
+        {
+          "module": "Yelixer.BlockStoreBenchTest",
+          "name": "test binary search correctness split_block/3 works correctly with binary search index",
+          "state": "nil",
+          "time_us": 46
+        },
+        {
+          "module": "Yelixer.BlockStoreBenchTest",
+          "name": "test performance get/2 scales sub-linearly (binary search vs linear scan)",
+          "state": "nil",
+          "time_us": 159452
+        },
+        {
+          "module": "Yelixer.BlockStoreTest",
+          "name": "test new block store is empty",
+          "state": "nil",
+          "time_us": 7
+        },
+        {
+          "module": "Yelixer.BlockStoreTest",
+          "name": "test push and retrieve an item",
+          "state": "nil",
+          "time_us": 26
+        },
+        {
+          "module": "Yelixer.BlockStoreTest",
+          "name": "test retrieve item by clock within its range",
+          "state": "nil",
+          "time_us": 23
+        },
+        {
+          "module": "Yelixer.BlockStoreTest",
+          "name": "test returns nil for clock beyond stored range",
+          "state": "nil",
+          "time_us": 17
+        },
+        {
+          "module": "Yelixer.BlockStoreTest",
+          "name": "test state_vector reflects highest clock + length per client",
+          "state": "nil",
+          "time_us": 28
+        },
+        {
+          "module": "Yelixer.BlockStoreTest",
+          "name": "test multiple items per client maintain order",
+          "state": "nil",
+          "time_us": 21
+        },
+        {
+          "module": "Yelixer.BlockStoreTest",
+          "name": "test split_block/3 splits a multi-char item in clients and sequences",
+          "state": "nil",
+          "time_us": 63
+        },
+        {
+          "module": "Yelixer.BlockStoreTest",
+          "name": "test split_block/3 returns item unchanged when offset is at item boundary",
+          "state": "nil",
+          "time_us": 22
+        },
+        {
+          "module": "Yelixer.BlockStoreTest",
+          "name": "test client_blocks returns blocks for a specific client",
+          "state": "nil",
+          "time_us": 21
+        },
+        {
+          "module": "Yelixer.CommonplaceBoundaryTest",
+          "name": "test the real yelixer tree has no executable parent-application references",
+          "state": "nil",
+          "time_us": 1430074
+        },
+        {
+          "module": "Yelixer.CommonplaceBoundaryTest",
+          "name": "test a parent-application alias in a temporary tree fails the checker",
+          "state": "nil",
+          "time_us": 6252746
+        },
+        {
+          "module": "Yelixer.ChatShapeSmokeTest",
+          "name": "test _messages shape: YArray of JSON-encoded strings snapshot + apply roundtrip preserves observable JSON entries",
+          "state": "nil",
+          "time_us": 159
+        },
+        {
+          "module": "Yelixer.ChatShapeSmokeTest",
+          "name": "test _messages shape: YArray of JSON-encoded strings snapshot then post-snapshot append (edit-entry) preserves both pre- and post-snapshot entries",
+          "state": "nil",
+          "time_us": 192
+        },
+        {
+          "module": "Yelixer.ChatShapeSmokeTest",
+          "name": "test _messages shape: YArray of JSON-encoded strings snapshot preserves a tombstone-entry alongside the original",
+          "state": "nil",
+          "time_us": 60
+        },
+        {
+          "module": "Yelixer.ChatShapeSmokeTest",
+          "name": "test _reactions shape: top-level YMap with flat composite keys snapshot + apply preserves all set keys and their primitive true values",
+          "state": "nil",
+          "time_us": 152
+        },
+        {
+          "module": "Yelixer.ChatShapeSmokeTest",
+          "name": "test _reactions shape: top-level YMap with flat composite keys snapshot preserves toggle-off (set then delete) \u2014 the deleted key must NOT reappear",
+          "state": "nil",
+          "time_us": 58
+        },
+        {
+          "module": "Yelixer.ChatShapeSmokeTest",
+          "name": "test _reactions shape: top-level YMap with flat composite keys snapshot then post-snapshot toggle (set + delete) composes cleanly",
+          "state": "nil",
+          "time_us": 45
+        },
+        {
+          "module": "Yelixer.ChatShapeSmokeTest",
+          "name": "test combined shape: _messages YArray and _reactions YMap living in the same doc-as-pair pattern two top-level types coexist and both survive snapshot roundtrip",
+          "state": "nil",
+          "time_us": 65
+        },
+        {
+          "module": "Yelixer.CrossClientOverwriteTest",
+          "name": "test xml attribute overwrite survives replay \u2014 writer client SMALLER than original",
+          "state": "nil",
+          "time_us": 7403
+        },
+        {
+          "module": "Yelixer.CrossClientOverwriteTest",
+          "name": "test ymap overwrite survives replay \u2014 writer client SMALLER than original",
+          "state": "nil",
+          "time_us": 183
+        },
+        {
+          "module": "Yelixer.CrossClientOverwriteTest",
+          "name": "test xml attribute overwrite survives replay \u2014 writer client LARGER than original",
+          "state": "nil",
+          "time_us": 169
+        },
+        {
+          "module": "Yelixer.CrossClientOverwriteTest",
+          "name": "test ymap overwrite survives replay \u2014 writer client LARGER than original",
+          "state": "nil",
+          "time_us": 73
+        },
+        {
+          "module": "Yelixer.CrossClientOverwriteTest",
+          "name": "test three-hop overwrite chain across three clients converges",
+          "state": "nil",
+          "time_us": 211
+        },
+        {
+          "module": "Yelixer.CXXes3DequadraticTest",
+          "name": "test (a) map-heavy replay scaling N sequential YMap.set updates on one key + M keys: doubling replay grows work by < 3x",
+          "state": "nil",
+          "time_us": 21534360
+        },
+        {
+          "module": "Yelixer.CXXes3DequadraticTest",
+          "name": "test (b) conflict-resolution correctness unchanged under concurrency concurrent same-key writes from two clients converge to the same winner regardless of integration order",
+          "state": "nil",
+          "time_us": 265
+        },
+        {
+          "module": "Yelixer.CXXes3DequadraticTest",
+          "name": "test (b) conflict-resolution correctness unchanged under concurrency three-way concurrent same-key writes converge regardless of integration order",
+          "state": "nil",
+          "time_us": 278
+        },
+        {
+          "module": "Yelixer.CXXes3DequadraticTest",
+          "name": "test (c) delete-heavy replay scaling N sequential single-element deletes: doubling replay grows work by < 3x",
+          "state": "nil",
+          "time_us": 31133973
+        },
+        {
+          "module": "Yelixer.CXXes3DequadraticTest",
+          "name": "test (c) delete-heavy replay scaling deletes are actually applied (sanity check alongside the scaling assertion)",
+          "state": "nil",
+          "time_us": 1227
+        },
+        {
+          "module": "Yelixer.DeleteSetTest",
+          "name": "test new delete set is empty",
+          "state": "nil",
+          "time_us": 2
+        },
+        {
+          "module": "Yelixer.DeleteSetTest",
+          "name": "test insert a range and query it",
+          "state": "nil",
+          "time_us": 17
+        },
+        {
+          "module": "Yelixer.DeleteSetTest",
+          "name": "test merge overlapping ranges",
+          "state": "nil",
+          "time_us": 1
+        },
+        {
+          "module": "Yelixer.DeleteSetTest",
+          "name": "test merge two delete sets",
+          "state": "nil",
+          "time_us": 5
+        },
+        {
+          "module": "Yelixer.DeleteSetTest",
+          "name": "test adjacent ranges merge",
+          "state": "nil",
+          "time_us": 1
+        },
+        {
+          "module": "Yelixer.DeleteSetTest",
+          "name": "test multiple clients",
+          "state": "nil",
+          "time_us": 3
+        },
+        {
+          "module": "Yelixer.DecodeFuzzTest",
+          "name": "property apply_update never raises on random bytes",
+          "state": "nil",
+          "time_us": 27441
+        },
+        {
+          "module": "Yelixer.DecodeFuzzTest",
+          "name": "property decode_update never raises on random bytes",
+          "state": "nil",
+          "time_us": 15924
+        },
+        {
+          "module": "Yelixer.DecodeFuzzTest",
+          "name": "property apply_update never raises on truncated valid updates",
+          "state": "nil",
+          "time_us": 11776
+        },
+        {
+          "module": "Yelixer.DecodeFuzzTest",
+          "name": "property apply_update never raises on bit-flipped valid updates",
+          "state": "nil",
+          "time_us": 16795
+        },
+        {
+          "module": "Yelixer.DocNamespaceIndexTest",
+          "name": "test struct + defaults new doc has empty client_namespaces map",
+          "state": "nil",
+          "time_us": 4
+        },
+        {
+          "module": "Yelixer.DocNamespaceIndexTest",
+          "name": "test struct + defaults clientID_in_namespace? on fresh doc is false for any pair",
+          "state": "nil",
+          "time_us": 3
+        },
+        {
+          "module": "Yelixer.DocNamespaceIndexTest",
+          "name": "test apply_update_in_namespace/3 populates the index records each NEW clientID against the declared namespace",
+          "state": "nil",
+          "time_us": 1557
+        },
+        {
+          "module": "Yelixer.DocNamespaceIndexTest",
+          "name": "test apply_update_in_namespace/3 populates the index first-writer-wins \u2014 repeat apply in same namespace is idempotent",
+          "state": "nil",
+          "time_us": 115
+        },
+        {
+          "module": "Yelixer.DocNamespaceIndexTest",
+          "name": "test apply_update_in_namespace/3 populates the index clientID introduced under ns_a is NOT a member of ns_b",
+          "state": "nil",
+          "time_us": 31
+        },
+        {
+          "module": "Yelixer.DocNamespaceIndexTest",
+          "name": "test apply_update_in_namespace/3 populates the index a clientID already recorded under ns_a keeps that membership even when re-seen under ns_b",
+          "state": "nil",
+          "time_us": 33
+        },
+        {
+          "module": "Yelixer.DocNamespaceIndexTest",
+          "name": "test apply_update_in_namespace/3 populates the index multiple clientIDs in a single update each get recorded",
+          "state": "nil",
+          "time_us": 55
+        },
+        {
+          "module": "Yelixer.DocNamespaceIndexTest",
+          "name": "test plain apply_update/2 does NOT touch the index clientIDs from plain apply_update are not recorded",
+          "state": "nil",
+          "time_us": 25
+        },
+        {
+          "module": "Yelixer.DocServerTest",
+          "name": "test start and insert text",
+          "state": "nil",
+          "time_us": 2898
+        },
+        {
+          "module": "Yelixer.DocServerTest",
+          "name": "test delete text",
+          "state": "nil",
+          "time_us": 161
+        },
+        {
+          "module": "Yelixer.DocServerTest",
+          "name": "test encode update from server",
+          "state": "nil",
+          "time_us": 88
+        },
+        {
+          "module": "Yelixer.DocServerTest",
+          "name": "test apply remote update",
+          "state": "nil",
+          "time_us": 174
+        },
+        {
+          "module": "Yelixer.DocServerTest",
+          "name": "test get state vector",
+          "state": "nil",
+          "time_us": 83
+        },
+        {
+          "module": "Yelixer.DocServerTest",
+          "name": "test incremental sync with encode_diff",
+          "state": "nil",
+          "time_us": 311
+        },
+        {
+          "module": "Yelixer.DocServerTest",
+          "name": "test subscribe to updates",
+          "state": "nil",
+          "time_us": 96
+        },
+        {
+          "module": "Yelixer.DocSpecPinsTest",
+          "name": "test Doc.nested_subtype_names/1 vs. its docstring (CX pin A) returns __sub:CLIENT:CLOCK names for an XML type nested as a Map value; the docstring's claim that XML sub-types are excluded and named with \"::child::\" is FALSE for this path",
+          "state": "nil",
+          "time_us": 91
+        },
+        {
+          "module": "Yelixer.DocSpecPinsTest",
+          "name": "test Doc.nested_subtype_names/1 vs. its docstring (CX pin A) asserting the DOCSTRING'S claim (empty/excluded list) fails against real behaviour",
+          "state": "nil",
+          "time_us": 71
+        },
+        {
+          "module": "Yelixer.DocSpecPinsTest",
+          "name": "test Types.YMap.get/3 vs. its docstring (CX pin B) raises CaseClauseError for a {:binary, _} value; the docstring's claim of returning nil for non-:any content is FALSE",
+          "state": "nil",
+          "time_us": 5036
+        },
+        {
+          "module": "Yelixer.DocSpecPinsTest",
+          "name": "test Types.YMap.get/3 vs. its docstring (CX pin B) asserting the DOCSTRING'S claim (nil) fails against real behaviour",
+          "state": "nil",
+          "time_us": 112
+        },
+        {
+          "module": "Yelixer.DocTest",
+          "name": "test creates a new doc with a client id",
+          "state": "nil",
+          "time_us": 3
+        },
+        {
+          "module": "Yelixer.DocTest",
+          "name": "test auto-generates client id if not provided",
+          "state": "nil",
+          "time_us": 1
+        },
+        {
+          "module": "Yelixer.DocTest",
+          "name": "test get_or_create_type registers a root type",
+          "state": "nil",
+          "time_us": 1
+        },
+        {
+          "module": "Yelixer.DocTest",
+          "name": "test get_or_create_type returns existing type on second call",
+          "state": "nil",
+          "time_us": 1
+        },
+        {
+          "module": "Yelixer.DocTest",
+          "name": "test multiple types can coexist",
+          "state": "nil",
+          "time_us": 3
+        },
+        {
+          "module": "Yelixer.DocTest",
+          "name": "test clock_floor / mint_clock (CX-b0ow.9) defaults to 0 and doesn't perturb non-floored mint clocks",
+          "state": "nil",
+          "time_us": 21
+        },
+        {
+          "module": "Yelixer.DocTest",
+          "name": "test clock_floor / mint_clock (CX-b0ow.9) a floored doc mints starting at the floor, not its own (lower) state vector clock",
+          "state": "nil",
+          "time_us": 9
+        },
+        {
+          "module": "Yelixer.DocTest",
+          "name": "test clock_floor / mint_clock (CX-b0ow.9) floor never LOWERS the mint clock below the doc's own state vector",
+          "state": "nil",
+          "time_us": 7
+        },
+        {
+          "module": "Yelixer.DocTest",
+          "name": "test clock_floor / mint_clock (CX-b0ow.9) encode_diff from a floored replica carries the floored clocks, and applies cleanly onto a doc that owns the gap",
+          "state": "nil",
+          "time_us": 74
+        },
+        {
+          "module": "Yelixer.DocTest",
+          "name": "test clock_floor / mint_clock (CX-b0ow.9) non-floored doc's encode_update bytes are byte-identical to the pre-refactor shape (wire-invariance pin)",
+          "state": "nil",
+          "time_us": 127
+        },
+        {
+          "module": "Yelixer.DocTest",
+          "name": "test state_vector/1 (CX-pb23) delegates to BlockStore.state_vector(doc.store)",
+          "state": "nil",
+          "time_us": 11
+        },
+        {
+          "module": "Yelixer.DocTest",
+          "name": "test state_vector/1 (CX-pb23) reflects the doc's own client_id and clock after edits",
+          "state": "nil",
+          "time_us": 6
+        },
+        {
+          "module": "Yelixer.DocTest",
+          "name": "test snapshot_update/1 (CX-u7p) produces an update with state vector size 1 for a YMap-only doc",
+          "state": "nil",
+          "time_us": 33301
+        },
+        {
+          "module": "Yelixer.DocTest",
+          "name": "test snapshot_update/1 (CX-u7p) preserves text content with single client_id in state vector",
+          "state": "nil",
+          "time_us": 71
+        },
+        {
+          "module": "Yelixer.DocTest",
+          "name": "test snapshot_update/1 (CX-u7p) preserves array content with single client_id in state vector",
+          "state": "nil",
+          "time_us": 112
+        },
+        {
+          "module": "Yelixer.DocTest",
+          "name": "test snapshot_update/1 (CX-u7p) snapshot uses the source doc's own client_id",
+          "state": "nil",
+          "time_us": 65
+        },
+        {
+          "module": "Yelixer.DocTest",
+          "name": "test snapshot_update/1 (CX-u7p) refuses to snapshot a doc carrying __sub: nested sub-types (CX-oh9z)",
+          "state": "nil",
+          "time_us": 4
+        },
+        {
+          "module": "Yelixer.DocTest",
+          "name": "test snapshot_update/1 (CX-u7p) force: true bypasses the refusal and preserves the old lossy behavior",
+          "state": "nil",
+          "time_us": 72
+        },
+        {
+          "module": "Yelixer.DocTest",
+          "name": "test snapshot_update/1 (CX-u7p) force: false (the default) is equivalent to omitting the option",
+          "state": "nil",
+          "time_us": 2
+        },
+        {
+          "module": "Yelixer.EncoderDeterminismTest",
+          "name": "test encode_update/1 is byte-deterministic across calls on the same doc re-encoding the same doc twice produces identical bytes",
+          "state": "nil",
+          "time_us": 38
+        },
+        {
+          "module": "Yelixer.EncoderDeterminismTest",
+          "name": "test encode_update/1 is byte-deterministic across calls on the same doc empty doc encodes deterministically",
+          "state": "nil",
+          "time_us": 10
+        },
+        {
+          "module": "Yelixer.EncoderDeterminismTest",
+          "name": "test encode_update/1 is byte-deterministic across independent instances two independent Text docs with same state encode to identical bytes",
+          "state": "nil",
+          "time_us": 47
+        },
+        {
+          "module": "Yelixer.EncoderDeterminismTest",
+          "name": "test encode_update/1 is byte-deterministic across independent instances two independent YMap docs with same state encode to identical bytes",
+          "state": "nil",
+          "time_us": 95
+        },
+        {
+          "module": "Yelixer.EncoderDeterminismTest",
+          "name": "test encode_update/1 is byte-deterministic across independent instances two independent Array docs with same state encode to identical bytes",
+          "state": "nil",
+          "time_us": 135
+        },
+        {
+          "module": "Yelixer.EncoderDeterminismTest",
+          "name": "test encode_update/1 is byte-deterministic across independent instances two independent XMLFragment docs with same state encode to identical bytes",
+          "state": "nil",
+          "time_us": 52
+        },
+        {
+          "module": "Yelixer.EncoderDeterminismTest",
+          "name": "test encode_update/1 is byte-deterministic across independent instances multi-type doc encodes deterministically across independent instances",
+          "state": "nil",
+          "time_us": 123
+        },
+        {
+          "module": "Yelixer.EncoderDeterminismTest",
+          "name": "test encode_update/1 byte-determinism across all reference types adjacent inserts (left-origin references) encode deterministically",
+          "state": "nil",
+          "time_us": 72
+        },
+        {
+          "module": "Yelixer.EncoderDeterminismTest",
+          "name": "test encode_update/1 byte-determinism across all reference types inserts at head (right-origin references) encode deterministically",
+          "state": "nil",
+          "time_us": 93
+        },
+        {
+          "module": "Yelixer.EncoderDeterminismTest",
+          "name": "test encode_update/1 byte-determinism across all reference types nested map items (parent references) encode deterministically",
+          "state": "nil",
+          "time_us": 88
+        },
+        {
+          "module": "Yelixer.EncoderDeterminismTest",
+          "name": "test encode_update/1 byte-determinism with mixed clientIDs doc holding ops from multiple clients encodes deterministically",
+          "state": "nil",
+          "time_us": 146
+        },
+        {
+          "module": "Yelixer.EncoderDeterminismTest",
+          "name": "property encode_update/1 byte-determinism property \u2265100 random Text docs encode deterministically across instances",
+          "state": "nil",
+          "time_us": 8886
+        },
+        {
+          "module": "Yelixer.EncoderDeterminismTest",
+          "name": "property encode_update/1 byte-determinism property \u2265100 random YMap docs encode deterministically across instances",
+          "state": "nil",
+          "time_us": 13406
+        },
+        {
+          "module": "Yelixer.EncodingErrorTest",
+          "name": "test apply_update error handling apply_update with empty binary returns error",
+          "state": "nil",
+          "time_us": 32
+        },
+        {
+          "module": "Yelixer.EncodingErrorTest",
+          "name": "test apply_update error handling apply_update with truncated varint returns error",
+          "state": "nil",
+          "time_us": 28
+        },
+        {
+          "module": "Yelixer.EncodingErrorTest",
+          "name": "test apply_update error handling apply_update with truncated string returns error",
+          "state": "nil",
+          "time_us": 17
+        },
+        {
+          "module": "Yelixer.EncodingErrorTest",
+          "name": "test apply_update error handling apply_update with unknown content ref returns error",
+          "state": "nil",
+          "time_us": 12
+        },
+        {
+          "module": "Yelixer.EncodingErrorTest",
+          "name": "test decode_update error handling decode_update with empty binary returns error",
+          "state": "nil",
+          "time_us": 10
+        },
+        {
+          "module": "Yelixer.EncodingErrorTest",
+          "name": "test decode_update error handling decode_update with garbage binary returns error",
+          "state": "nil",
+          "time_us": 8
+        },
+        {
+          "module": "Yelixer.EncodingErrorTest",
+          "name": "test decode_update error handling decode_update with truncated varint returns error",
+          "state": "nil",
+          "time_us": 40
+        },
+        {
+          "module": "Yelixer.EncodingErrorTest",
+          "name": "test decode_update error handling decode_update with truncated struct data returns error",
+          "state": "nil",
+          "time_us": 10
+        },
+        {
+          "module": "Yelixer.EncodingErrorTest",
+          "name": "test decode_update error handling decode_update with truncated content data returns error",
+          "state": "nil",
+          "time_us": 10
+        },
+        {
+          "module": "Yelixer.EncodingErrorTest",
+          "name": "test decode_state_vector error handling decode_state_vector with empty binary returns error",
+          "state": "nil",
+          "time_us": 9
+        },
+        {
+          "module": "Yelixer.EncodingErrorTest",
+          "name": "test decode_state_vector error handling decode_state_vector with truncated data returns error",
+          "state": "nil",
+          "time_us": 9
+        },
+        {
+          "module": "Yelixer.EncodingErrorTest",
+          "name": "test decode_state_vector error handling decode_state_vector with truncated varint returns error",
+          "state": "nil",
+          "time_us": 8
+        },
+        {
+          "module": "Yelixer.EncodingErrorTest",
+          "name": "test decode_state_vector error handling decode_state_vector with truncated pair returns error",
+          "state": "nil",
+          "time_us": 8
+        },
+        {
+          "module": "Yelixer.GCTest",
+          "name": "test gc replaces deleted items with gc blocks",
+          "state": "nil",
+          "time_us": 87
+        },
+        {
+          "module": "Yelixer.GCTest",
+          "name": "test gc blocks are idempotent",
+          "state": "nil",
+          "time_us": 29
+        },
+        {
+          "module": "Yelixer.GCTest",
+          "name": "test update from gc'd doc can be applied",
+          "state": "nil",
+          "time_us": 110
+        },
+        {
+          "module": "Yelixer.GCTest",
+          "name": "test decode gc blocks from Yjs gc-enabled update",
+          "state": "nil",
+          "time_us": 133
+        },
+        {
+          "module": "Yelixer.IDTest",
+          "name": "test creates an ID with client and clock",
+          "state": "nil",
+          "time_us": 4
+        },
+        {
+          "module": "Yelixer.IDTest",
+          "name": "test compares IDs",
+          "state": "nil",
+          "time_us": 2
+        },
+        {
+          "module": "Yelixer.IDTest",
+          "name": "test checks if clock is contained within a range",
+          "state": "nil",
+          "time_us": 1
+        },
+        {
+          "module": "Yelixer.EncodingTest",
+          "name": "test varint encoding encodes small integers in 1 byte",
+          "state": "nil",
+          "time_us": 2
+        },
+        {
+          "module": "Yelixer.EncodingTest",
+          "name": "test varint encoding encodes larger integers in multiple bytes",
+          "state": "nil",
+          "time_us": 1
+        },
+        {
+          "module": "Yelixer.EncodingTest",
+          "name": "test varint encoding roundtrips through encode/decode",
+          "state": "nil",
+          "time_us": 8
+        },
+        {
+          "module": "Yelixer.EncodingTest",
+          "name": "test varint encoding decodes with remaining bytes",
+          "state": "nil",
+          "time_us": 1
+        },
+        {
+          "module": "Yelixer.EncodingTest",
+          "name": "test signed varint (zigzag) encoding encode_sint(-1) produces <<1>>",
+          "state": "nil",
+          "time_us": 1
+        },
+        {
+          "module": "Yelixer.EncodingTest",
+          "name": "test signed varint (zigzag) encoding encode_sint(-2) produces <<3>>",
+          "state": "nil",
+          "time_us": 0
+        },
+        {
+          "module": "Yelixer.EncodingTest",
+          "name": "test signed varint (zigzag) encoding zigzag maps 0 -> 0, -1 -> 1, 1 -> 2, -2 -> 3, 2 -> 4",
+          "state": "nil",
+          "time_us": 1
+        },
+        {
+          "module": "Yelixer.EncodingTest",
+          "name": "test signed varint (zigzag) encoding roundtrips negative integers through encode/decode",
+          "state": "nil",
+          "time_us": 5
+        },
+        {
+          "module": "Yelixer.EncodingTest",
+          "name": "test signed varint (zigzag) encoding roundtrips positive and zero through encode/decode",
+          "state": "nil",
+          "time_us": 4
+        },
+        {
+          "module": "Yelixer.EncodingTest",
+          "name": "test string encoding roundtrips strings",
+          "state": "nil",
+          "time_us": 20
+        },
+        {
+          "module": "Yelixer.EncodingTest",
+          "name": "test boolean Any encoding (lib0 convention: data ? 120 : 121) true encodes to tag 120",
+          "state": "nil",
+          "time_us": 1
+        },
+        {
+          "module": "Yelixer.EncodingTest",
+          "name": "test boolean Any encoding (lib0 convention: data ? 120 : 121) false encodes to tag 121",
+          "state": "nil",
+          "time_us": 0
+        },
+        {
+          "module": "Yelixer.EncodingTest",
+          "name": "test boolean Any encoding (lib0 convention: data ? 120 : 121) tag 120 decodes to true",
+          "state": "nil",
+          "time_us": 0
+        },
+        {
+          "module": "Yelixer.EncodingTest",
+          "name": "test boolean Any encoding (lib0 convention: data ? 120 : 121) tag 121 decodes to false",
+          "state": "nil",
+          "time_us": 0
+        },
+        {
+          "module": "Yelixer.EncodingTest",
+          "name": "test boolean Any encoding (lib0 convention: data ? 120 : 121) boolean roundtrips through encode/decode",
+          "state": "nil",
+          "time_us": 3
+        },
+        {
+          "module": "Yelixer.EncodingTest",
+          "name": "test boolean Any encoding (lib0 convention: data ? 120 : 121) boolean decodes with remaining bytes",
+          "state": "nil",
+          "time_us": 0
+        },
+        {
+          "module": "Yelixer.EncodingTest",
+          "name": "test state vector encoding roundtrips state vector",
+          "state": "nil",
+          "time_us": 6
+        },
+        {
+          "module": "Yelixer.EncodingTest",
+          "name": "test state vector encoding empty state vector roundtrips",
+          "state": "nil",
+          "time_us": 1
+        },
+        {
+          "module": "Yelixer.EncodingTest",
+          "name": "test Any integer encoding (lib0 writeVarInt) roundtrips integers through encode_any_value/decode_any_value",
+          "state": "nil",
+          "time_us": 7
+        },
+        {
+          "module": "Yelixer.EncodingTest",
+          "name": "test Any integer encoding (lib0 writeVarInt) produces correct lib0 writeVarInt wire bytes for key values",
+          "state": "nil",
+          "time_us": 4
+        },
+        {
+          "module": "Yelixer.EncodingTest",
+          "name": "test Any integer encoding (lib0 writeVarInt) does not confuse with zigzag encoding",
+          "state": "nil",
+          "time_us": 1
+        },
+        {
+          "module": "Yelixer.EncodingTest",
+          "name": "test delete set encoding roundtrips delete set",
+          "state": "nil",
+          "time_us": 43
+        },
+        {
+          "module": "Yelixer.InteropTest",
+          "name": "test decode Yjs V1 'hello' update and produce correct state",
+          "state": "nil",
+          "time_us": 261
+        },
+        {
+          "module": "Yelixer.InteropTest",
+          "name": "test decode Yjs state vector",
+          "state": "nil",
+          "time_us": 30
+        },
+        {
+          "module": "Yelixer.InteropTest",
+          "name": "test decode and merge two Yjs peer updates",
+          "state": "nil",
+          "time_us": 430
+        },
+        {
+          "module": "Yelixer.InteropTest",
+          "name": "test Yelixer update can roundtrip with itself",
+          "state": "nil",
+          "time_us": 43
+        },
+        {
+          "module": "Yelixer.InteropTest",
+          "name": "test decode complex multi-client Yjs update with deletions",
+          "state": "nil",
+          "time_us": 113
+        },
+        {
+          "module": "Yelixer.InteropTest",
+          "name": "test full roundtrip: Yelixer -> Yjs -> Yelixer",
+          "state": "nil",
+          "time_us": 83
+        },
+        {
+          "module": "Yelixer.IntegrateTest",
+          "name": "test integrate first item into empty store",
+          "state": "nil",
+          "time_us": 9
+        },
+        {
+          "module": "Yelixer.IntegrateTest",
+          "name": "test integrate item after existing item (sequential)",
+          "state": "nil",
+          "time_us": 12
+        },
+        {
+          "module": "Yelixer.IntegrateTest",
+          "name": "test concurrent inserts at same position resolve by client id",
+          "state": "nil",
+          "time_us": 15
+        },
+        {
+          "module": "Yelixer.IntegrateTest",
+          "name": "test concurrent inserts with same origin resolve by client id",
+          "state": "nil",
+          "time_us": 20
+        },
+        {
+          "module": "Yelixer.IntegrateTest",
+          "name": "test interleaved concurrent edits between two items",
+          "state": "nil",
+          "time_us": 23
+        },
+        {
+          "module": "Yelixer.IntegrateTest",
+          "name": "test integration order doesn't matter \u2014 same result",
+          "state": "nil",
+          "time_us": 51
+        },
+        {
+          "module": "Yelixer.IntegrateTest",
+          "name": "test insert at beginning when items exist",
+          "state": "nil",
+          "time_us": 13
+        },
+        {
+          "module": "Yelixer.IntegrateTest",
+          "name": "test three concurrent inserts at same position",
+          "state": "nil",
+          "time_us": 19
+        },
+        {
+          "module": "Yelixer.IntegrateTest",
+          "name": "test delete marks item as deleted and excludes from sequence",
+          "state": "nil",
+          "time_us": 17
+        },
+        {
+          "module": "Yelixer.MultiCommitFixtureTest",
+          "name": "test text_simple_chain: 3 insert commits",
+          "state": "nil",
+          "time_us": 114
+        },
+        {
+          "module": "Yelixer.MultiCommitFixtureTest",
+          "name": "test text_delete_from_start_chain: exercises Item.split left half",
+          "state": "nil",
+          "time_us": 152
+        },
+        {
+          "module": "Yelixer.MultiCommitFixtureTest",
+          "name": "test text_replace_all_chain: MCP write pattern across 3 commits",
+          "state": "nil",
+          "time_us": 196
+        },
+        {
+          "module": "Yelixer.MultiCommitFixtureTest",
+          "name": "test text_envelope_chain: 5-commit envelope (CX-2sv pattern)",
+          "state": "nil",
+          "time_us": 395
+        },
+        {
+          "module": "Yelixer.MultiCommitFixtureTest",
+          "name": "test text_long_chain: 21 successive appends",
+          "state": "nil",
+          "time_us": 1244
+        },
+        {
+          "module": "Yelixer.MultiCommitFixtureTest",
+          "name": "test text_interleaved_edits_chain: mid-doc edits across 4 commits",
+          "state": "nil",
+          "time_us": 446
+        },
+        {
+          "module": "Yelixer.MultiCommitFixtureTest",
+          "name": "test map_chain: set, overwrite, delete",
+          "state": "nil",
+          "time_us": 192
+        },
+        {
+          "module": "Yelixer.MultiCommitFixtureTest",
+          "name": "test array_chain: push, insert middle, delete first",
+          "state": "nil",
+          "time_us": 104
+        },
+        {
+          "module": "Yelixer.NestedSubtypeNamesTest",
+          "name": "test empty for a fresh doc",
+          "state": "nil",
+          "time_us": 2
+        },
+        {
+          "module": "Yelixer.NestedSubtypeNamesTest",
+          "name": "test empty for a doc with only top-level types (the JSON-blob convention)",
+          "state": "nil",
+          "time_us": 7
+        },
+        {
+          "module": "Yelixer.NestedSubtypeNamesTest",
+          "name": "test surfaces __sub: nested map/array sub-types (the lossy ones)",
+          "state": "nil",
+          "time_us": 2
+        },
+        {
+          "module": "Yelixer.NestedSubtypeNamesTest",
+          "name": "test ignores XML child sub-types (they are replayed structurally)",
+          "state": "nil",
+          "time_us": 1
+        },
+        {
+          "module": "Yelixer.ItemTest",
+          "name": "test creates an item with string content",
+          "state": "nil",
+          "time_us": 8
+        },
+        {
+          "module": "Yelixer.ItemTest",
+          "name": "test string content length is character count",
+          "state": "nil",
+          "time_us": 2
+        },
+        {
+          "module": "Yelixer.ItemTest",
+          "name": "test deleted content has its stored length",
+          "state": "nil",
+          "time_us": 1
+        },
+        {
+          "module": "Yelixer.ItemTest",
+          "name": "test any content length is element count",
+          "state": "nil",
+          "time_us": 1
+        },
+        {
+          "module": "Yelixer.ItemTest",
+          "name": "test single-value content types have length 1",
+          "state": "nil",
+          "time_us": 1
+        },
+        {
+          "module": "Yelixer.ItemTest",
+          "name": "test binary content occupies one clock regardless of byte size",
+          "state": "nil",
+          "time_us": 0
+        },
+        {
+          "module": "Yelixer.ItemTest",
+          "name": "test preserves origin and right_origin",
+          "state": "nil",
+          "time_us": 6
+        },
+        {
+          "module": "Yelixer.ItemTest",
+          "name": "test preserves parent_sub for map entries",
+          "state": "nil",
+          "time_us": 0
+        },
+        {
+          "module": "Yelixer.ItemTest",
+          "name": "test split/2 splits string item at offset",
+          "state": "nil",
+          "time_us": 18
+        },
+        {
+          "module": "Yelixer.ItemTest",
+          "name": "test split/2 splits leftmost item (no neighbors) keeps origin and right_origin nil",
+          "state": "nil",
+          "time_us": 25
+        },
+        {
+          "module": "Yelixer.ItemTest",
+          "name": "test split/2 splits any content at offset",
+          "state": "nil",
+          "time_us": 5
+        },
+        {
+          "module": "Yelixer.ItemTest",
+          "name": "test split/2 splits deleted content at offset",
+          "state": "nil",
+          "time_us": 3
+        },
+        {
+          "module": "Yelixer.ItemTest",
+          "name": "test split/2 preserves parent through split",
+          "state": "nil",
+          "time_us": 9
+        },
+        {
+          "module": "Yelixer.OracleTest",
+          "name": "test oracle: text_simple_insert",
+          "state": "nil",
+          "time_us": 50
+        },
+        {
+          "module": "Yelixer.OracleTest",
+          "name": "test oracle: text_insert_delete",
+          "state": "nil",
+          "time_us": 41
+        },
+        {
+          "module": "Yelixer.OracleTest",
+          "name": "test oracle: text_two_client_merge",
+          "state": "nil",
+          "time_us": 42
+        },
+        {
+          "module": "Yelixer.OracleTest",
+          "name": "test oracle: map_string_values",
+          "state": "nil",
+          "time_us": 2006
+        },
+        {
+          "module": "Yelixer.OracleTest",
+          "name": "test oracle: map_overwrite",
+          "state": "nil",
+          "time_us": 96
+        },
+        {
+          "module": "Yelixer.OracleTest",
+          "name": "test oracle: map_nested_map",
+          "state": "nil",
+          "time_us": 108
+        },
+        {
+          "module": "Yelixer.OracleTest",
+          "name": "test oracle: map_nested_array",
+          "state": "nil",
+          "time_us": 73
+        },
+        {
+          "module": "Yelixer.OracleTest",
+          "name": "test oracle: array_push_strings",
+          "state": "nil",
+          "time_us": 37
+        },
+        {
+          "module": "Yelixer.OracleTest",
+          "name": "test oracle: array_insert_at_index",
+          "state": "nil",
+          "time_us": 54
+        },
+        {
+          "module": "Yelixer.OracleTest",
+          "name": "test oracle: mixed_text_and_map",
+          "state": "nil",
+          "time_us": 53
+        },
+        {
+          "module": "Yelixer.OracleTest",
+          "name": "test oracle: text_three_client_merge",
+          "state": "nil",
+          "time_us": 44
+        },
+        {
+          "module": "Yelixer.OracleTest",
+          "name": "test oracle: text_delete_middle",
+          "state": "nil",
+          "time_us": 58
+        },
+        {
+          "module": "Yelixer.OracleTest",
+          "name": "test oracle: map_delete_key",
+          "state": "nil",
+          "time_us": 98
+        },
+        {
+          "module": "Yelixer.OracleTest",
+          "name": "test oracle: text_sequential_inserts",
+          "state": "nil",
+          "time_us": 40
+        },
+        {
+          "module": "Yelixer.OracleTest",
+          "name": "test oracle: array_integer_values",
+          "state": "nil",
+          "time_us": 36
+        },
+        {
+          "module": "Yelixer.OracleTest",
+          "name": "test oracle: mixed_all_types",
+          "state": "nil",
+          "time_us": 84
+        },
+        {
+          "module": "Yelixer.OracleTest",
+          "name": "test oracle: text_prepend",
+          "state": "nil",
+          "time_us": 38
+        },
+        {
+          "module": "Yelixer.OracleTest",
+          "name": "test oracle: text_insert_middle",
+          "state": "nil",
+          "time_us": 40
+        },
+        {
+          "module": "Yelixer.OracleTest",
+          "name": "test oracle: map_many_keys",
+          "state": "nil",
+          "time_us": 101
+        },
+        {
+          "module": "Yelixer.OracleTest",
+          "name": "test oracle: map_two_client_conflict",
+          "state": "nil",
+          "time_us": 78
+        },
+        {
+          "module": "Yelixer.OracleTest",
+          "name": "test oracle: text_delete_all",
+          "state": "nil",
+          "time_us": 28
+        },
+        {
+          "module": "Yelixer.OracleTest",
+          "name": "test oracle: array_delete_elements",
+          "state": "nil",
+          "time_us": 40
+        },
+        {
+          "module": "Yelixer.OracleTest",
+          "name": "test oracle: text_merge_then_delete",
+          "state": "nil",
+          "time_us": 39
+        },
+        {
+          "module": "Yelixer.OracleTest",
+          "name": "test oracle: text_empty",
+          "state": "nil",
+          "time_us": 13
+        },
+        {
+          "module": "Yelixer.OracleTest",
+          "name": "test oracle: map_with_null_value",
+          "state": "nil",
+          "time_us": 55
+        },
+        {
+          "module": "Yelixer.OracleTest",
+          "name": "test yelixer generates decodable text update",
+          "state": "nil",
+          "time_us": 714
+        },
+        {
+          "module": "Yelixer.OracleTest",
+          "name": "test yelixer generates decodable map update",
+          "state": "nil",
+          "time_us": 345
+        },
+        {
+          "module": "Yelixer.OracleTest",
+          "name": "test yelixer generates decodable array update",
+          "state": "nil",
+          "time_us": 318
+        },
+        {
+          "module": "Yelixer.RehydratePropertiesTest",
+          "name": "property text content survives encode-decode after arbitrary ops on envelope doc",
+          "state": "nil",
+          "time_us": 81604
+        },
+        {
+          "module": "Yelixer.RehydratePropertiesTest",
+          "name": "property envelope metadata survives encode-decode after arbitrary text ops",
+          "state": "nil",
+          "time_us": 71362
+        },
+        {
+          "module": "Yelixer.RehydratePropertiesTest",
+          "name": "property interleaved save-reload gives the same final content as no save-reload",
+          "state": "nil",
+          "time_us": 112405
+        },
+        {
+          "module": "Yelixer.RehydratePropertiesTest",
+          "name": "property save-reload is idempotent: reload of reload equals reload",
+          "state": "nil",
+          "time_us": 86225
+        },
+        {
+          "module": "Yelixer.RehydratePropertiesTest",
+          "name": "property map content survives encode-decode after arbitrary ops",
+          "state": "nil",
+          "time_us": 60344
+        },
+        {
+          "module": "Yelixer.RehydratePropertiesTest",
+          "name": "property array content survives encode-decode after arbitrary ops",
+          "state": "nil",
+          "time_us": 59920
+        },
+        {
+          "module": "Yelixer.RehydratePropertiesTest",
+          "name": "property N rehydrate cycles interleaved with single ops preserve final content",
+          "state": "nil",
+          "time_us": 330762
+        },
+        {
+          "module": "Yelixer.RehydrateTest",
+          "name": "test text rehydrate-modify 1. insert then rehydrate",
+          "state": "nil",
+          "time_us": 44
+        },
+        {
+          "module": "Yelixer.RehydrateTest",
+          "name": "test text rehydrate-modify 2. insert \u2192 rehydrate \u2192 delete first char",
+          "state": "nil",
+          "time_us": 102
+        },
+        {
+          "module": "Yelixer.RehydrateTest",
+          "name": "test text rehydrate-modify 3. insert \u2192 rehydrate \u2192 delete middle chars",
+          "state": "nil",
+          "time_us": 97
+        },
+        {
+          "module": "Yelixer.RehydrateTest",
+          "name": "test text rehydrate-modify 4. insert \u2192 rehydrate \u2192 delete last char",
+          "state": "nil",
+          "time_us": 88
+        },
+        {
+          "module": "Yelixer.RehydrateTest",
+          "name": "test text rehydrate-modify 5. insert \u2192 rehydrate \u2192 delete all \u2192 insert new",
+          "state": "nil",
+          "time_us": 64
+        },
+        {
+          "module": "Yelixer.RehydrateTest",
+          "name": "test text rehydrate-modify 6. two rehydrate cycles with different ops each time",
+          "state": "nil",
+          "time_us": 129
+        },
+        {
+          "module": "Yelixer.RehydrateTest",
+          "name": "test text rehydrate-modify 7. 50-cycle rehydrate chain appending words",
+          "state": "nil",
+          "time_us": 10020
+        },
+        {
+          "module": "Yelixer.RehydrateTest",
+          "name": "test text rehydrate-modify 8. concurrent clients: each writes, rehydrates, reads the merged result",
+          "state": "nil",
+          "time_us": 153
+        },
+        {
+          "module": "Yelixer.RehydrateTest",
+          "name": "test text rehydrate-modify 9. large doc (1KB) survives rehydrate-modify-rehydrate",
+          "state": "nil",
+          "time_us": 1729
+        },
+        {
+          "module": "Yelixer.RehydrateTest",
+          "name": "test map rehydrate-modify 10. set keys \u2192 rehydrate \u2192 set more keys",
+          "state": "nil",
+          "time_us": 106
+        },
+        {
+          "module": "Yelixer.RehydrateTest",
+          "name": "test map rehydrate-modify 11. set key \u2192 rehydrate \u2192 overwrite same key",
+          "state": "nil",
+          "time_us": 73
+        },
+        {
+          "module": "Yelixer.RehydrateTest",
+          "name": "test map rehydrate-modify 12. set keys \u2192 rehydrate \u2192 delete one",
+          "state": "nil",
+          "time_us": 87
+        },
+        {
+          "module": "Yelixer.RehydrateTest",
+          "name": "test array rehydrate-modify 13. push items \u2192 rehydrate \u2192 push more",
+          "state": "nil",
+          "time_us": 114
+        },
+        {
+          "module": "Yelixer.RehydrateTest",
+          "name": "test array rehydrate-modify 14. push \u2192 rehydrate \u2192 insert at beginning",
+          "state": "nil",
+          "time_us": 64
+        },
+        {
+          "module": "Yelixer.RehydrateTest",
+          "name": "test array rehydrate-modify 15. push \u2192 rehydrate \u2192 delete from middle",
+          "state": "nil",
+          "time_us": 121
+        },
+        {
+          "module": "Yelixer.RehydrateTest",
+          "name": "test array rehydrate-modify 16. push \u2192 rehydrate \u2192 delete first \u2192 insert replacement",
+          "state": "nil",
+          "time_us": 115
+        },
+        {
+          "module": "Yelixer.RehydrateTest",
+          "name": "test cross-sequence rehydrate-modify (CX-2sv regression) 17. envelope + text: insert \u2192 rehydrate \u2192 replace content",
+          "state": "nil",
+          "time_us": 146
+        },
+        {
+          "module": "Yelixer.RehydrateTest",
+          "name": "test cross-sequence rehydrate-modify (CX-2sv regression) 18. envelope + text: insert \u2192 rehydrate \u2192 delete-from-start",
+          "state": "nil",
+          "time_us": 161
+        },
+        {
+          "module": "Yelixer.RehydrateTest",
+          "name": "test cross-sequence rehydrate-modify (CX-2sv regression) 19. envelope + text: 5-cycle append with rehydrate each iteration",
+          "state": "nil",
+          "time_us": 540
+        },
+        {
+          "module": "Yelixer.RehydrateTest",
+          "name": "test cross-sequence rehydrate-modify (CX-2sv regression) 20. envelope + text: interleaved edits after rehydrate",
+          "state": "nil",
+          "time_us": 362
+        },
+        {
+          "module": "Yelixer.RehydrateTest",
+          "name": "test cross-sequence rehydrate-modify (CX-2sv regression) 21. envelope + array: rehydrate + push + delete",
+          "state": "nil",
+          "time_us": 299
+        },
+        {
+          "module": "Yelixer.SnapshotDeterminismTest",
+          "name": "test snapshot_update/1 is byte-deterministic across instances two independent snapshots of the same Text doc produce identical bytes",
+          "state": "nil",
+          "time_us": 101
+        },
+        {
+          "module": "Yelixer.SnapshotDeterminismTest",
+          "name": "test snapshot_update/1 is byte-deterministic across instances two independent snapshots of the same YMap doc produce identical bytes",
+          "state": "nil",
+          "time_us": 190
+        },
+        {
+          "module": "Yelixer.SnapshotDeterminismTest",
+          "name": "test snapshot_update/1 is byte-deterministic across instances two independent snapshots of a multi-type doc produce identical bytes",
+          "state": "nil",
+          "time_us": 250
+        },
+        {
+          "module": "Yelixer.SnapshotDeterminismTest",
+          "name": "test snapshot_update/1 is byte-deterministic across instances snapshotting an empty doc is deterministic and idempotent",
+          "state": "nil",
+          "time_us": 14
+        },
+        {
+          "module": "Yelixer.SnapshotDeterminismTest",
+          "name": "property snapshot_update/1 is byte-deterministic across instances snapshot_update is byte-deterministic across instances (Text)",
+          "state": "nil",
+          "time_us": 10395
+        },
+        {
+          "module": "Yelixer.PropertiesTest",
+          "name": "property two peers always converge regardless of insert content",
+          "state": "nil",
+          "time_us": 7998
+        },
+        {
+          "module": "Yelixer.PropertiesTest",
+          "name": "property three peers always converge",
+          "state": "nil",
+          "time_us": 12374
+        },
+        {
+          "module": "Yelixer.PropertiesTest",
+          "name": "property apply-order independence: text updates converge regardless of ordering",
+          "state": "nil",
+          "time_us": 13934
+        },
+        {
+          "module": "Yelixer.PropertiesTest",
+          "name": "property apply-order independence: map updates converge regardless of ordering",
+          "state": "nil",
+          "time_us": 25121
+        },
+        {
+          "module": "Yelixer.PropertiesTest",
+          "name": "property apply-order independence: array updates converge regardless of ordering",
+          "state": "nil",
+          "time_us": 14690
+        },
+        {
+          "module": "Yelixer.PropertiesTest",
+          "name": "property encode/decode roundtrip preserves text content",
+          "state": "nil",
+          "time_us": 3364
+        },
+        {
+          "module": "Yelixer.PropertiesTest",
+          "name": "property encode/decode roundtrip preserves map entries",
+          "state": "nil",
+          "time_us": 9583
+        },
+        {
+          "module": "Yelixer.PropertiesTest",
+          "name": "property encode/decode roundtrip preserves array elements",
+          "state": "nil",
+          "time_us": 5735
+        },
+        {
+          "module": "Yelixer.PropertiesTest",
+          "name": "property double encode/decode roundtrip yields same state",
+          "state": "nil",
+          "time_us": 16760
+        },
+        {
+          "module": "Yelixer.PropertiesTest",
+          "name": "property state vector clocks never decrease after apply_update",
+          "state": "nil",
+          "time_us": 5178
+        },
+        {
+          "module": "Yelixer.PropertiesTest",
+          "name": "property state vector monotonicity with map operations",
+          "state": "nil",
+          "time_us": 9665
+        },
+        {
+          "module": "Yelixer.PropertiesTest",
+          "name": "property state vector monotonicity across multiple sequential updates",
+          "state": "nil",
+          "time_us": 9033
+        },
+        {
+          "module": "Yelixer.PropertiesTest",
+          "name": "property applying same update twice is idempotent (text)",
+          "state": "nil",
+          "time_us": 3092
+        },
+        {
+          "module": "Yelixer.PropertiesTest",
+          "name": "property applying same update twice is idempotent (map)",
+          "state": "nil",
+          "time_us": 10176
+        },
+        {
+          "module": "Yelixer.PropertiesTest",
+          "name": "property applying same update twice is idempotent (array)",
+          "state": "nil",
+          "time_us": 6302
+        },
+        {
+          "module": "Yelixer.PropertiesTest",
+          "name": "property applying same update three times is idempotent",
+          "state": "nil",
+          "time_us": 14262
+        },
+        {
+          "module": "Yelixer.PropertiesTest",
+          "name": "property map last-writer-wins: concurrent sets on same key yield one deterministic value",
+          "state": "nil",
+          "time_us": 7691
+        },
+        {
+          "module": "Yelixer.PropertiesTest",
+          "name": "property map last-writer-wins: three clients setting same key converge to one value",
+          "state": "nil",
+          "time_us": 21655
+        },
+        {
+          "module": "Yelixer.PropertiesTest",
+          "name": "property map last-writer-wins: multiple keys with concurrent overwrites",
+          "state": "nil",
+          "time_us": 28630
+        },
+        {
+          "module": "Yelixer.SnapshotUpdateDmTest",
+          "name": "test snapshot_update/1 returns {bytes, dm} empty doc \u2014 empty dm, still a tuple",
+          "state": "nil",
+          "time_us": 16
+        },
+        {
+          "module": "Yelixer.SnapshotUpdateDmTest",
+          "name": "test snapshot_update/1 returns {bytes, dm} text doc \u2014 dm maps new text item to source text item",
+          "state": "nil",
+          "time_us": 68
+        },
+        {
+          "module": "Yelixer.SnapshotUpdateDmTest",
+          "name": "test snapshot_update/1 returns {bytes, dm} byte-deterministic \u2014 same source \u2192 same {bytes, dm} across peers",
+          "state": "nil",
+          "time_us": 100
+        },
+        {
+          "module": "Yelixer.SnapshotUpdateDmTest",
+          "name": "test snapshot_update/1 returns {bytes, dm} round-trip \u2014 applying bytes to a fresh doc recovers the source's observable content",
+          "state": "nil",
+          "time_us": 41
+        },
+        {
+          "module": "Yelixer.StateVectorTest",
+          "name": "test new state vector is empty",
+          "state": "nil",
+          "time_us": 1
+        },
+        {
+          "module": "Yelixer.StateVectorTest",
+          "name": "test set and get clock for client",
+          "state": "nil",
+          "time_us": 0
+        },
+        {
+          "module": "Yelixer.StateVectorTest",
+          "name": "test advance only increases clock",
+          "state": "nil",
+          "time_us": 1
+        },
+        {
+          "module": "Yelixer.StateVectorTest",
+          "name": "test diff returns missing clocks",
+          "state": "nil",
+          "time_us": 3
+        },
+        {
+          "module": "Yelixer.SnapshotUpdateXMLTest",
+          "name": "test snapshot_update/1 XML replay (CX-b2y) round-trips a nested XML fragment with element + text + attribute",
+          "state": "nil",
+          "time_us": 8753
+        },
+        {
+          "module": "Yelixer.SnapshotUpdateXMLTest",
+          "name": "test snapshot_update/1 XML replay (CX-b2y) round-trips with a deleted middle child (tombstone dropped)",
+          "state": "nil",
+          "time_us": 246
+        },
+        {
+          "module": "Yelixer.SnapshotUpdateXMLTest",
+          "name": "test snapshot_update/1 XML replay (CX-b2y) round-trips an XMLElement top-level type with text child",
+          "state": "nil",
+          "time_us": 231
+        },
+        {
+          "module": "Yelixer.SnapshotUpdateXMLTest",
+          "name": "test snapshot_update/1 XML replay (CX-b2y) round-trips a top-level XMLText",
+          "state": "nil",
+          "time_us": 83
+        },
+        {
+          "module": "Yelixer.SnapshotUpdateXMLTest",
+          "name": "test snapshot_update/1 XML replay (CX-b2y) round-trips nested fragment -> element -> element -> text",
+          "state": "nil",
+          "time_us": 329
+        },
+        {
+          "module": "Yelixer.SyncProtocolTest",
+          "name": "test full sync between two empty docs",
+          "state": "nil",
+          "time_us": 1971
+        },
+        {
+          "module": "Yelixer.SyncProtocolTest",
+          "name": "test sync doc with content to empty doc",
+          "state": "nil",
+          "time_us": 79
+        },
+        {
+          "module": "Yelixer.SyncProtocolTest",
+          "name": "test bidirectional sync between two docs with different content",
+          "state": "nil",
+          "time_us": 134
+        },
+        {
+          "module": "Yelixer.SyncProtocolTest",
+          "name": "test incremental sync after initial sync",
+          "state": "nil",
+          "time_us": 115
+        },
+        {
+          "module": "Yelixer.SyncProtocolTest",
+          "name": "test encode_step1 and decode_step1 roundtrip",
+          "state": "nil",
+          "time_us": 27
+        },
+        {
+          "module": "Yelixer.Types.ArrayTest",
+          "name": "test insert and read elements",
+          "state": "nil",
+          "time_us": 63
+        },
+        {
+          "module": "Yelixer.Types.ArrayTest",
+          "name": "test insert at index",
+          "state": "nil",
+          "time_us": 40
+        },
+        {
+          "module": "Yelixer.Types.ArrayTest",
+          "name": "test insert at end",
+          "state": "nil",
+          "time_us": 29
+        },
+        {
+          "module": "Yelixer.Types.ArrayTest",
+          "name": "test delete elements",
+          "state": "nil",
+          "time_us": 71
+        },
+        {
+          "module": "Yelixer.Types.ArrayTest",
+          "name": "test length",
+          "state": "nil",
+          "time_us": 28
+        },
+        {
+          "module": "Yelixer.Types.ArrayTest",
+          "name": "test empty array",
+          "state": "nil",
+          "time_us": 4
+        },
+        {
+          "module": "Yelixer.Types.ArrayTest",
+          "name": "test push appends to end",
+          "state": "nil",
+          "time_us": 35
+        },
+        {
+          "module": "Yelixer.SyncTest",
+          "name": "test text sync two peers sync and converge",
+          "state": "nil",
+          "time_us": 119
+        },
+        {
+          "module": "Yelixer.SyncTest",
+          "name": "test text sync three-way sync converges",
+          "state": "nil",
+          "time_us": 233
+        },
+        {
+          "module": "Yelixer.SyncTest",
+          "name": "test text sync sequential edits from same peer sync correctly",
+          "state": "nil",
+          "time_us": 95
+        },
+        {
+          "module": "Yelixer.SyncTest",
+          "name": "test text sync applying same update twice is idempotent",
+          "state": "nil",
+          "time_us": 66
+        },
+        {
+          "module": "Yelixer.SyncTest",
+          "name": "test array sync two peers sync arrays and converge",
+          "state": "nil",
+          "time_us": 148
+        },
+        {
+          "module": "Yelixer.SyncTest",
+          "name": "test map sync concurrent map edits use last-write-wins",
+          "state": "nil",
+          "time_us": 138
+        },
+        {
+          "module": "Yelixer.Types.MapTest",
+          "name": "test set and get values",
+          "state": "nil",
+          "time_us": 21
+        },
+        {
+          "module": "Yelixer.Types.MapTest",
+          "name": "test overwrite a key",
+          "state": "nil",
+          "time_us": 41
+        },
+        {
+          "module": "Yelixer.Types.MapTest",
+          "name": "test delete a key",
+          "state": "nil",
+          "time_us": 17
+        },
+        {
+          "module": "Yelixer.Types.MapTest",
+          "name": "test to_map returns all entries",
+          "state": "nil",
+          "time_us": 30
+        },
+        {
+          "module": "Yelixer.Types.MapTest",
+          "name": "test missing key returns nil",
+          "state": "nil",
+          "time_us": 5
+        },
+        {
+          "module": "Yelixer.Types.MapTest",
+          "name": "test has_key?",
+          "state": "nil",
+          "time_us": 16
+        },
+        {
+          "module": "Yelixer.Types.MapTest",
+          "name": "test deterministic iteration order (CX-sew) multi-client map via full-state update gives deterministic results",
+          "state": "nil",
+          "time_us": 669
+        },
+        {
+          "module": "Yelixer.Types.MapTest",
+          "name": "test deterministic iteration order (CX-sew) sequential full-state snapshots produce consistent results",
+          "state": "nil",
+          "time_us": 172
+        },
+        {
+          "module": "Yelixer.Types.MapTest",
+          "name": "test deterministic iteration order (CX-sew) to_map and get agree on the winning value for concurrent edits",
+          "state": "nil",
+          "time_us": 97
+        },
+        {
+          "module": "Yelixer.Types.MapTest",
+          "name": "test deterministic iteration order (CX-sew) has_key? is consistent with get after concurrent updates",
+          "state": "nil",
+          "time_us": 95
+        },
+        {
+          "module": "Yelixer.Types.TextTest",
+          "name": "test insert and read text",
+          "state": "nil",
+          "time_us": 59
+        },
+        {
+          "module": "Yelixer.Types.TextTest",
+          "name": "test insert at end",
+          "state": "nil",
+          "time_us": 36
+        },
+        {
+          "module": "Yelixer.Types.TextTest",
+          "name": "test insert at beginning",
+          "state": "nil",
+          "time_us": 40
+        },
+        {
+          "module": "Yelixer.Types.TextTest",
+          "name": "test insert in middle",
+          "state": "nil",
+          "time_us": 77
+        },
+        {
+          "module": "Yelixer.Types.TextTest",
+          "name": "test delete text range",
+          "state": "nil",
+          "time_us": 65
+        },
+        {
+          "module": "Yelixer.Types.TextTest",
+          "name": "test delete from beginning",
+          "state": "nil",
+          "time_us": 53
+        },
+        {
+          "module": "Yelixer.Types.TextTest",
+          "name": "test length",
+          "state": "nil",
+          "time_us": 16
+        },
+        {
+          "module": "Yelixer.Types.TextTest",
+          "name": "test length after delete",
+          "state": "nil",
+          "time_us": 56
+        },
+        {
+          "module": "Yelixer.Types.TextTest",
+          "name": "test multiple inserts build up text",
+          "state": "nil",
+          "time_us": 38
+        },
+        {
+          "module": "Yelixer.Types.TextTest",
+          "name": "test empty text",
+          "state": "nil",
+          "time_us": 5
+        },
+        {
+          "module": "Yelixer.Types.TextTest",
+          "name": "test insert with empty text is a no-op (moduledoc contract)",
+          "state": "nil",
+          "time_us": 17
+        },
+        {
+          "module": "Yelixer.Types.TextTest",
+          "name": "test multi-char insert creates single item",
+          "state": "nil",
+          "time_us": 19
+        },
+        {
+          "module": "Yelixer.Types.TextTest",
+          "name": "test mid-item insert splits and creates three items",
+          "state": "nil",
+          "time_us": 70
+        },
+        {
+          "module": "Yelixer.Types.TextTest",
+          "name": "test mid-item delete splits correctly",
+          "state": "nil",
+          "time_us": 68
+        },
+        {
+          "module": "Yelixer.Types.TextTest",
+          "name": "test rehydrate \u2192 modify \u2192 re-encode round-trip (CX-2sv regression) insert \u2192 rehydrate \u2192 delete-from-start \u2192 rehydrate",
+          "state": "nil",
+          "time_us": 185
+        },
+        {
+          "module": "Yelixer.Types.TextTest",
+          "name": "test rehydrate \u2192 modify \u2192 re-encode round-trip (CX-2sv regression) insert \u2192 rehydrate \u2192 delete-all-then-insert \u2192 rehydrate",
+          "state": "nil",
+          "time_us": 124
+        },
+        {
+          "module": "Yelixer.Types.TextTest",
+          "name": "test rehydrate \u2192 modify \u2192 re-encode round-trip (CX-2sv regression) many interleaved delete+insert after rehydrate",
+          "state": "nil",
+          "time_us": 488
+        },
+        {
+          "module": "Yelixer.Types.TextTest",
+          "name": "test rehydrate \u2192 modify \u2192 re-encode round-trip (CX-2sv regression) many rehydrate cycles preserve content",
+          "state": "nil",
+          "time_us": 576
+        },
+        {
+          "module": "Yelixer.Types.XMLFragmentTest",
+          "name": "test create fragment and insert element children",
+          "state": "nil",
+          "time_us": 50
+        },
+        {
+          "module": "Yelixer.Types.XMLFragmentTest",
+          "name": "test insert text child",
+          "state": "nil",
+          "time_us": 42
+        },
+        {
+          "module": "Yelixer.Types.XMLFragmentTest",
+          "name": "test insert at beginning",
+          "state": "nil",
+          "time_us": 43
+        },
+        {
+          "module": "Yelixer.Types.XMLFragmentTest",
+          "name": "test child_count",
+          "state": "nil",
+          "time_us": 58
+        },
+        {
+          "module": "Yelixer.Types.XMLFragmentTest",
+          "name": "test empty fragment",
+          "state": "nil",
+          "time_us": 6
+        },
+        {
+          "module": "Yelixer.Types.XMLFragmentTest",
+          "name": "test delete_child/4 deletes one child at index 0 (head)",
+          "state": "nil",
+          "time_us": 73
+        },
+        {
+          "module": "Yelixer.Types.XMLFragmentTest",
+          "name": "test delete_child/4 deletes one child at middle index",
+          "state": "nil",
+          "time_us": 56
+        },
+        {
+          "module": "Yelixer.Types.XMLFragmentTest",
+          "name": "test delete_child/4 deletes one child at last index",
+          "state": "nil",
+          "time_us": 52
+        },
+        {
+          "module": "Yelixer.Types.XMLFragmentTest",
+          "name": "test delete_child/4 deletes multiple consecutive children with length=2",
+          "state": "nil",
+          "time_us": 74
+        },
+        {
+          "module": "Yelixer.Types.XMLFragmentTest",
+          "name": "test delete_child/4 default length is 1",
+          "state": "nil",
+          "time_us": 41
+        },
+        {
+          "module": "Yelixer.Types.XMLFragmentTest",
+          "name": "test to_string XSS-escaping (CX-n3i7) escapes text content in a top-level fragment (no wrapper tag)",
+          "state": "nil",
+          "time_us": 82
+        },
+        {
+          "module": "Yelixer.Types.XMLTextTest",
+          "name": "test insert and read text",
+          "state": "nil",
+          "time_us": 22
+        },
+        {
+          "module": "Yelixer.Types.XMLTextTest",
+          "name": "test insert at end",
+          "state": "nil",
+          "time_us": 33
+        },
+        {
+          "module": "Yelixer.Types.XMLTextTest",
+          "name": "test insert at beginning",
+          "state": "nil",
+          "time_us": 36
+        },
+        {
+          "module": "Yelixer.Types.XMLTextTest",
+          "name": "test insert in middle",
+          "state": "nil",
+          "time_us": 68
+        },
+        {
+          "module": "Yelixer.Types.XMLTextTest",
+          "name": "test delete text",
+          "state": "nil",
+          "time_us": 59
+        },
+        {
+          "module": "Yelixer.Types.XMLTextTest",
+          "name": "test length",
+          "state": "nil",
+          "time_us": 14
+        },
+        {
+          "module": "Yelixer.Types.XMLTextTest",
+          "name": "test empty text",
+          "state": "nil",
+          "time_us": 4
+        },
+        {
+          "module": "Yelixer.Types.XMLTextTest",
+          "name": "test to_string renders text content",
+          "state": "nil",
+          "time_us": 19
+        },
+        {
+          "module": "Yelixer.Types.XMLElementTest",
+          "name": "test create element with tag name",
+          "state": "nil",
+          "time_us": 5
+        },
+        {
+          "module": "Yelixer.Types.XMLElementTest",
+          "name": "test set and get attribute",
+          "state": "nil",
+          "time_us": 39
+        },
+        {
+          "module": "Yelixer.Types.XMLElementTest",
+          "name": "test overwrite attribute",
+          "state": "nil",
+          "time_us": 43
+        },
+        {
+          "module": "Yelixer.Types.XMLElementTest",
+          "name": "test get_attributes returns all attributes",
+          "state": "nil",
+          "time_us": 41
+        },
+        {
+          "module": "Yelixer.Types.XMLElementTest",
+          "name": "test missing attribute returns nil",
+          "state": "nil",
+          "time_us": 4
+        },
+        {
+          "module": "Yelixer.Types.XMLElementTest",
+          "name": "test insert child element",
+          "state": "nil",
+          "time_us": 23
+        },
+        {
+          "module": "Yelixer.Types.XMLElementTest",
+          "name": "test insert multiple children",
+          "state": "nil",
+          "time_us": 47
+        },
+        {
+          "module": "Yelixer.Types.XMLElementTest",
+          "name": "test insert child at beginning",
+          "state": "nil",
+          "time_us": 43
+        },
+        {
+          "module": "Yelixer.Types.XMLElementTest",
+          "name": "test insert text child",
+          "state": "nil",
+          "time_us": 37
+        },
+        {
+          "module": "Yelixer.Types.XMLElementTest",
+          "name": "test to_string produces XML",
+          "state": "nil",
+          "time_us": 34
+        },
+        {
+          "module": "Yelixer.Types.XMLElementTest",
+          "name": "test to_string with text child",
+          "state": "nil",
+          "time_us": 50
+        },
+        {
+          "module": "Yelixer.Types.XMLElementTest",
+          "name": "test child_count",
+          "state": "nil",
+          "time_us": 36
+        },
+        {
+          "module": "Yelixer.Types.XMLElementTest",
+          "name": "test delete_attribute",
+          "state": "nil",
+          "time_us": 23
+        },
+        {
+          "module": "Yelixer.Types.XMLElementTest",
+          "name": "test delete_child/4 deletes one child at index 0 (head)",
+          "state": "nil",
+          "time_us": 60
+        },
+        {
+          "module": "Yelixer.Types.XMLElementTest",
+          "name": "test delete_child/4 deletes one child at middle index",
+          "state": "nil",
+          "time_us": 48
+        },
+        {
+          "module": "Yelixer.Types.XMLElementTest",
+          "name": "test delete_child/4 deletes one child at last index",
+          "state": "nil",
+          "time_us": 41
+        },
+        {
+          "module": "Yelixer.Types.XMLElementTest",
+          "name": "test delete_child/4 deletes multiple consecutive children with length=2",
+          "state": "nil",
+          "time_us": 69
+        },
+        {
+          "module": "Yelixer.Types.XMLElementTest",
+          "name": "test delete_child/4 default length is 1",
+          "state": "nil",
+          "time_us": 36
+        },
+        {
+          "module": "Yelixer.Types.XMLElementTest",
+          "name": "test delete_child/4 to_string reflects deletion",
+          "state": "nil",
+          "time_us": 83
+        },
+        {
+          "module": "Yelixer.Types.XMLElementTest",
+          "name": "test to_string XSS-escaping (CX-n3i7) escapes <script> tags and & in text content",
+          "state": "nil",
+          "time_us": 72
+        },
+        {
+          "module": "Yelixer.Types.XMLElementTest",
+          "name": "test to_string XSS-escaping (CX-n3i7) escapes &, <, >, \", ' in attribute values",
+          "state": "nil",
+          "time_us": 37
+        },
+        {
+          "module": "Yelixer.Types.XMLElementTest",
+          "name": "test to_string XSS-escaping (CX-n3i7) the underlying stored text is NOT mutated \u2014 store-raw discipline",
+          "state": "nil",
+          "time_us": 54
+        },
+        {
+          "module": "Yelixer.Types.XMLElementTest",
+          "name": "test to_string XSS-escaping (CX-n3i7) escaped output survives a fork/copy round-trip (snapshot_update) without double-escaping",
+          "state": "nil",
+          "time_us": 295
+        },
+        {
+          "module": "Yelixer.UpdateEncodingTest",
+          "name": "test encode and decode update roundtrip \u2014 text",
+          "state": "nil",
+          "time_us": 71
+        },
+        {
+          "module": "Yelixer.UpdateEncodingTest",
+          "name": "test encode and decode update roundtrip \u2014 array",
+          "state": "nil",
+          "time_us": 125
+        },
+        {
+          "module": "Yelixer.UpdateEncodingTest",
+          "name": "test sync two text docs",
+          "state": "nil",
+          "time_us": 110
+        },
+        {
+          "module": "Yelixer.UpdateEncodingTest",
+          "name": "test state vector encodes correctly from doc",
+          "state": "nil",
+          "time_us": 19
+        },
+        {
+          "module": "Yelixer.UpdateEncodingTest",
+          "name": "test encode_diff only includes items after remote state vector",
+          "state": "nil",
+          "time_us": 108
+        },
+        {
+          "module": "Yelixer.UpdateEncodingTest",
+          "name": "test encode_diff produces valid update for incremental sync",
+          "state": "nil",
+          "time_us": 112
+        },
+        {
+          "module": "Yelixer.UpdateEncodingTest",
+          "name": "test encode_diff with empty remote state vector equals full update",
+          "state": "nil",
+          "time_us": 36
+        },
+        {
+          "module": "Yelixer.UpdateEncodingTest",
+          "name": "test encode_diff with multiple clients",
+          "state": "nil",
+          "time_us": 94
+        },
+        {
+          "module": "Yelixer.UpdateEncodingTest",
+          "name": "test applying same update twice is idempotent",
+          "state": "nil",
+          "time_us": 58
+        },
+        {
+          "module": "Yelixer.YrsCompatTest",
+          "name": "test text_insert_delete: decode yrs binary and produce 'abhi'",
+          "state": "nil",
+          "time_us": 121
+        },
+        {
+          "module": "Yelixer.YrsCompatTest",
+          "name": "test text_insert_delete: verify decoded block structure",
+          "state": "nil",
+          "time_us": 46
+        },
+        {
+          "module": "Yelixer.YrsCompatTest",
+          "name": "test state_vector: decode and re-encode yrs binary",
+          "state": "nil",
+          "time_us": 13
+        },
+        {
+          "module": "Yelixer.YrsCompatTest",
+          "name": "test map_set: decode yrs map update with two keys",
+          "state": "nil",
+          "time_us": 21
+        },
+        {
+          "module": "Yelixer.YrsCompatTest",
+          "name": "test array_insert: decode yrs array update",
+          "state": "nil",
+          "time_us": 15
+        },
+        {
+          "module": "Yelixer.YrsDatasetTest",
+          "name": "test small dataset: all text outputs match",
+          "state": "nil",
+          "time_us": 22692929
+        },
+        {
+          "module": "Yelixer.YrsDatasetTest",
+          "name": "test small dataset: all tests full validation (text + map + array)",
+          "state": "nil",
+          "time_us": 25223663
+        },
+        {
+          "module": "Yelixer.CxMchnDeleteSetReproTest",
+          "name": "test whole-doc delete-then-reinsert, folded as two full-state snapshots, must not silently empty the doc",
+          "state": "nil",
+          "time_us": 1130
+        },
+        {
+          "module": "Yelixer.CxMchnDeleteSetReproTest",
+          "name": "test ACCUMULATED: N rounds of delete-all-reinsert, each a full-state chained commit, replayed via full-chain apply_update fold",
+          "state": "nil",
+          "time_us": 36711
+        },
+        {
+          "module": "Yelixer.CxMchnDeleteSetReproTest",
+          "name": "test same repro with a genuinely fresh client for the reinsert (rules out clock reuse)",
+          "state": "nil",
+          "time_us": 374
+        },
+        {
+          "module": "Yelixer.CxMchnDeleteSetReproTest",
+          "name": "test FIX: a plain Text insert in a named type that also holds a Y.Map keyed item does not anchor across the keyed/plain boundary, and both survive encode/decode",
+          "state": "nil",
+          "time_us": 74
+        },
+        {
+          "module": "Yelixer.CxMchnDeleteSetReproTest",
+          "name": "test MINIMAL PURE-YELIXER: fresh Text insert anchored (right_origin) against an unrelated stray YMap-key item in the SAME named type is silently tombstoned on decode re-fold",
+          "state": "nil",
+          "time_us": 340
+        },
+        {
+          "module": "Yelixer.CxMchnDeleteSetReproTest",
+          "name": "test REAL FIXTURE: cx_k20z_start_meta_precorruption.bin at pure-Yelixer level",
+          "state": "nil",
+          "time_us": 6404
+        },
+        {
+          "module": "Yelixer.DiffYjsTest",
+          "name": "test text insert \u2192 encode \u2192 reload \u2192 content matches yjs",
+          "state": "nil",
+          "time_us": 106061
+        },
+        {
+          "module": "Yelixer.DiffYjsTest",
+          "name": "test text insert \u2192 delete from start \u2192 reload matches yjs",
+          "state": "nil",
+          "time_us": 136282
+        },
+        {
+          "module": "Yelixer.DiffYjsTest",
+          "name": "test text insert \u2192 delete-all \u2192 insert new \u2192 reload matches yjs",
+          "state": "nil",
+          "time_us": 120663
+        },
+        {
+          "module": "Yelixer.DiffYjsTest",
+          "name": "test text 5 cycle rehydrate with appends matches yjs",
+          "state": "nil",
+          "time_us": 163862
+        },
+        {
+          "module": "Yelixer.DiffYjsTest",
+          "name": "test map set keys \u2192 reload \u2192 content matches yjs",
+          "state": "nil",
+          "time_us": 173980
+        },
+        {
+          "module": "Yelixer.DiffYjsTest",
+          "name": "test map set \u2192 reload \u2192 overwrite \u2192 reload matches yjs",
+          "state": "nil",
+          "time_us": 121525
+        },
+        {
+          "module": "Yelixer.DiffYjsTest",
+          "name": "test map set \u2192 reload \u2192 delete key \u2192 reload matches yjs",
+          "state": "nil",
+          "time_us": 141504
+        },
+        {
+          "module": "Yelixer.DiffYjsTest",
+          "name": "test array push \u2192 reload \u2192 push more matches yjs",
+          "state": "nil",
+          "time_us": 125672
+        },
+        {
+          "module": "Yelixer.DiffYjsTest",
+          "name": "test array push \u2192 reload \u2192 delete first \u2192 insert replacement matches yjs",
+          "state": "nil",
+          "time_us": 155726
+        },
+        {
+          "module": "Yelixer.DiffYjsTest",
+          "name": "test envelope (root map + content text, the CX-2sv pattern) insert text with root metadata \u2192 reload \u2192 replace content matches yjs",
+          "state": "nil",
+          "time_us": 214701
+        },
+        {
+          "module": "Yelixer.DiffYjsTest",
+          "name": "test envelope (root map + content text, the CX-2sv pattern) envelope + delete-from-start matches yjs",
+          "state": "nil",
+          "time_us": 210373
+        },
+        {
+          "module": "Yelixer.DivergenceClockTest",
+          "name": "test fixture sanity (asserted before use, not assumed) NFD fixture: 7 graphemes / 11 codepoints / 14 UTF-16 units",
+          "state": "nil",
+          "time_us": 3606
+        },
+        {
+          "module": "Yelixer.DivergenceClockTest",
+          "name": "test fixture sanity (asserted before use, not assumed) NFC fixture: 7 graphemes / 10 codepoints / 13 UTF-16 units",
+          "state": "nil",
+          "time_us": 5615
+        },
+        {
+          "module": "Yelixer.DivergenceClockTest",
+          "name": "test fixture sanity (asserted before use, not assumed) committed NFD update bytes decode to the exact explicit-codepoint string",
+          "state": "nil",
+          "time_us": 191417
+        },
+        {
+          "module": "Yelixer.DivergenceClockTest",
+          "name": "test axis: LOSS (same client_id, author's own clock) NFD, gap=7, safe origin (pos=1) \u2014 edit shorter than the gap must NOT be totally lost",
+          "state": "nil",
+          "time_us": 138591
+        },
+        {
+          "module": "Yelixer.DivergenceClockTest",
+          "name": "test axis: LOSS (same client_id, author's own clock) NFD, gap=7, safe origin (pos=1) \u2014 edit longer than the gap must NOT be truncated",
+          "state": "nil",
+          "time_us": 139052
+        },
+        {
+          "module": "Yelixer.DivergenceClockTest",
+          "name": "test axis: LOSS (same client_id, author's own clock) bounded, not cumulative: the deficit is spent once, then clocks REALIGN",
+          "state": "nil",
+          "time_us": 180341
+        },
+        {
+          "module": "Yelixer.DivergenceClockTest",
+          "name": "test axis: LOSS (same client_id, author's own clock) negative control: gap=0 pure-ASCII fixture round-trips losslessly under a reused id",
+          "state": "nil",
+          "time_us": 176269
+        },
+        {
+          "module": "Yelixer.DivergenceClockTest",
+          "name": "test axis: CORRUPTION (fresh client_id, origin reference into base block) NFC: local B-up clamp preserves exact position in both runtimes",
+          "state": "nil",
+          "time_us": 149460
+        },
+        {
+          "module": "Yelixer.DivergenceClockTest",
+          "name": "test axis: CORRUPTION (fresh client_id, origin reference into base block) NFD: local B-up clamp preserves exact position in both runtimes",
+          "state": "nil",
+          "time_us": 182923
+        },
+        {
+          "module": "Yelixer.DivergenceClockTest",
+          "name": "test axis: CORRUPTION (fresh client_id, origin reference into base block) negative control: NFC pos=7 \u2014 one unit past the same emoji, origin lands on the LOW surrogate (a valid boundary) \u2014 AGREES",
+          "state": "nil",
+          "time_us": 220014
+        },
+        {
+          "module": "Yelixer.DivergenceClockTest",
+          "name": "test axis: CORRUPTION (fresh client_id, origin reference into base block) negative control: NFC pos=4 and pos=5 \u2014 before the gap starts \u2014 AGREE",
+          "state": "nil",
+          "time_us": 259437
+        },
+        {
+          "module": "Yelixer.DivergenceClockTest",
+          "name": "test axis: CORRUPTION (fresh client_id, origin reference into base block) negative control: NFD pos=1 \u2014 well before any multi-unit grapheme \u2014 AGREES",
+          "state": "nil",
+          "time_us": 182576
+        },
+        {
+          "module": "Yelixer.DivergenceClockTest",
+          "name": "test axis: UNDER-DELETION (any deleter id; delete-set names the deleted item's client) NFD delete endpoints are UTF-16 units: five leaves the space, six removes it",
+          "state": "nil",
+          "time_us": 203307
+        },
+        {
+          "module": "Yelixer.DivergenceClockTest",
+          "name": "test axis: UNDER-DELETION (any deleter id; delete-set names the deleted item's client) negative control: NFD delete(0, 3 graphemes) \u2014 entirely before any multi-unit grapheme \u2014 AGREES",
+          "state": "nil",
+          "time_us": 193906
+        },
+        {
+          "module": "Yelixer.DivergenceClockTest",
+          "name": "test axis: READ/INTEGRATION (same bytes, both sides render differently) two real-yjs transactions, applied to both sides \u2014 yelixer's integration must NOT permanently drop the second one",
+          "state": "nil",
+          "time_us": 146936
+        },
+        {
+          "module": "Yelixer.DivergenceClockTest",
+          "name": "test vacuity guard (anti-vacuity gate) assert_diverges!/3 flunks loudly with VACUOUS when the two sides actually agree",
+          "state": "nil",
+          "time_us": 13642
+        },
+        {
+          "module": "Yelixer.DivergenceClockTest",
+          "name": "test vacuity guard (anti-vacuity gate) assert_diverges!/3 does not raise when the two sides genuinely differ",
+          "state": "nil",
+          "time_us": 3055
+        },
+        {
+          "module": "Yelixer.DivergenceContentTest",
+          "name": "test content: BINARY VALUES via YMap.set (Encoding.encode_any/1, lib/yelixer/encoding.ex ~774) Mode 1 LOUD: a non-UTF-8 blob must apply cleanly to real yjs, not get the WHOLE update rejected",
+          "state": "{:excluded, \"due to divergence filter\"}",
+          "time_us": 0
+        },
+        {
+          "module": "Yelixer.DivergenceContentTest",
+          "name": "test content: BINARY VALUES via YMap.set (Encoding.encode_any/1, lib/yelixer/encoding.ex ~774) Mode 2 SILENT: a valid-UTF-8 blob must arrive typed as Uint8Array, not silently coerced to String",
+          "state": "{:excluded, \"due to divergence filter\"}",
+          "time_us": 0
+        },
+        {
+          "module": "Yelixer.DivergenceContentTest",
+          "name": "test content: Types.Text.length/2 \u2014 three disagreeing index spaces string run + embed + format-mark pair: yelixer's Text.length must equal yjs's",
+          "state": "{:excluded, \"due to divergence filter\"}",
+          "time_us": 0
+        },
+        {
+          "module": "Yelixer.DivergenceContentTest",
+          "name": "test content: Types.Array.to_list/2 (lib/yelixer/types/array.ex:173, no {:type, _} clause) a nested sub-type element must resolve via to_list/2, not raise FunctionClauseError",
+          "state": "{:excluded, \"due to divergence filter\"}",
+          "time_us": 0
+        },
+        {
+          "module": "Yelixer.DivergenceContentTest",
+          "name": "test content: BINARY VALUES via YMap.set (Encoding.encode_any/1, lib/yelixer/encoding.ex ~774) control: a REAL yjs Uint8Array decodes into yelixer as {:binary, _} and re-encodes byte-identical",
+          "state": "nil",
+          "time_us": 289039
+        },
+        {
+          "module": "Yelixer.DivergenceContentTest",
+          "name": "test content: Types.Text.length/2 \u2014 three disagreeing index spaces control: plain string with no embed/format \u2014 all three counts agree",
+          "state": "nil",
+          "time_us": 213583
+        },
+        {
+          "module": "Yelixer.DivergenceContentTest",
+          "name": "test content: Types.Array.to_list/2 (lib/yelixer/types/array.ex:173, no {:type, _} clause) control: a flat array of primitives \u2014 to_list/2 matches yjs's toArray()",
+          "state": "nil",
+          "time_us": 184415
+        },
+        {
+          "module": "Yelixer.DivergenceContentTest",
+          "name": "test wire-layer: Encoding.encode_update/1 bytes vs real yjs encode bytes sanity: encode_update/1 is deterministic given a fixed base + client_id (no oracle)",
+          "state": "nil",
+          "time_us": 4191
+        },
+        {
+          "module": "Yelixer.DivergenceContentTest",
+          "name": "test wire-layer: Encoding.encode_update/1 bytes vs real yjs encode bytes control: a lone Y.Text insert is BYTE-IDENTICAL between yelixer and real yjs",
+          "state": "nil",
+          "time_us": 257649
+        },
+        {
+          "module": "Yelixer.DivergenceContentTest",
+          "name": "test wire-layer: Encoding.encode_update/1 bytes vs real yjs encode bytes independently authored arrays preserve values across different struct packing",
+          "state": "nil",
+          "time_us": 165632
+        },
+        {
+          "module": "Yelixer.DivergenceContentTest",
+          "name": "test vacuity guard (anti-vacuity gate, shared with divergence_clock_test.exs) DivergenceHelpers.assert_diverges!/3 flunks loudly with VACUOUS when the two sides agree",
+          "state": "nil",
+          "time_us": 3661
+        },
+        {
+          "module": "Yelixer.DivergenceContentTest",
+          "name": "test vacuity guard (anti-vacuity gate, shared with divergence_clock_test.exs) DivergenceHelpers.assert_diverges!/3 does not raise when the two sides genuinely differ",
+          "state": "nil",
+          "time_us": 5486
+        },
+        {
+          "module": "Yelixer.PendingBufferTest",
+          "name": "test out-of-order convergence (pin 1) applying {B then A} vs {A then B} yields byte-identical encodes and SVs",
+          "state": "nil",
+          "time_us": 11243
+        },
+        {
+          "module": "Yelixer.PendingBufferTest",
+          "name": "test re-request hole closed (pin 2) SV does not cover an item whose dependency is missing, and catch-up converges",
+          "state": "nil",
+          "time_us": 324
+        },
+        {
+          "module": "Yelixer.PendingBufferTest",
+          "name": "test delete-before-item (pin 3) an item whose delete arrived first is tombstoned, not resurrected",
+          "state": "nil",
+          "time_us": 232
+        },
+        {
+          "module": "Yelixer.PendingBufferTest",
+          "name": "test bounded overflow (pin 4) flooding past the cap rejects the apply without touching the doc or existing pending",
+          "state": "nil",
+          "time_us": 1416
+        },
+        {
+          "module": "Yelixer.PendingBufferTest",
+          "name": "test shuffled-oracle (pin 5) every permutation of three dependent updates converges to the same bytes",
+          "state": "nil",
+          "time_us": 2041
+        },
+        {
+          "module": "Yelixer.PendingBufferTest",
+          "name": "test replay regression (pin 6) commit-replay simulation: ordered, diff-against-previous delivery keeps pending empty",
+          "state": "nil",
+          "time_us": 838
+        },
+        {
+          "module": "Yelixer.OldHistoryTest",
+          "name": "test pure-yjs ascii: updates_hex preserves every stage and continued edits",
+          "state": "nil",
+          "time_us": 369693
+        },
+        {
+          "module": "Yelixer.OldHistoryTest",
+          "name": "test pure-yjs ascii: full_updates_hex preserves every stage and continued edits",
+          "state": "nil",
+          "time_us": 306257
+        },
+        {
+          "module": "Yelixer.OldHistoryTest",
+          "name": "test pure-yjs combining: updates_hex preserves every stage and continued edits",
+          "state": "nil",
+          "time_us": 267062
+        },
+        {
+          "module": "Yelixer.OldHistoryTest",
+          "name": "test pure-yjs combining: full_updates_hex preserves every stage and continued edits",
+          "state": "nil",
+          "time_us": 300920
+        },
+        {
+          "module": "Yelixer.OldHistoryTest",
+          "name": "test pure-yjs astral: updates_hex preserves every stage and continued edits",
+          "state": "nil",
+          "time_us": 261053
+        },
+        {
+          "module": "Yelixer.OldHistoryTest",
+          "name": "test pure-yjs astral: full_updates_hex preserves every stage and continued edits",
+          "state": "nil",
+          "time_us": 315943
+        },
+        {
+          "module": "Yelixer.OldHistoryTest",
+          "name": "test pure-yjs zwj: updates_hex preserves every stage and continued edits",
+          "state": "nil",
+          "time_us": 254859
+        },
+        {
+          "module": "Yelixer.OldHistoryTest",
+          "name": "test pure-yjs zwj: full_updates_hex preserves every stage and continued edits",
+          "state": "nil",
+          "time_us": 299485
+        },
+        {
+          "module": "Yelixer.OldHistoryTest",
+          "name": "test candidate-utf16 ascii: updates_hex preserves every stage and continued edits",
+          "state": "nil",
+          "time_us": 298593
+        },
+        {
+          "module": "Yelixer.OldHistoryTest",
+          "name": "test candidate-utf16 ascii: full_updates_hex preserves every stage and continued edits",
+          "state": "nil",
+          "time_us": 289216
+        },
+        {
+          "module": "Yelixer.OldHistoryTest",
+          "name": "test candidate-utf16 combining: updates_hex preserves every stage and continued edits",
+          "state": "nil",
+          "time_us": 302730
+        },
+        {
+          "module": "Yelixer.OldHistoryTest",
+          "name": "test candidate-utf16 combining: full_updates_hex preserves every stage and continued edits",
+          "state": "nil",
+          "time_us": 251264
+        },
+        {
+          "module": "Yelixer.OldHistoryTest",
+          "name": "test candidate-utf16 astral: updates_hex preserves every stage and continued edits",
+          "state": "nil",
+          "time_us": 233644
+        },
+        {
+          "module": "Yelixer.OldHistoryTest",
+          "name": "test candidate-utf16 astral: full_updates_hex preserves every stage and continued edits",
+          "state": "nil",
+          "time_us": 265687
+        },
+        {
+          "module": "Yelixer.OldHistoryTest",
+          "name": "test candidate-utf16 zwj: updates_hex preserves every stage and continued edits",
+          "state": "nil",
+          "time_us": 245748
+        },
+        {
+          "module": "Yelixer.OldHistoryTest",
+          "name": "test candidate-utf16 zwj: full_updates_hex preserves every stage and continued edits",
+          "state": "nil",
+          "time_us": 334524
+        },
+        {
+          "module": "Yelixer.OldHistoryTest",
+          "name": "test immutable old ASCII history preserves each view and supports future edits",
+          "state": "nil",
+          "time_us": 308101
+        },
+        {
+          "module": "Yelixer.OldHistoryTest",
+          "name": "test an old single Unicode insertion is readable and has no wire clock-convention label",
+          "state": "nil",
+          "time_us": 272624
+        },
+        {
+          "module": "Yelixer.UnicodeBoundaryTest",
+          "name": "test a browser half-surrogate edit cannot silently diverge on receipt",
+          "state": "nil",
+          "time_us": 251814
+        },
+        {
+          "module": "Yelixer.UnicodeBoundaryTest",
+          "name": "test fresh final full-state loading is a separate passing control",
+          "state": "nil",
+          "time_us": 229666
+        },
+        {
+          "module": "Yelixer.UnicodeBoundaryTest",
+          "name": "test adjacent valid scalar control: ASCII interior",
+          "state": "nil",
+          "time_us": 229027
+        },
+        {
+          "module": "Yelixer.UnicodeBoundaryTest",
+          "name": "test adjacent valid scalar control: before astral scalar",
+          "state": "nil",
+          "time_us": 274268
+        },
+        {
+          "module": "Yelixer.UnicodeBoundaryTest",
+          "name": "test adjacent valid scalar control: after astral scalar",
+          "state": "nil",
+          "time_us": 291194
+        },
+        {
+          "module": "Yelixer.UnicodeBoundaryTest",
+          "name": "test adjacent valid scalar control: end of astral document",
+          "state": "nil",
+          "time_us": 264449
+        },
+        {
+          "module": "Yelixer.UnicodeBoundaryTest",
+          "name": "test incoming delete of surrogate unit 0 keeps the exact wire interval",
+          "state": "nil",
+          "time_us": 239490
+        },
+        {
+          "module": "Yelixer.UnicodeBoundaryTest",
+          "name": "test incoming delete of surrogate unit 1 keeps the exact wire interval",
+          "state": "nil",
+          "time_us": 251780
+        },
+        {
+          "module": "Yelixer.UnicodeBoundaryTest",
+          "name": "test a state-vector diff beginning inside a surrogate preserves its clock boundary",
+          "state": "nil",
+          "time_us": 258191
+        },
+        {
+          "module": "Yelixer.UpdateClientIdsByRoleTest",
+          "name": "test pure insert by a single client: authorship=[client], reference=\u2205",
+          "state": "nil",
+          "time_us": 556
+        },
+        {
+          "module": "Yelixer.UpdateClientIdsByRoleTest",
+          "name": "test later insert with left-origin: the origin clientID is a reference",
+          "state": "nil",
+          "time_us": 194
+        },
+        {
+          "module": "Yelixer.UpdateClientIdsByRoleTest",
+          "name": "test delete set targets are references, not authorship",
+          "state": "nil",
+          "time_us": 46
+        },
+        {
+          "module": "Yelixer.UpdateClientIdsByRoleTest",
+          "name": "test delete-set-only update (no new items): authorship=\u2205, reference=[deleter target client]",
+          "state": "nil",
+          "time_us": 193
+        },
+        {
+          "module": "Yelixer.UpdateClientIdsByRoleTest",
+          "name": "test malformed update returns an error",
+          "state": "nil",
+          "time_us": 31
+        },
+        {
+          "module": "Yelixer.UpdateClientIdsByRoleTest",
+          "name": "test empty update has empty role sets",
+          "state": "nil",
+          "time_us": 29
+        },
+        {
+          "module": "Yelixer.UpdateClientIdsTest",
+          "name": "test extracts single clientID from a simple update",
+          "state": "nil",
+          "time_us": 43
+        },
+        {
+          "module": "Yelixer.UpdateClientIdsTest",
+          "name": "test extracts multiple clientIDs from a merged update",
+          "state": "nil",
+          "time_us": 81
+        },
+        {
+          "module": "Yelixer.UpdateClientIdsTest",
+          "name": "test empty update has no clientIDs",
+          "state": "nil",
+          "time_us": 11
+        },
+        {
+          "module": "Yelixer.UpdateClientIdsTest",
+          "name": "test malformed update returns an error",
+          "state": "nil",
+          "time_us": 18
+        },
+        {
+          "module": "Yelixer.UpdateClientIdsTest",
+          "name": "test includes clientIDs from delete-set-only updates",
+          "state": "nil",
+          "time_us": 54
+        },
+        {
+          "module": "Yelixer.UnicodeCompatTest",
+          "name": "test ascii: alternating runtimes, reused server IDs, diffs and reload",
+          "state": "nil",
+          "time_us": 257699
+        },
+        {
+          "module": "Yelixer.UnicodeCompatTest",
+          "name": "test ascii: alternating runtimes, fresh server IDs, diffs and reload",
+          "state": "nil",
+          "time_us": 240741
+        },
+        {
+          "module": "Yelixer.UnicodeCompatTest",
+          "name": "test precomposed: alternating runtimes, reused server IDs, diffs and reload",
+          "state": "nil",
+          "time_us": 272126
+        },
+        {
+          "module": "Yelixer.UnicodeCompatTest",
+          "name": "test precomposed: alternating runtimes, fresh server IDs, diffs and reload",
+          "state": "nil",
+          "time_us": 350603
+        },
+        {
+          "module": "Yelixer.UnicodeCompatTest",
+          "name": "test combining: alternating runtimes, reused server IDs, diffs and reload",
+          "state": "nil",
+          "time_us": 330002
+        },
+        {
+          "module": "Yelixer.UnicodeCompatTest",
+          "name": "test combining: alternating runtimes, fresh server IDs, diffs and reload",
+          "state": "nil",
+          "time_us": 339687
+        },
+        {
+          "module": "Yelixer.UnicodeCompatTest",
+          "name": "test astral: alternating runtimes, reused server IDs, diffs and reload",
+          "state": "nil",
+          "time_us": 342553
+        },
+        {
+          "module": "Yelixer.UnicodeCompatTest",
+          "name": "test astral: alternating runtimes, fresh server IDs, diffs and reload",
+          "state": "nil",
+          "time_us": 315901
+        },
+        {
+          "module": "Yelixer.UnicodeCompatTest",
+          "name": "test zwj: alternating runtimes, reused server IDs, diffs and reload",
+          "state": "nil",
+          "time_us": 298696
+        },
+        {
+          "module": "Yelixer.UnicodeCompatTest",
+          "name": "test zwj: alternating runtimes, fresh server IDs, diffs and reload",
+          "state": "nil",
+          "time_us": 349581
+        },
+        {
+          "module": "Yelixer.UnicodeCompatTest",
+          "name": "test flag: alternating runtimes, reused server IDs, diffs and reload",
+          "state": "nil",
+          "time_us": 349477
+        },
+        {
+          "module": "Yelixer.UnicodeCompatTest",
+          "name": "test flag: alternating runtimes, fresh server IDs, diffs and reload",
+          "state": "nil",
+          "time_us": 237171
+        },
+        {
+          "module": "Yelixer.UnicodeCompatTest",
+          "name": "test mixed: alternating runtimes, reused server IDs, diffs and reload",
+          "state": "nil",
+          "time_us": 257543
+        },
+        {
+          "module": "Yelixer.UnicodeCompatTest",
+          "name": "test mixed: alternating runtimes, fresh server IDs, diffs and reload",
+          "state": "nil",
+          "time_us": 251359
+        },
+        {
+          "module": "Yelixer.UnicodeCompatTest",
+          "name": "test ascii: server sequential author, delayed dependency and concurrent distinct authors",
+          "state": "nil",
+          "time_us": 283652
+        },
+        {
+          "module": "Yelixer.UnicodeCompatTest",
+          "name": "test precomposed: server sequential author, delayed dependency and concurrent distinct authors",
+          "state": "nil",
+          "time_us": 298054
+        },
+        {
+          "module": "Yelixer.UnicodeCompatTest",
+          "name": "test combining: server sequential author, delayed dependency and concurrent distinct authors",
+          "state": "nil",
+          "time_us": 311008
+        },
+        {
+          "module": "Yelixer.UnicodeCompatTest",
+          "name": "test astral: server sequential author, delayed dependency and concurrent distinct authors",
+          "state": "nil",
+          "time_us": 274898
+        },
+        {
+          "module": "Yelixer.UnicodeCompatTest",
+          "name": "test zwj: server sequential author, delayed dependency and concurrent distinct authors",
+          "state": "nil",
+          "time_us": 269338
+        },
+        {
+          "module": "Yelixer.UnicodeCompatTest",
+          "name": "test flag: server sequential author, delayed dependency and concurrent distinct authors",
+          "state": "nil",
+          "time_us": 261246
+        },
+        {
+          "module": "Yelixer.UnicodeCompatTest",
+          "name": "test mixed: server sequential author, delayed dependency and concurrent distinct authors",
+          "state": "nil",
+          "time_us": 369560
+        },
+        {
+          "module": "Yelixer.UnicodeCompatTest",
+          "name": "test a combining sequence can be edited at its interior scalar boundary",
+          "state": "nil",
+          "time_us": 327668
+        },
+        {
+          "module": "Yelixer.UnicodeCompatTest",
+          "name": "test B-up split clocks do not overlap after a surrogate-interior request",
+          "state": "nil",
+          "time_us": 146256
+        },
+        {
+          "module": "Yelixer.UnicodeCompatTest",
+          "name": "test a received binary consumes one clock before the same author's text",
+          "state": "nil",
+          "time_us": 391182
+        },
+        {
+          "module": "Yelixer.UnicodeCompatTest",
+          "name": "test B-up insertion at the last surrogate preserves exact position through another edit",
+          "state": "nil",
+          "time_us": 261966
+        },
+        {
+          "module": "YelixerTest",
+          "name": "doctest Yelixer.hello/0 (1)",
+          "state": "nil",
+          "time_us": 2
+        },
+        {
+          "module": "YelixerTest",
+          "name": "test greets the world",
+          "state": "nil",
+          "time_us": 0
+        }
+      ],
+      "defined": 509,
+      "executed": 505,
+      "failures": 0,
+      "timing": [
+        "start=2026-09-05T19:45:23Z",
+        "end=2026-09-05T19:47:38Z"
+      ],
+      "summary": [
+        "1 doctest, 33 properties, 475 tests, 0 failures, 4 excluded"
+      ],
+      "rc": 0,
+      "stdout_sha256": "75c2d3be985666a0f6fa1cdfb092449813c19b2f4d6093a69359d9b5f184dc5e"
+    }
+  },
+  "full_suite_count_floor": {
+    "required": 414,
+    "measured_executed": 505,
+    "method": "named ExUnit completion events; no full suite repeated solely to wrap the output in yx-test-guard"
+  },
+  "test_file_separation": {
+    "reason": "yx-test-guard --exact forbids exclusions; moved unchanged fresh-full-state control to its own file after initial nine-case red/green comparison",
+    "final_files": {
+      "test/yelixer/unicode_boundary_test.exs": "3e4c50614e9b1e837b87642ae816f1dafbb56395739cc72f640a5c035d36f91e",
+      "test/yelixer/unicode_full_state_control_test.exs": "a217a6bdd8dab9486c4d86a235172f4a760e0f02aa38614bf890d52109d93195"
+    },
+    "full_suite_repeated": false
+  },
+  "gates": {
+    "clock-incremental": {
+      "summary": [
+        "26 tests, 0 failures, 1 excluded",
+        "yx-test-guard: FAILED \u2014 1 test(s) EXCLUDED in an exact-count run."
+      ],
+      "stdout_sha256": "4a1d6cdb4b9cbf66258946586de9da75aa10a6c0313bdda687e09a7fc79ec2ee",
+      "note": "initial guard rejection preserved; selection corrected by file separation"
+    },
+    "clock-incremental-separated": {
+      "summary": [
+        "25 tests, 0 failures",
+        "yx-test-guard: 25 test(s) ran (exact 25), 0 excluded, 0 invalid, command rc=0, box: min avail 11708MB / peak BEAM rss 549MB / peak suites 1, over 3 samples"
+      ],
+      "stdout_sha256": "c353e3efc38e6a84a7d502142e23faf6cee867812913ecca1678782d5b1345e8",
+      "note": "counted gate"
+    },
+    "full-control": {
+      "summary": [
+        "1 test, 0 failures",
+        "yx-test-guard: 1 test(s) ran (exact 1), 0 excluded, 0 invalid, command rc=0, box: min avail 11828MB / peak BEAM rss 420MB / peak suites 0, over 1 samples"
+      ],
+      "stdout_sha256": "c622b54147347294716ac2a989e13fe0c8e05e79bd5186e94ab2b29eef49d295",
+      "note": "counted gate"
+    },
+    "full-control-final": {
+      "summary": [
+        "1 test, 0 failures",
+        "yx-test-guard: 1 test(s) ran (exact 1), 0 excluded, 0 invalid, command rc=0, box: min avail 11894MB / peak BEAM rss 426MB / peak suites 0, over 1 samples"
+      ],
+      "stdout_sha256": "1f8798d63954b61db89d45dd84d1b4ef63681acd14f0cd3767b96adb2d101d55",
+      "note": "counted gate"
+    },
+    "stable": {
+      "summary": [
+        "11 tests, 0 failures",
+        "yx-test-guard: 11 test(s) ran (exact 11), 0 excluded, 0 invalid, command rc=0, box: min avail 11789MB / peak BEAM rss 534MB / peak suites 1, over 2 samples"
+      ],
+      "stdout_sha256": "90527ddbed109152df30005f26dad5618d7b96d060928a69661eae66add83e1b",
+      "note": "counted gate"
+    },
+    "preview": {
+      "summary": [
+        "11 tests, 0 failures",
+        "yx-test-guard: 11 test(s) ran (exact 11), 0 excluded, 0 invalid, command rc=0, box: min avail 11766MB / peak BEAM rss 529MB / peak suites 1, over 2 samples"
+      ],
+      "stdout_sha256": "073ec135aa58eb7e7585c8aa8925740a9224423f21f9c2d7d397ff0f5b655b6e",
+      "note": "counted gate"
+    },
+    "content": {
+      "summary": [
+        "12 tests, 4 failures",
+        "yx-test-guard: 12 test(s) ran (exact 12), 4 failure(s) (expected 4, RED BY DESIGN), 0 invalid, box: min avail 11769MB / peak BEAM rss 538MB / peak suites 1, over 2 samples"
+      ],
+      "stdout_sha256": "7040129baf61252fb8dbf877071f685cbd6f2692afdbd43b6408b4b2405d624d",
+      "note": "counted gate"
+    }
+  }
+}

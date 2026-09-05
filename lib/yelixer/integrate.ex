@@ -173,7 +173,11 @@ defmodule Yelixer.Integrate do
           split_clock = origin_id.clock + 1
 
           {store, _} =
-            BlockStore.split_block(store, ID.new(origin_id.client, split_clock), type_name)
+            BlockStore.split_block_at_clock(
+              store,
+              ID.new(origin_id.client, split_clock),
+              type_name
+            )
 
           store
         else
@@ -193,7 +197,7 @@ defmodule Yelixer.Integrate do
 
       item ->
         if ro_id.clock > item.id.clock do
-          {store, _} = BlockStore.split_block(store, ro_id, type_name)
+          {store, _} = BlockStore.split_block_at_clock(store, ro_id, type_name)
           store
         else
           store

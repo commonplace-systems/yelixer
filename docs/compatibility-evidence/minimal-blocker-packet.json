@@ -145,7 +145,7 @@
       "excluded": 25,
       "rc": 2,
       "first_attempt": "Invalidated copied candidate dependency BEAM cache; force-app-only did not rebuild dependencies. Not counted as old-pin behavior.",
-      "verified_compile": "yelixer19,yepochs20,merkle3,application86 modules recompiled from exact old sources."
+      "verified_compile": "yelixer19,yepochs20,merkle3,application86 source files recompiled from exact old sources; per-module fingerprints and mtimes are recorded separately."
     }
   },
   "legacy_replay": {

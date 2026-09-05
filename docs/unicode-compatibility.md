@@ -7,11 +7,17 @@ both the string split and the resulting item IDs. Normalizing local positions
 before splitting also prevents an empty item from occupying the next author clock.
 Binary items cover one clock regardless of their byte length.
 
-**Consumer adoption is blocked.** See the [complete report](cross-runtime-compatibility-report.md) for the exact dependency closure, executed cases, application results and immutable history assessment. Incoming browser edits inside surrogate pairs
-are a separate contract from local clamping. `unicode_boundary_test.exs` requires
-convergence or an explicit refusal and is tracked as an expected failure. A caller
-must not infer an enforced input boundary from this documentation or from green
-local clamp tests. Formatting-marker positions, typed binary authoring through
+The `compat/unicode-inbound-1` repair adds exact wire-clock splitting. Incoming
+origins, delete intervals, partial-overlap updates and state-vector tails cannot
+clamp to another clock: an interior surrogate split replaces each orphan half
+with U+FFFD, matching official Yjs 13.6.32 `ContentString.splice`. Local position
+clamping remains a separate API policy. The incremental boundary regression now
+runs as normal acceptance; its fresh full-state control runs separately in CI.
+
+**Consumer adoption remains pending consumer verification and review.** See the
+[incoming repair evidence](unicode-inbound-repair.md) and the earlier
+[complete report](cross-runtime-compatibility-report.md) for distinct tested
+configurations. Formatting-marker positions, typed binary authoring through
 `YMap.set`, and nested-array access also retain the measured limitations in the
 content-divergence suite.
 
@@ -52,4 +58,4 @@ A single old Unicode insertion is byte-identical to an independently authored
 Yjs insertion: bytes alone cannot label the writer's coordinate convention.
 No real application history corpus has been inspected in this pass.
 
-The user ruling of 2026-09-05 18:52:45 UTC accepts breaking our own history where needed to match official Yjs 13.6.32. History preservation and a migration project are no longer adoption gates. The remaining blocker is silently divergent incoming browser edits; no live-store deletion or reset is authorized by that ruling.
+The user ruling of 2026-09-05 18:52:45 UTC accepts breaking our own history where needed to match official Yjs 13.6.32. History preservation and a migration project are no longer adoption gates. Earlier consumer pins silently diverge on incoming browser edits; codec repair results alone do not clear consumer adoption. No live-store deletion or reset is authorized by that ruling.

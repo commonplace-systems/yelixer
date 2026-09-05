@@ -199,8 +199,29 @@ defmodule Yelixer.Item do
   """
   def split(%__MODULE__{} = item, offset) when offset > 0 and offset < item.length do
     {left_content, right_content} = split_content(item.content, offset)
+    split_item(item, left_content, right_content)
+  end
+
+  @doc """
+  Splits at an exact wire clock, preserving both clock intervals.
+
+  Unlike local position clamping in `split/2`, a remote origin, delete range,
+  or state vector cannot move to a neighboring clock. When that clock bisects
+  a surrogate pair, replace each orphan half with U+FFFD, matching official
+  Yjs 13.6.32 `ContentString.splice`. Each replacement still occupies one unit.
+  """
+  def split_at_clock(%__MODULE__{content: {:string, s}} = item, offset)
+      when offset > 0 and offset < item.length do
+    {left, right} = utf16_split_at_clock(s, offset)
+    split_item(item, {:string, left}, {:string, right})
+  end
+
+  def split_at_clock(%__MODULE__{} = item, offset), do: split(item, offset)
+
+  defp split_item(item, left_content, right_content) do
     # A surrogate-interior request clamps the content upward. IDs must use
-    # that same boundary, otherwise the resulting clock ranges overlap.
+    # that same boundary for local splits. Wire splits keep the exact offset
+    # by replacing orphan halves without changing their clock lengths.
     offset = content_length(left_content)
 
     right_id = ID.new(item.id.client, item.id.clock + offset)
@@ -299,6 +320,24 @@ defmodule Yelixer.Item do
 
   defp utf16_length(s) do
     div(byte_size(:unicode.characters_to_binary(s, :utf8, {:utf16, :little})), 2)
+  end
+
+  defp utf16_split_at_clock(s, offset) do
+    u = :unicode.characters_to_binary(s, :utf8, {:utf16, :little})
+    at = offset * 2
+
+    case utf16_cut(u, at) do
+      {:ok, pair} ->
+        pair
+
+      :surrogate ->
+        # Input is valid UTF-8. A failed interior UTF-16 cut therefore bisects
+        # one pair; the prefix and suffix outside that pair remain valid.
+        <<prefix::binary-size(at - 2), _high::little-16, _low::little-16, suffix::binary>> = u
+        left = :unicode.characters_to_binary(prefix, {:utf16, :little}, :utf8)
+        right = :unicode.characters_to_binary(suffix, {:utf16, :little}, :utf8)
+        {left <> "\u{FFFD}", "\u{FFFD}" <> right}
+    end
   end
 
   # Splits at a UTF-16 code unit offset.

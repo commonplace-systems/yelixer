@@ -1,5 +1,8 @@
 # Minimal adoption evidence: baseline versus candidate
 
+The subsequent [incoming codec repair](unicode-inbound-repair.md) has its own
+baseline/fixed comparison. The historical rows below retain their original pins.
+
 This supplement answers the delayed ranking-seat evidence request. No full suite
 was repeated. The [minimal packet](compatibility-evidence/minimal-blocker-packet.json)
 contains exact base/candidate pins, original bytes, operation sequences, and separate

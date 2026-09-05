@@ -55,7 +55,7 @@ jobs:
       # pins, +1 doctest term the old arithmetic dropped, +10 parity CONTROLS
       # that now run here rather than hiding in the excluded population (see
       # below), +7 more controls from the content instrument, +2 :parity_exception
-      # arms. Only the 5 expected-red :divergence arms are excluded here; they
+      # arms. Only the 4 expected-red :divergence arms are excluded here; they
       # are counted in their own jobs.
       #
       # The guard compares this floor against EXECUTED tests, not DEFINED ones:
@@ -110,17 +110,20 @@ jobs:
       # like coverage in a count. More reds means a new divergence or a
       # regression.
       #
-      # All 17 local clock/parity controls now pass with UTF-16 coordinates.
-      # The eighteenth arm reproduces an incoming browser half-surrogate edit:
-      # accepting it silently diverges. Local upward clamping does not enforce an
-      # inbound support boundary. This remains excluded and explicitly counted.
-      - name: Divergence pins vs Yjs stable (RED BY DESIGN, counted)
+      # Seventeen local clock/parity controls and nine incoming-boundary
+      # regressions. Incremental base+delta is primary; fresh full state is a
+      # separate control because it passed even before the incoming repair.
+      - name: Clock and incoming boundary regressions vs Yjs stable (counted)
         env:
           YJS_ORACLE: stable
           YELIXER_REQUIRE_YJS_ORACLE: "1"
-        # Local UTF-16 clock cases now pass. The remaining failure is an
-        # incoming browser half-surrogate edit; see docs/unicode-compatibility.md.
-        run: bin/yx-test-guard --exact 18 --expect-failures 1 -- mix test test/yelixer/divergence_clock_test.exs test/yelixer/unicode_boundary_test.exs --include divergence
+        run: bin/yx-test-guard --exact 25 -- mix test test/yelixer/divergence_clock_test.exs test/yelixer/unicode_boundary_test.exs
+
+      - name: Fresh full-state boundary control vs Yjs stable (counted separately)
+        env:
+          YJS_ORACLE: stable
+          YELIXER_REQUIRE_YJS_ORACLE: "1"
+        run: bin/yx-test-guard --exact 1 -- mix test test/yelixer/unicode_full_state_control_test.exs
 
       # The CONTENT divergence population — also RED BY DESIGN, also counted,
       # kept as its own job so a change in one instrument cannot be absorbed
