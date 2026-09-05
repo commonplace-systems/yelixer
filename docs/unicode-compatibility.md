@@ -7,7 +7,7 @@ both the string split and the resulting item IDs. Normalizing local positions
 before splitting also prevents an empty item from occupying the next author clock.
 Binary items cover one clock regardless of their byte length.
 
-**Adoption is not yet established.** Incoming browser edits inside surrogate pairs
+**Consumer adoption is blocked.** See the [complete report](cross-runtime-compatibility-report.md) for the exact dependency closure, executed cases, application results and immutable history assessment. Incoming browser edits inside surrogate pairs
 are a separate contract from local clamping. `unicode_boundary_test.exs` requires
 convergence or an explicit refusal and is tracked as an expected failure. A caller
 must not infer an enforced input boundary from this documentation or from green

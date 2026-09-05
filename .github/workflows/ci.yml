@@ -55,7 +55,7 @@ jobs:
       # pins, +1 doctest term the old arithmetic dropped, +10 parity CONTROLS
       # that now run here rather than hiding in the excluded population (see
       # below), +7 more controls from the content instrument, +2 :parity_exception
-      # arms. Only the 10 expected-red :divergence arms are excluded here; they
+      # arms. Only the 5 expected-red :divergence arms are excluded here; they
       # are counted in their own jobs.
       #
       # The guard compares this floor against EXECUTED tests, not DEFINED ones:
@@ -63,6 +63,9 @@ jobs:
       # excluded ones, so a floor checked against it can be satisfied by tests
       # that never ran. Executed = (tests + doctests) - excluded - skipped;
       # "N doctests, M tests" are DISJOINT and "excluded" spans both.
+      - name: Install the Yjs oracles
+        run: npm ci --prefix test/fixtures
+
       - name: Run the suite (count-asserted)
         run: bin/yx-test-guard --min 414 -- mix test
 
@@ -77,9 +80,6 @@ jobs:
       # right locally and a silent hole in CI. YELIXER_REQUIRE_YJS_ORACLE=1
       # turns that skip into a raise, and --exact 11 is the second line of
       # defence if the flag is ever dropped.
-      - name: Install the Yjs oracles
-        run: npm ci --prefix test/fixtures
-
       - name: Conformance vs Yjs stable (13.6.32)
         env:
           YJS_ORACLE: stable
@@ -110,30 +110,10 @@ jobs:
       # like coverage in a count. More reds means a new divergence or a
       # regression.
       #
-      # THREE :divergence populations, all from one root cause at
-      # lib/yelixer/item.ex:263 (measure) + :230 (slice) -- graphemes where yjs
-      # counts UTF-16 units. Each arm asserts the DESIRED outcome and is red
-      # today, so this count COUNTS DOWN to 0 as the fix lands:
-      #   LOST / SILENTLY TRUNCATED — reused client_id, follows the author's clock
-      #   UNDER-DELETED             — delete-set names the deleted item's client
-      #   MISPLACED on READ         — the integrating side counts graphemes too,
-      #                               so a minting-only fix would not close it
-      #
-      # ⛔ CORRUPTED (U+FFFD) IS NOT HERE. It moved to :parity_exception, which
-      # is NOT excluded and is GREEN today: under the ruled B-up clamp yelixer
-      # PRESERVES the character where real yjs destroys it (yjs/yjs#248), so
-      # those two arms are a DECISION, permanently correct-but-different, and
-      # must never be counted as an unfixed defect.
-      # TWO LABELS, TWO FACTS. :parity = "member of the parity table" (NOT
-      # excluded); :divergence = "expected red" (excluded from the default
-      # suite); :parity_exception = "permanently and correctly different from
-      # yjs, by ruling". The 12 non-:divergence arms carry :parity (and, for
-      # two of them, :parity_exception) but NOT :divergence, so they run in the
-      # ordinary suite above and a broken control turns THAT red -- verified
-      # by mutation. Tagging them :divergence would have parked the table's
-      # own vacuity guards in the excluded population, where a silent break
-      # leaves the default run green while the table keeps printing its reds
-      # -- indistinguishable from a harness that ALWAYS reports divergence.
+      # All 17 local clock/parity controls now pass with UTF-16 coordinates.
+      # The eighteenth arm reproduces an incoming browser half-surrogate edit:
+      # accepting it silently diverges. Local upward clamping does not enforce an
+      # inbound support boundary. This remains excluded and explicitly counted.
       - name: Divergence pins vs Yjs stable (RED BY DESIGN, counted)
         env:
           YJS_ORACLE: stable
@@ -146,17 +126,11 @@ jobs:
       # kept as its own job so a change in one instrument cannot be absorbed
       # by the other's count.
       #
-      # Five arms, four measured defects:
-      #   Text.length/2      three disagreeing index spaces (8 / 6 / 5)
-      #   binary, mode LOUD  non-UTF-8 blob -> yjs rejects the WHOLE update
-      #   binary, mode QUIET valid-UTF-8 blob -> silently arrives as a String
-      #   Array.to_list/2    raises on a nested sub-type; yjs resolves it
-      #   wire layer         yelixer's encode_update bytes vs yjs's own
-      #
-      # The wire arm is the one that did not exist anywhere before: the
-      # conformance harness's @moduledoc claimed it compared "encoded binary
-      # after a reload", the driver was fully plumbed for it, and no test had
-      # ever asserted on a byte.
+      # Four remaining defects: formatting affects public text positions,
+      # untyped map binary authoring is not Uint8Array authoring (loud and quiet
+      # cases), and Array.to_list cannot resolve nested types. Binary ITEM clocks
+      # are now one unit. Equivalent independently authored arrays may pack
+      # structs differently, so that old byte-equality assertion is semantic now.
       - name: Content divergence pins vs Yjs stable (RED BY DESIGN, counted)
         env:
           YJS_ORACLE: stable

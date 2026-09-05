@@ -1,0 +1,209 @@
+{
+  "schema": 1,
+  "histories": [
+    {
+      "name": "ascii",
+      "origin": "Yjs base; old fresh server author",
+      "writer": "bc35a0e9ff374449c71fb29be159bd9a711635bb",
+      "authors": [
+        100,
+        200
+      ],
+      "operations": [
+        [
+          "insert",
+          0,
+          "ab"
+        ],
+        [
+          "insert",
+          2,
+          "!"
+        ],
+        [
+          "insert",
+          1,
+          "X"
+        ],
+        [
+          "delete",
+          2,
+          1
+        ]
+      ],
+      "coordinate_contract": "Yjs base UTF-16; old server grapheme positions",
+      "updates_hex": [
+        "01016400040107636f6e74656e7402616200",
+        "0101c80100846401012100",
+        "0101c80101c464006401015800",
+        "000164010101"
+      ],
+      "full_updates_hex": [
+        "01016400040107636f6e74656e7402616200",
+        "0201c801008464010121016400040107636f6e74656e7402616200",
+        "0202c801008464010121c4640064010158026400040107636f6e74656e740161846400016200",
+        "0202c801008464010121c4640064010158026400040107636f6e74656e740161816400010164010101"
+      ],
+      "old_views": [
+        "ab",
+        "ab!",
+        "aXb!",
+        "aX!"
+      ],
+      "intended_final": "aX!"
+    },
+    {
+      "name": "combining",
+      "origin": "Yjs base; old fresh server author",
+      "writer": "bc35a0e9ff374449c71fb29be159bd9a711635bb",
+      "authors": [
+        100,
+        200
+      ],
+      "operations": [
+        [
+          "insert",
+          0,
+          "e\u0301b"
+        ],
+        [
+          "insert",
+          2,
+          "!"
+        ],
+        [
+          "insert",
+          1,
+          "X"
+        ],
+        [
+          "delete",
+          2,
+          1
+        ]
+      ],
+      "coordinate_contract": "Yjs base UTF-16; old server grapheme positions",
+      "updates_hex": [
+        "01016400040107636f6e74656e740465cc816200",
+        "0101c80100846401012100",
+        "0101c80101c464006401015800",
+        "000164010101"
+      ],
+      "full_updates_hex": [
+        "01016400040107636f6e74656e740465cc816200",
+        "0201c801008464010121016400040107636f6e74656e740465cc816200",
+        "0202c801008464010121c4640064010158026400040107636f6e74656e740365cc81846400016200",
+        "0202c801008464010121c4640064010158026400040107636f6e74656e740365cc81816400010164010101"
+      ],
+      "old_views": [
+        "e\u0301b",
+        "e\u0301b!",
+        "e\u0301Xb!",
+        "e\u0301X!"
+      ],
+      "intended_final": "e\u0301X!"
+    },
+    {
+      "name": "astral",
+      "origin": "Yjs base; old fresh server author",
+      "writer": "bc35a0e9ff374449c71fb29be159bd9a711635bb",
+      "authors": [
+        100,
+        200
+      ],
+      "operations": [
+        [
+          "insert",
+          0,
+          "\ud83d\ude00b"
+        ],
+        [
+          "insert",
+          2,
+          "!"
+        ],
+        [
+          "insert",
+          1,
+          "X"
+        ],
+        [
+          "delete",
+          2,
+          1
+        ]
+      ],
+      "coordinate_contract": "Yjs base UTF-16; old server grapheme positions",
+      "updates_hex": [
+        "01016400040107636f6e74656e7405f09f98806200",
+        "0101c80100846401012100",
+        "0101c80101c464006401015800",
+        "000164010101"
+      ],
+      "full_updates_hex": [
+        "01016400040107636f6e74656e7405f09f98806200",
+        "0201c801008464010121016400040107636f6e74656e7405f09f98806200",
+        "0202c801008464010121c4640064010158026400040107636f6e74656e7404f09f9880846400016200",
+        "0202c801008464010121c4640064010158026400040107636f6e74656e7404f09f9880816400010164010101"
+      ],
+      "old_views": [
+        "\ud83d\ude00b",
+        "\ud83d\ude00b!",
+        "\ud83d\ude00Xb!",
+        "\ud83d\ude00X!"
+      ],
+      "intended_final": "\ud83d\ude00X!"
+    },
+    {
+      "name": "zwj",
+      "origin": "Yjs base; old fresh server author",
+      "writer": "bc35a0e9ff374449c71fb29be159bd9a711635bb",
+      "authors": [
+        100,
+        200
+      ],
+      "operations": [
+        [
+          "insert",
+          0,
+          "\ud83d\udc69\u200d\ud83d\udcbbb"
+        ],
+        [
+          "insert",
+          2,
+          "!"
+        ],
+        [
+          "insert",
+          1,
+          "X"
+        ],
+        [
+          "delete",
+          2,
+          1
+        ]
+      ],
+      "coordinate_contract": "Yjs base UTF-16; old server grapheme positions",
+      "updates_hex": [
+        "01016400040107636f6e74656e740cf09f91a9e2808df09f92bb6200",
+        "0101c80100846401012100",
+        "0101c80101c464006401015800",
+        "000164010101"
+      ],
+      "full_updates_hex": [
+        "01016400040107636f6e74656e740cf09f91a9e2808df09f92bb6200",
+        "0201c801008464010121016400040107636f6e74656e740cf09f91a9e2808df09f92bb6200",
+        "0202c801008464010121c4640064010158026400040107636f6e74656e740bf09f91a9e2808df09f92bb846400016200",
+        "0202c801008464010121c4640064010158026400040107636f6e74656e740bf09f91a9e2808df09f92bb816400010164010101"
+      ],
+      "old_views": [
+        "\ud83d\udc69\u200d\ud83d\udcbbb",
+        "\ud83d\udc69\u200d\ud83d\udcbbb!",
+        "\ud83d\udc69\u200d\ud83d\udcbbXb!",
+        "\ud83d\udc69\u200d\ud83d\udcbbX!"
+      ],
+      "intended_final": "\ud83d\udc69\u200d\ud83d\udcbbX!"
+    }
+  ]
+}
