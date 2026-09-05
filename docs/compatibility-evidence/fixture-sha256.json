@@ -3,5 +3,6 @@
   "test/fixtures/pure-yjs-history.json": "fe0b6d61da01ee3d23ec87774ba63c90bd66f4536384f8dceeb77310fd2cc31b",
   "test/fixtures/candidate-utf16-history.json": "0fe3d9671ad1e18a6abf5c7f7716e848d8dfd212ce3437aef7780ef2f478f2c9",
   "test/fixtures/mixed-legacy-history.json": "9000fcb71e7eb3489d29281ffe4a626d69adcda84f02c8e40dfd89f96bfa5d7a",
-  "test/fixtures/unicode_cases.json": "42ddcb7aecb0309650e5cfe1b8ed7aa2878ac37973034d86634ab1d2a7938b54"
+  "test/fixtures/unicode_cases.json": "42ddcb7aecb0309650e5cfe1b8ed7aa2878ac37973034d86634ab1d2a7938b54",
+  "test/fixtures/incoming-half-surrogate.json": "6badaafdd9f223c608a0cda631fe3265408db4ab5fd588e65395f15f0eb6793f"
 }

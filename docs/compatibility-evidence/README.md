@@ -3,6 +3,8 @@
 Read [the report](../cross-runtime-compatibility-report.md) for verdicts, causes,
 exact configurations, commands, scope and limitations.
 
+* `minimal-blocker-packet.json`: minimal original bytes and old/candidate results,
+  separated into incoming edits, legacy replay and candidate-write rollback.
 * `baseline-closure.json`: observed shared checkout refs/locks/installed dependencies,
   plus the separately identified pristine Next baseline actually executed.
 * `candidate-closure.json`: exact candidate locks and verified installed Git revisions.

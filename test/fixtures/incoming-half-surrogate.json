@@ -1,0 +1,36 @@
+{
+  "schema": 1,
+  "histories": [
+    {
+      "name": "incoming-half-surrogate",
+      "writer": "Yjs 13.6.32",
+      "author": 100,
+      "operations": [
+        [
+          "insert",
+          0,
+          "\ud83d\ude00A"
+        ],
+        [
+          "insert",
+          1,
+          "X"
+        ]
+      ],
+      "coordinate_contract": "UTF-16; second position deliberately inside surrogate pair",
+      "updates_hex": [
+        "01016400040107636f6e74656e7405f09f98804100",
+        "01016403c464006401015800"
+      ],
+      "full_updates_hex": [
+        "01016400040107636f6e74656e7405f09f98804100",
+        "01036400040107636f6e74656e7403efbfbd84640004efbfbd41c464006401015800"
+      ],
+      "old_views": [
+        "\ud83d\ude00A",
+        "\ufffdX\ufffdA"
+      ],
+      "intended_final": "\ufffdX\ufffdA"
+    }
+  ]
+}

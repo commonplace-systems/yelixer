@@ -6,6 +6,11 @@ durable route. The supported application tests and real Chromium durability arms
 pass. Incoming browser half-surrogate updates and legacy history interpretation
 remain adoption blockers. These experimental branches are not deployed.
 
+The [minimal baseline/candidate blocker supplement](minimal-adoption-blockers.md)
+adds identical-byte evidence: the old pinned codec also diverges on the incoming
+half-surrogate delta, with different output. It separates that codec result from
+the measured candidate application admission and unmeasured old application admission.
+
 ## Configurations and provenance
 
 | Repository | Refreshed origin/main | Application's original resolved pin |
