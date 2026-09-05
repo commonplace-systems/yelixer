@@ -199,6 +199,9 @@ defmodule Yelixer.Item do
   """
   def split(%__MODULE__{} = item, offset) when offset > 0 and offset < item.length do
     {left_content, right_content} = split_content(item.content, offset)
+    # A surrogate-interior request clamps the content upward. IDs must use
+    # that same boundary, otherwise the resulting clock ranges overlap.
+    offset = content_length(left_content)
 
     right_id = ID.new(item.id.client, item.id.clock + offset)
 
@@ -262,10 +265,20 @@ defmodule Yelixer.Item do
   defp content_length({:gc, n}), do: n
   defp content_length({:string, s}), do: utf16_length(s)
   defp content_length({:any, list}), do: length(list)
-  defp content_length({:binary, b}), do: byte_size(b)
+  defp content_length({:binary, _}), do: 1
   defp content_length({:deleted, n}), do: n
   defp content_length({:json, list}), do: length(list)
   defp content_length(_), do: 1
+
+  @doc false
+  def clamp_offset(%__MODULE__{}, 0), do: 0
+
+  def clamp_offset(%__MODULE__{content: {:string, s}}, offset) do
+    {left, _right} = utf16_split_at(s, offset)
+    utf16_length(left)
+  end
+
+  def clamp_offset(%__MODULE__{}, offset), do: offset
 
   # ── UTF-16 CODE UNITS ─────────────────────────────────────────────
   #
@@ -301,8 +314,12 @@ defmodule Yelixer.Item do
     at = offset * 2
 
     case utf16_cut(u, at) do
-      {:ok, pair} -> pair
-      :surrogate -> {:ok, pair} = utf16_cut(u, at + 2); pair
+      {:ok, pair} ->
+        pair
+
+      :surrogate ->
+        {:ok, pair} = utf16_cut(u, at + 2)
+        pair
     end
   end
 

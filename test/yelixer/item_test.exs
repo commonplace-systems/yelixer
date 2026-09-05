@@ -34,9 +34,9 @@ defmodule Yelixer.ItemTest do
     end
   end
 
-  test "binary content length is byte size" do
+  test "binary content occupies one clock regardless of byte size" do
     item = Item.new(ID.new(1, 0), nil, nil, {:binary, <<1, 2, 3, 4>>}, {:named, "x"}, nil)
-    assert item.length == 4
+    assert item.length == 1
   end
 
   test "preserves origin and right_origin" do
