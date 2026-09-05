@@ -234,5 +234,241 @@
       "name": "test incoming browser half-surrogate author must be refused or converge",
       "outcome": "failed"
     }
-  ]
+  ],
+  "forced_dependency_compile": {
+    "yelixer": {
+      "source_head": "bc35a0e9ff374449c71fb29be159bd9a711635bb",
+      "compiled_module_count": 19,
+      "beams": [
+        {
+          "module_file": "Elixir.Yelixer.BlockStore.beam",
+          "sha256": "c76657a9bbf468cd45da72fbc6bd0bd5e1efa9f32ce57b28ddb5117b7efe7d19",
+          "mtime_utc": "2026-09-05T19:29:36+00:00"
+        },
+        {
+          "module_file": "Elixir.Yelixer.DeleteSet.beam",
+          "sha256": "351a8b16912809e91598a1e0c79d5182a4a5b1fff7d27ec72ebdac2e8b73f393",
+          "mtime_utc": "2026-09-05T19:29:36+00:00"
+        },
+        {
+          "module_file": "Elixir.Yelixer.Doc.beam",
+          "sha256": "f4c8934b77bcc200f57f0ae7ed91e8e1b632526d4faf18014f8e85a14380f05c",
+          "mtime_utc": "2026-09-05T19:29:36+00:00"
+        },
+        {
+          "module_file": "Elixir.Yelixer.DocServer.beam",
+          "sha256": "382cfac68f02b706b07c5f2f1d85758f91c245cc63b01d67201e40f6fb1681f9",
+          "mtime_utc": "2026-09-05T19:29:36+00:00"
+        },
+        {
+          "module_file": "Elixir.Yelixer.Encoding.beam",
+          "sha256": "ca965e247ba0e0848927395262400ef1b91903f1c3ccd5f582b5f5267f6dd6fa",
+          "mtime_utc": "2026-09-05T19:29:36+00:00"
+        },
+        {
+          "module_file": "Elixir.Yelixer.ID.beam",
+          "sha256": "73bcdb101b980a1cb311674c8afc5f58cdac0cd088761befea2c43b81f508e45",
+          "mtime_utc": "2026-09-05T19:29:36+00:00"
+        },
+        {
+          "module_file": "Elixir.Yelixer.Integrate.beam",
+          "sha256": "159b22fe8fd8cac9c46e0db1c0f3a9fa0cbc8c42869d14786bade76328d5ed95",
+          "mtime_utc": "2026-09-05T19:29:36+00:00"
+        },
+        {
+          "module_file": "Elixir.Yelixer.Item.beam",
+          "sha256": "958c9ccde92b33d563cc104513384b492b0889f71cd420402b4cf907133d12b1",
+          "mtime_utc": "2026-09-05T19:29:36+00:00"
+        },
+        {
+          "module_file": "Elixir.Yelixer.StateVector.beam",
+          "sha256": "4a8d431eb5a949f797c1657c6ce0421b06d1cf1b18aeb2066aea7592835074ea",
+          "mtime_utc": "2026-09-05T19:29:36+00:00"
+        },
+        {
+          "module_file": "Elixir.Yelixer.SyncProtocol.beam",
+          "sha256": "03bb5e87ea2b257c0d492ab7b74914eb593ac76f21d1dff40269ccebf9f8bd94",
+          "mtime_utc": "2026-09-05T19:29:36+00:00"
+        },
+        {
+          "module_file": "Elixir.Yelixer.Types.Array.beam",
+          "sha256": "aeeb47a98f1fb9c4a402716588714d954df9c3e387284a63022502fec36d450c",
+          "mtime_utc": "2026-09-05T19:29:36+00:00"
+        },
+        {
+          "module_file": "Elixir.Yelixer.Types.Text.beam",
+          "sha256": "c312b1b7c4bf450ec9cbedaa2bf5100bbaaf839d641b380d572806ca6afd08ad",
+          "mtime_utc": "2026-09-05T19:29:36+00:00"
+        },
+        {
+          "module_file": "Elixir.Yelixer.Types.XMLElement.beam",
+          "sha256": "194aac8b9c17d209f835a80aa509d6542133454420092bf9c620084d3b2025c5",
+          "mtime_utc": "2026-09-05T19:29:36+00:00"
+        },
+        {
+          "module_file": "Elixir.Yelixer.Types.XMLEscape.beam",
+          "sha256": "70f46e1e9cf4a91bc5e97bfcabc847b86009ed2e2e47342c2293aa0981779d05",
+          "mtime_utc": "2026-09-05T19:29:36+00:00"
+        },
+        {
+          "module_file": "Elixir.Yelixer.Types.XMLFragment.beam",
+          "sha256": "7017c36585e6d3296dde54fca08e49996919cfe7fceb3697a83652b71673e24e",
+          "mtime_utc": "2026-09-05T19:29:36+00:00"
+        },
+        {
+          "module_file": "Elixir.Yelixer.Types.XMLText.beam",
+          "sha256": "38623a086d9ae44e6c10f75111b07fbf3420b1887ea3309eac091e33f248f77b",
+          "mtime_utc": "2026-09-05T19:29:36+00:00"
+        },
+        {
+          "module_file": "Elixir.Yelixer.Types.YMap.beam",
+          "sha256": "1198388f18c8397b49b5b1fea3d91b871ae4ef98857fb728ab7ce5fd0e6ad7b4",
+          "mtime_utc": "2026-09-05T19:29:36+00:00"
+        },
+        {
+          "module_file": "Elixir.Yelixer.Types.beam",
+          "sha256": "057ff7dc7fe8d7e3e2ca37e9923409a60e764224e6f41721cadde3e76939a78e",
+          "mtime_utc": "2026-09-05T19:29:36+00:00"
+        },
+        {
+          "module_file": "Elixir.Yelixer.beam",
+          "sha256": "1a60743125fa691ec9a4bfead443c33332aff1c6bff1f5cf2a0a4175173c98ed",
+          "mtime_utc": "2026-09-05T19:29:36+00:00"
+        }
+      ]
+    },
+    "yepochs": {
+      "source_head": "fdc808f43ac42238c27abf2ff51c301b76a889cb",
+      "compiled_module_count": 21,
+      "beams": [
+        {
+          "module_file": "Elixir.Yepochs.Algorithm.beam",
+          "sha256": "fd459af89c7b3286809c1a6aa00386e2e5efd1da19c7ac58d6ee04f1dc39eeb7",
+          "mtime_utc": "2026-09-05T19:29:38+00:00"
+        },
+        {
+          "module_file": "Elixir.Yepochs.Bridge.Basis.beam",
+          "sha256": "686b2d0a0388a3081c9af89d56ba1ab27133377b8999fa3abad90b7cca6fa89b",
+          "mtime_utc": "2026-09-05T19:29:38+00:00"
+        },
+        {
+          "module_file": "Elixir.Yepochs.Bridge.Delta.beam",
+          "sha256": "1fd7399b78514b77b18e7539f33de24ef8c683f10926e3985cab55e07a01bef3",
+          "mtime_utc": "2026-09-05T19:29:38+00:00"
+        },
+        {
+          "module_file": "Elixir.Yepochs.Bridge.beam",
+          "sha256": "3403d050296b70e03175289d00075f8e02fc16a8f27debf70d69910107a81fcd",
+          "mtime_utc": "2026-09-05T19:29:38+00:00"
+        },
+        {
+          "module_file": "Elixir.Yepochs.Crossing.Receipt.beam",
+          "sha256": "f26fef3edca7df243484d8eeb7c20955afb82b754ddea3cfb6fdf25c4ed56428",
+          "mtime_utc": "2026-09-05T19:29:38+00:00"
+        },
+        {
+          "module_file": "Elixir.Yepochs.Crossing.beam",
+          "sha256": "c79078f119f26a93ea3e5983b84d4572083f6d21577c8d4557f022e9fb3f3c84",
+          "mtime_utc": "2026-09-05T19:29:38+00:00"
+        },
+        {
+          "module_file": "Elixir.Yepochs.Derivation.beam",
+          "sha256": "42f222b7b0453bbbe71a8c65b2abe0db8afbaf96daccb4ac07ef459737245649",
+          "mtime_utc": "2026-09-05T19:29:38+00:00"
+        },
+        {
+          "module_file": "Elixir.Yepochs.EpochToken.beam",
+          "sha256": "5a8061796b087ffbb1bf5ed4f91f17db9a2a43ea0e5e48614582cbef2852bc6d",
+          "mtime_utc": "2026-09-05T19:29:38+00:00"
+        },
+        {
+          "module_file": "Elixir.Yepochs.Error.beam",
+          "sha256": "c6c0ab08e27a84b84201a94aa61883837a0b33201a712dc5e3876408a0f1fcb0",
+          "mtime_utc": "2026-09-05T19:29:38+00:00"
+        },
+        {
+          "module_file": "Elixir.Yepochs.Limits.beam",
+          "sha256": "9db314a3d922bc22f4d68b6bd3f981f70008b4daea9f25097a7af2522829b38d",
+          "mtime_utc": "2026-09-05T19:29:38+00:00"
+        },
+        {
+          "module_file": "Elixir.Yepochs.Preflight.beam",
+          "sha256": "5cf11909594a6aebccfa28e45fb0fa259fd1db62abcb78bccca56205cfab05a2",
+          "mtime_utc": "2026-09-05T19:29:38+00:00"
+        },
+        {
+          "module_file": "Elixir.Yepochs.Rebase.Adapter.beam",
+          "sha256": "53626bf8c33285da2daf0074d67d1bedcaa8f775534ed0b36846b0223ce73f3e",
+          "mtime_utc": "2026-09-05T19:29:38+00:00"
+        },
+        {
+          "module_file": "Elixir.Yepochs.Rebase.Result.beam",
+          "sha256": "73444657bdc4aa66da97082446e5d8f73b60822e87e2d3d65ce64b0e94b33ff7",
+          "mtime_utc": "2026-09-05T19:29:38+00:00"
+        },
+        {
+          "module_file": "Elixir.Yepochs.Rebase.beam",
+          "sha256": "c9bbbd3aad2937611e369a73d79863b2c46d0c930697f0b8f2dab536603ac792",
+          "mtime_utc": "2026-09-05T19:29:38+00:00"
+        },
+        {
+          "module_file": "Elixir.Yepochs.Snapshot.beam",
+          "sha256": "8a6d3ad9eb938cc93b0812271dfec367b61c28c9234a0377fc63c05130d0e68b",
+          "mtime_utc": "2026-09-05T19:29:38+00:00"
+        },
+        {
+          "module_file": "Elixir.Yepochs.Snapshotter.beam",
+          "sha256": "da0761693c0f155606f147f035d2d198269ccc3321e1ff8bb376346e2493d034",
+          "mtime_utc": "2026-09-05T19:29:38+00:00"
+        },
+        {
+          "module_file": "Elixir.Yepochs.Span.beam",
+          "sha256": "8baf8558ffde157836342ff9f4cd682984327059dc0649597da86dce0c373079",
+          "mtime_utc": "2026-09-05T19:29:38+00:00"
+        },
+        {
+          "module_file": "Elixir.Yepochs.Translation.beam",
+          "sha256": "6b862a3f4e4b4c6a0eddfba37537e9d0ac786ed23712a8a68b127f2db7c13f52",
+          "mtime_utc": "2026-09-05T19:29:38+00:00"
+        },
+        {
+          "module_file": "Elixir.Yepochs.Translator.beam",
+          "sha256": "a9c2d436792845f685a216613f050e0de4d7b78ec6c88c98121c51fa0a709c26",
+          "mtime_utc": "2026-09-05T19:29:38+00:00"
+        },
+        {
+          "module_file": "Elixir.Yepochs.Update.beam",
+          "sha256": "02ea1c99563300f83d5a6dfc7d07cc1ebd673a643919eb98ea1afce1b09fd6c5",
+          "mtime_utc": "2026-09-05T19:29:38+00:00"
+        },
+        {
+          "module_file": "Elixir.Yepochs.beam",
+          "sha256": "32aa300289585d817f06f3ae80f82f2cedee7cba12c8cf6776828cf854f0db02",
+          "mtime_utc": "2026-09-05T19:29:38+00:00"
+        }
+      ]
+    },
+    "commonplace_merkle_crdt": {
+      "source_head": "6608f3d7cec1fbae88826a672299812798a66b76",
+      "compiled_module_count": 3,
+      "beams": [
+        {
+          "module_file": "Elixir.CommonplaceMerkleCrdt.CanonicalJson.beam",
+          "sha256": "4f69b56787fa61557b4ff8cef31baa885b3363ba93b91cc9dd5d5d5c215f3fbc",
+          "mtime_utc": "2026-09-05T19:29:40+00:00"
+        },
+        {
+          "module_file": "Elixir.CommonplaceMerkleCrdt.State.beam",
+          "sha256": "f47a001656e8ec526f8c3ad9b37b9394769cadc707337ba944fb10586f017de9",
+          "mtime_utc": "2026-09-05T19:29:40+00:00"
+        },
+        {
+          "module_file": "Elixir.CommonplaceMerkleCrdt.V1.beam",
+          "sha256": "85518311f44cd9ce36c6ee15b867b5b7552353d516f2df775e8efd991217ccd2",
+          "mtime_utc": "2026-09-05T19:29:40+00:00"
+        }
+      ]
+    }
+  },
+  "force_compile_output": "==> yelixer\nCompiling 19 files (.ex)\nGenerated yelixer app\n==> yepochs\nCompiling 20 files (.ex)\nGenerated yepochs app\n==> commonplace_merkle_crdt\nCompiling 3 files (.ex)\nGenerated commonplace_merkle_crdt app\nCompiling 86 files (.ex)\nGenerated commonplace_next app\n"
 }
