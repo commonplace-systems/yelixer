@@ -117,11 +117,44 @@ blanket editing clearance. Library landing, consumer pin adoption and deployment
 remain distinct actions requiring their own review and applicable gates.
 No main branch or live store has been changed by this repair.
 
-Standalone Yepochs and Merkle candidate manifests still name the earlier codec
-`bcaec6a`; Next's explicit top-level override is what selects the repaired codec
-in this verification. Publishing the repaired library and coherently advancing
-its standalone consumers are follow-up adoption work, not completed pin changes
-in those repositories. This bounded window changed only the Next override.
+At that first consumer verification, standalone Yepochs and Merkle still named
+the earlier codec `bcaec6a`; Next's top-level override selected the repaired codec.
+The subsequent standalone repins below close that declaration/lock gap.
+
+## Coherent standalone repins — 2026-09-06
+
+Both new standalone candidate manifests and locks now select repaired codec
+`59b04eb1ba4c03d003e91f8867db3bd90a517bf5` without needing a parent application
+override:
+
+| Package | Published candidate on `compat/unicode-inbound-1` | Affected validation |
+|---|---|---|
+| Yepochs | `d76724b4198c2e1c4574a76842af583924bc1856` | 70 tests, zero failures/exclusions, rc 0 |
+| Merkle | `4c13d88b0e45f32e8b00fca59d747138255ff318` | 62 tests, zero failures/exclusions, rc 0 |
+
+Merkle also declares/locks that exact Yepochs head; its fetched Yepochs lock
+and its own lock both select `59b04eb`. The two-lock drift guard passes. Actual
+Git dependency HEADs match each standalone lock. Dependencies and consumers were
+force-compiled; module fingerprints and named results are retained in each repo's
+`docs/compatibility-evidence/standalone-inbound.json`, linked from the
+[consolidated closure](compatibility-evidence/standalone-closure.json).
+
+Yepochs checks real-oracle Unicode crossing/reauthoring, the UTF-16 corpus,
+snapshots and translation. Merkle checks real-oracle Unicode materialization and
+replay, sequence parity, clock intervals, openers, update materialization and pin
+agreement. Format and warnings-as-errors compilation pass. Merkle's format check
+names the changed Elixir files because the repository has no formatter inputs.
+Per the corrected dispatch this is bounded affected validation; earlier full
+suites remain evidence at their original `bcaec6a` codec and are not relabeled.
+
+Production `lib/` trees are unchanged from Yepochs `f184c9e` and Merkle `9e7caf4`.
+The earlier actual consumer evidence selected these same production libraries
+and repaired codec through its override, but did not use the newly coherent
+declarations. Current-app integration remains with its owner: explicitly run
+`unicode_boundary_blocker` despite the old helper exclusion, retain the original
+incremental-byte durable-reopen control, and validate the reviewed combined head.
+These published standalone candidates do not constitute an adoption or landing
+warrant. No consumer checkout was changed by this repin phase.
 
 The previously accepted own-history semantic break is a compatibility cost, not
 a preservation requirement or an additional adoption blocker. Four unrelated
