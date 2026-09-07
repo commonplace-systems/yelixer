@@ -274,6 +274,22 @@ function handle(msg) {
         }
       }
 
+      case 'array_push_binary': {
+        const a = getArray(msg.root || 'items')
+        doc.transact(() => a.push([fromHex(msg.hex)]))
+        return { ok: true, length: a.length }
+      }
+
+      case 'map_set_nested_array': {
+        const m = getMap(msg.root || 'root')
+        const nested = new Y.Array()
+        doc.transact(() => {
+          m.set(msg.key, nested)
+          nested.insert(0, msg.values || [])
+        })
+        return { ok: true }
+      }
+
       case 'array_push_nested_array': {
         const a = getArray(msg.root || 'items')
         const nested = new Y.Array()
