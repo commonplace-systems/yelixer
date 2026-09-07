@@ -73,14 +73,14 @@ defmodule Yelixer.Types.Text do
   which filters tombstones out before returning — neither function
   checks `deleted` directly.
 
-  ## Codepoints, not graphemes
+  ## UTF-16 positions
 
-  All offsets count Unicode **codepoints** — what `String.length/1`
-  counts in Elixir — not grapheme clusters. A flag emoji or a
-  skin-tone modifier sequence spans multiple codepoints and therefore
-  multiple positions. This matches the behavior of Y.js and yrs, so
-  documents round-trip correctly across peers. Callers that need
-  grapheme-level offsets must convert before calling this API.
+  String offsets count **UTF-16 code units**, as in Yjs. Elixir's
+  `String.length/1` counts graphemes and must not be passed as a text
+  offset without conversion. A local position inside a surrogate pair
+  clamps upward, past the whole scalar. Delete endpoints clamp independently.
+  This local policy differs from a browser authoring a half-surrogate edit;
+  such incoming operations are not covered by scalar-boundary conformance.
 
   ## What this module is not
 
@@ -174,9 +174,9 @@ defmodule Yelixer.Types.Text do
   end
 
   @doc """
-  Returns the codepoint count of the live text.
+  Returns the live sequence length in UTF-16 string units.
 
-  Each block's `length` field is set to its codepoint count at
+  Each string block's `length` field is set to its UTF-16 length at
   construction by `Yelixer.Item.new/6`. Summing live blocks gives the
   total.
 
@@ -186,7 +186,8 @@ defmodule Yelixer.Types.Text do
   they live in the map's key-space, not the text's positional
   sequence, so they must not contribute to offsets (see
   `plain_sequence/2`). In a pure-text sequence this equals
-  `String.length(to_string(doc, name))`.
+  the UTF-16 length of `to_string(doc, name)`. Formatting markers currently
+  contribute clocks here too; formatted text does not have Y.Text position parity.
   """
   def length(%Doc{} = doc, type_name) do
     doc.store
@@ -238,6 +239,7 @@ defmodule Yelixer.Types.Text do
 
   defp find_origins_with_split(store, type_name, index) do
     seq = plain_sequence(store, type_name)
+    index = clamp_index(seq, index)
 
     if index == 0 and seq == [] do
       {store, nil, nil}
@@ -294,7 +296,25 @@ defmodule Yelixer.Types.Text do
   # Collect whole-block IDs covering [index, index+len), splitting at range boundaries.
   defp find_items_in_range_with_split(store, type_name, index, len) do
     seq = plain_sequence(store, type_name)
-    do_collect_ids(store, seq, type_name, index, len, 0, [])
+    start = clamp_index(seq, index)
+    stop = clamp_index(seq, index + len)
+    do_collect_ids(store, seq, type_name, start, stop - start, 0, [])
+  end
+
+  # Normalize before splitting so a clamp at the end of a string cannot
+  # install an empty trailing item with the next author's clock.
+  defp clamp_index(items, index) do
+    Enum.reduce_while(items, 0, fn item, pos ->
+      if index >= pos and index < pos + item.length do
+        {:halt, {:found, pos + Item.clamp_offset(item, index - pos)}}
+      else
+        {:cont, pos + item.length}
+      end
+    end)
+    |> case do
+      {:found, normalized} -> normalized
+      _ -> index
+    end
   end
 
   defp do_collect_ids(store, _, _, _, 0, _, acc), do: {store, Enum.reverse(acc)}

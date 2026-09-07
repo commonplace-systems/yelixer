@@ -1,0 +1,3538 @@
+{
+  "old-history-candidate-reader": [
+    {
+      "name": "ascii",
+      "writer": "bc35a0e9ff374449c71fb29be159bd9a711635bb",
+      "stages": [
+        {
+          "browser_status": "ok",
+          "stage": 1,
+          "view": "ab",
+          "reader_status": "ok",
+          "reader_error": null,
+          "browser_view_or_error": "ab",
+          "writer_view": "ab",
+          "writer_view_preserved": true,
+          "future_reload_edit": "{:ok, \"ab?\"}",
+          "intended_final": "aX!"
+        },
+        {
+          "browser_status": "ok",
+          "stage": 2,
+          "view": "ab!",
+          "reader_status": "ok",
+          "reader_error": null,
+          "browser_view_or_error": "ab!",
+          "writer_view": "ab!",
+          "writer_view_preserved": true,
+          "future_reload_edit": "{:ok, \"ab!?\"}",
+          "intended_final": "aX!"
+        },
+        {
+          "browser_status": "ok",
+          "stage": 3,
+          "view": "aXb!",
+          "reader_status": "ok",
+          "reader_error": null,
+          "browser_view_or_error": "aXb!",
+          "writer_view": "aXb!",
+          "writer_view_preserved": true,
+          "future_reload_edit": "{:ok, \"aXb!?\"}",
+          "intended_final": "aX!"
+        },
+        {
+          "browser_status": "ok",
+          "stage": 4,
+          "view": "aX!",
+          "reader_status": "ok",
+          "reader_error": null,
+          "browser_view_or_error": "aX!",
+          "writer_view": "aX!",
+          "writer_view_preserved": true,
+          "future_reload_edit": "{:ok, \"aX!?\"}",
+          "intended_final": "aX!"
+        }
+      ],
+      "transport": "updates_hex"
+    },
+    {
+      "name": "ascii",
+      "writer": "bc35a0e9ff374449c71fb29be159bd9a711635bb",
+      "stages": [
+        {
+          "browser_status": "ok",
+          "stage": 1,
+          "view": "ab",
+          "reader_status": "ok",
+          "reader_error": null,
+          "browser_view_or_error": "ab",
+          "writer_view": "ab",
+          "writer_view_preserved": true,
+          "future_reload_edit": "{:ok, \"ab?\"}",
+          "intended_final": "aX!"
+        },
+        {
+          "browser_status": "ok",
+          "stage": 2,
+          "view": "ab!",
+          "reader_status": "ok",
+          "reader_error": null,
+          "browser_view_or_error": "ab!",
+          "writer_view": "ab!",
+          "writer_view_preserved": true,
+          "future_reload_edit": "{:ok, \"ab!?\"}",
+          "intended_final": "aX!"
+        },
+        {
+          "browser_status": "ok",
+          "stage": 3,
+          "view": "aXb!",
+          "reader_status": "ok",
+          "reader_error": null,
+          "browser_view_or_error": "aXb!",
+          "writer_view": "aXb!",
+          "writer_view_preserved": true,
+          "future_reload_edit": "{:ok, \"aXb!?\"}",
+          "intended_final": "aX!"
+        },
+        {
+          "browser_status": "ok",
+          "stage": 4,
+          "view": "aX!",
+          "reader_status": "ok",
+          "reader_error": null,
+          "browser_view_or_error": "aX!",
+          "writer_view": "aX!",
+          "writer_view_preserved": true,
+          "future_reload_edit": "{:ok, \"aX!?\"}",
+          "intended_final": "aX!"
+        }
+      ],
+      "transport": "full_updates_hex"
+    },
+    {
+      "name": "combining",
+      "writer": "bc35a0e9ff374449c71fb29be159bd9a711635bb",
+      "stages": [
+        {
+          "browser_status": "ok",
+          "stage": 1,
+          "view": "e\u0301b",
+          "reader_status": "ok",
+          "reader_error": null,
+          "browser_view_or_error": "e\u0301b",
+          "writer_view": "e\u0301b",
+          "writer_view_preserved": true,
+          "future_reload_edit": "{:ok, \"e\u0301b?\"}",
+          "intended_final": "e\u0301X!"
+        },
+        {
+          "browser_status": "ok",
+          "stage": 2,
+          "view": "e\u0301b",
+          "reader_status": "ok",
+          "reader_error": null,
+          "browser_view_or_error": "e\u0301b",
+          "writer_view": "e\u0301b!",
+          "writer_view_preserved": false,
+          "future_reload_edit": "{:ok, \"e\u0301b?\"}",
+          "intended_final": "e\u0301X!"
+        },
+        {
+          "browser_status": "ok",
+          "stage": 3,
+          "view": "eX\u0301b",
+          "reader_status": "ok",
+          "reader_error": null,
+          "browser_view_or_error": "eX\u0301b",
+          "writer_view": "e\u0301Xb!",
+          "writer_view_preserved": false,
+          "future_reload_edit": "{:ok, \"eX\u0301b?\"}",
+          "intended_final": "e\u0301X!"
+        },
+        {
+          "browser_status": "ok",
+          "stage": 4,
+          "view": "eXb",
+          "reader_status": "ok",
+          "reader_error": null,
+          "browser_view_or_error": "eXb",
+          "writer_view": "e\u0301X!",
+          "writer_view_preserved": false,
+          "future_reload_edit": "{:ok, \"eXb?\"}",
+          "intended_final": "e\u0301X!"
+        }
+      ],
+      "transport": "updates_hex"
+    },
+    {
+      "name": "combining",
+      "writer": "bc35a0e9ff374449c71fb29be159bd9a711635bb",
+      "stages": [
+        {
+          "browser_status": "ok",
+          "stage": 1,
+          "view": "e\u0301b",
+          "reader_status": "ok",
+          "reader_error": null,
+          "browser_view_or_error": "e\u0301b",
+          "writer_view": "e\u0301b",
+          "writer_view_preserved": true,
+          "future_reload_edit": "{:ok, \"e\u0301b?\"}",
+          "intended_final": "e\u0301X!"
+        },
+        {
+          "browser_status": "ok",
+          "stage": 2,
+          "view": "e\u0301!b",
+          "reader_status": "ok",
+          "reader_error": null,
+          "browser_view_or_error": "e\u0301!b",
+          "writer_view": "e\u0301b!",
+          "writer_view_preserved": false,
+          "future_reload_edit": "{:ok, \"e\u0301!b?\"}",
+          "intended_final": "e\u0301X!"
+        },
+        {
+          "browser_status": "ok",
+          "stage": 3,
+          "view": "eXb\u0301!",
+          "reader_status": "ok",
+          "reader_error": null,
+          "browser_view_or_error": "eXb\u0301!",
+          "writer_view": "e\u0301Xb!",
+          "writer_view_preserved": false,
+          "future_reload_edit": "{:ok, \"eXb\u0301!?\"}",
+          "intended_final": "e\u0301X!"
+        },
+        {
+          "browser_status": "ok",
+          "stage": 4,
+          "view": "eX!",
+          "reader_status": "ok",
+          "reader_error": null,
+          "browser_view_or_error": "eX!",
+          "writer_view": "e\u0301X!",
+          "writer_view_preserved": false,
+          "future_reload_edit": "{:ok, \"eX!?\"}",
+          "intended_final": "e\u0301X!"
+        }
+      ],
+      "transport": "full_updates_hex"
+    },
+    {
+      "name": "astral",
+      "writer": "bc35a0e9ff374449c71fb29be159bd9a711635bb",
+      "stages": [
+        {
+          "browser_status": "ok",
+          "stage": 1,
+          "view": "\ud83d\ude00b",
+          "reader_status": "ok",
+          "reader_error": null,
+          "browser_view_or_error": "\ud83d\ude00b",
+          "writer_view": "\ud83d\ude00b",
+          "writer_view_preserved": true,
+          "future_reload_edit": "{:ok, \"\ud83d\ude00b?\"}",
+          "intended_final": "\ud83d\ude00X!"
+        },
+        {
+          "browser_status": "ok",
+          "stage": 2,
+          "view": "\ud83d\ude00b",
+          "reader_status": "ok",
+          "reader_error": null,
+          "browser_view_or_error": "\ud83d\ude00b",
+          "writer_view": "\ud83d\ude00b!",
+          "writer_view_preserved": false,
+          "future_reload_edit": "{:ok, \"\ud83d\ude00b?\"}",
+          "intended_final": "\ud83d\ude00X!"
+        },
+        {
+          "browser_status": "ok",
+          "stage": 3,
+          "view": "\ud83d\ude00Xbb",
+          "reader_status": "ok",
+          "reader_error": null,
+          "browser_view_or_error": "\ufffdX\ufffdb",
+          "writer_view": "\ud83d\ude00Xb!",
+          "writer_view_preserved": false,
+          "future_reload_edit": "{:ok, \"\ud83d\ude00Xbbb?\"}",
+          "intended_final": "\ud83d\ude00X!"
+        },
+        {
+          "browser_status": "ok",
+          "stage": 4,
+          "view": "bbXbb",
+          "reader_status": "ok",
+          "reader_error": null,
+          "browser_view_or_error": "\ufffdXb",
+          "writer_view": "\ud83d\ude00X!",
+          "writer_view_preserved": false,
+          "future_reload_edit": "{:ok, \"Xb?\"}",
+          "intended_final": "\ud83d\ude00X!"
+        }
+      ],
+      "transport": "updates_hex"
+    },
+    {
+      "name": "astral",
+      "writer": "bc35a0e9ff374449c71fb29be159bd9a711635bb",
+      "stages": [
+        {
+          "browser_status": "ok",
+          "stage": 1,
+          "view": "\ud83d\ude00b",
+          "reader_status": "ok",
+          "reader_error": null,
+          "browser_view_or_error": "\ud83d\ude00b",
+          "writer_view": "\ud83d\ude00b",
+          "writer_view_preserved": true,
+          "future_reload_edit": "{:ok, \"\ud83d\ude00b?\"}",
+          "intended_final": "\ud83d\ude00X!"
+        },
+        {
+          "browser_status": "ok",
+          "stage": 2,
+          "view": "\ud83d\ude00!b",
+          "reader_status": "ok",
+          "reader_error": null,
+          "browser_view_or_error": "\ud83d\ude00!b",
+          "writer_view": "\ud83d\ude00b!",
+          "writer_view_preserved": false,
+          "future_reload_edit": "{:ok, \"\ud83d\ude00!b?\"}",
+          "intended_final": "\ud83d\ude00X!"
+        },
+        {
+          "browser_status": "ok",
+          "stage": 3,
+          "view": "\ud83d\ude00Xbb!bb",
+          "reader_status": "ok",
+          "reader_error": null,
+          "browser_view_or_error": "\ufffdXb\ufffd!",
+          "writer_view": "\ud83d\ude00Xb!",
+          "writer_view_preserved": false,
+          "future_reload_edit": "{:ok, \"\ud83d\ude00Xbb!bb?\"}",
+          "intended_final": "\ud83d\ude00X!"
+        },
+        {
+          "browser_status": "ok",
+          "stage": 4,
+          "view": "X!",
+          "reader_status": "ok",
+          "reader_error": null,
+          "browser_view_or_error": "\ufffdX!",
+          "writer_view": "\ud83d\ude00X!",
+          "writer_view_preserved": false,
+          "future_reload_edit": "{:ok, \"X!?\"}",
+          "intended_final": "\ud83d\ude00X!"
+        }
+      ],
+      "transport": "full_updates_hex"
+    },
+    {
+      "name": "zwj",
+      "writer": "bc35a0e9ff374449c71fb29be159bd9a711635bb",
+      "stages": [
+        {
+          "browser_status": "ok",
+          "stage": 1,
+          "view": "\ud83d\udc69\u200d\ud83d\udcbbb",
+          "reader_status": "ok",
+          "reader_error": null,
+          "browser_view_or_error": "\ud83d\udc69\u200d\ud83d\udcbbb",
+          "writer_view": "\ud83d\udc69\u200d\ud83d\udcbbb",
+          "writer_view_preserved": true,
+          "future_reload_edit": "{:ok, \"\ud83d\udc69\\u200D\ud83d\udcbbb?\"}",
+          "intended_final": "\ud83d\udc69\u200d\ud83d\udcbbX!"
+        },
+        {
+          "browser_status": "ok",
+          "stage": 2,
+          "view": "\ud83d\udc69\u200d\ud83d\udcbbb",
+          "reader_status": "ok",
+          "reader_error": null,
+          "browser_view_or_error": "\ud83d\udc69\u200d\ud83d\udcbbb",
+          "writer_view": "\ud83d\udc69\u200d\ud83d\udcbbb!",
+          "writer_view_preserved": false,
+          "future_reload_edit": "{:ok, \"\ud83d\udc69\\u200D\ud83d\udcbbb?\"}",
+          "intended_final": "\ud83d\udc69\u200d\ud83d\udcbbX!"
+        },
+        {
+          "browser_status": "ok",
+          "stage": 3,
+          "view": "\ud83d\udc69\u200d\ud83d\udcbbb",
+          "reader_status": "ok",
+          "reader_error": null,
+          "browser_view_or_error": "\ufffd\ufffd\u200d\ud83d\udcbbb",
+          "writer_view": "\ud83d\udc69\u200d\ud83d\udcbbXb!",
+          "writer_view_preserved": false,
+          "future_reload_edit": "{:ok, \"\ud83d\udc69\\u200D\ud83d\udcbbb?\"}",
+          "intended_final": "\ud83d\udc69\u200d\ud83d\udcbbX!"
+        },
+        {
+          "browser_status": "ok",
+          "stage": 4,
+          "view": "\u200d\ud83d\udcbbb\u200d\ud83d\udcbbb",
+          "reader_status": "ok",
+          "reader_error": null,
+          "browser_view_or_error": "\ufffd\u200d\ud83d\udcbbb",
+          "writer_view": "\ud83d\udc69\u200d\ud83d\udcbbX!",
+          "writer_view_preserved": false,
+          "future_reload_edit": "{:ok, \"\\u200D\ud83d\udcbbb?\"}",
+          "intended_final": "\ud83d\udc69\u200d\ud83d\udcbbX!"
+        }
+      ],
+      "transport": "updates_hex"
+    },
+    {
+      "name": "zwj",
+      "writer": "bc35a0e9ff374449c71fb29be159bd9a711635bb",
+      "stages": [
+        {
+          "browser_status": "ok",
+          "stage": 1,
+          "view": "\ud83d\udc69\u200d\ud83d\udcbbb",
+          "reader_status": "ok",
+          "reader_error": null,
+          "browser_view_or_error": "\ud83d\udc69\u200d\ud83d\udcbbb",
+          "writer_view": "\ud83d\udc69\u200d\ud83d\udcbbb",
+          "writer_view_preserved": true,
+          "future_reload_edit": "{:ok, \"\ud83d\udc69\\u200D\ud83d\udcbbb?\"}",
+          "intended_final": "\ud83d\udc69\u200d\ud83d\udcbbX!"
+        },
+        {
+          "browser_status": "ok",
+          "stage": 2,
+          "view": "\ud83d\udc69!\u200d\ud83d\udcbbb",
+          "reader_status": "ok",
+          "reader_error": null,
+          "browser_view_or_error": "\ud83d\udc69!\u200d\ud83d\udcbbb",
+          "writer_view": "\ud83d\udc69\u200d\ud83d\udcbbb!",
+          "writer_view_preserved": false,
+          "future_reload_edit": "{:ok, \"\ud83d\udc69!\\u200D\ud83d\udcbbb?\"}",
+          "intended_final": "\ud83d\udc69\u200d\ud83d\udcbbX!"
+        },
+        {
+          "browser_status": "ok",
+          "stage": 3,
+          "view": "\ud83d\udc69X\u200d\ud83d\udcbb\u200d\ud83d\udcbb!b\u200d\ud83d\udcbb",
+          "reader_status": "ok",
+          "reader_error": null,
+          "browser_view_or_error": "\ufffdXb\ufffd!\u200d\ud83d\udcbb",
+          "writer_view": "\ud83d\udc69\u200d\ud83d\udcbbXb!",
+          "writer_view_preserved": false,
+          "future_reload_edit": "{:ok, \"\ud83d\udc69X\\u200D\ud83d\udcbb\\u200D\ud83d\udcbb!b\\u200D\ud83d\udcbb\\u200D\ud83d\udcbb?\"}",
+          "intended_final": "\ud83d\udc69\u200d\ud83d\udcbbX!"
+        },
+        {
+          "browser_status": "ok",
+          "stage": 4,
+          "view": "\u200d\ud83d\udcbb\u200d\ud83d\udcbbX\u200d\ud83d\udcbb\u200d\ud83d\udcbb!\u200d\ud83d\udcbb",
+          "reader_status": "ok",
+          "reader_error": null,
+          "browser_view_or_error": "\ufffdX!\u200d\ud83d\udcbb",
+          "writer_view": "\ud83d\udc69\u200d\ud83d\udcbbX!",
+          "writer_view_preserved": false,
+          "future_reload_edit": "{:ok, \"X!\\u200D\ud83d\udcbb?\"}",
+          "intended_final": "\ud83d\udc69\u200d\ud83d\udcbbX!"
+        }
+      ],
+      "transport": "full_updates_hex"
+    }
+  ],
+  "old-history-old-reader": [
+    {
+      "name": "ascii",
+      "writer": "bc35a0e9ff374449c71fb29be159bd9a711635bb",
+      "stages": [
+        {
+          "browser_status": "ok",
+          "stage": 1,
+          "view": "ab",
+          "reader_status": "ok",
+          "reader_error": null,
+          "browser_view_or_error": "ab",
+          "writer_view": "ab",
+          "writer_view_preserved": true,
+          "future_reload_edit": "{:ok, \"ab?\"}",
+          "intended_final": "aX!"
+        },
+        {
+          "browser_status": "ok",
+          "stage": 2,
+          "view": "ab!",
+          "reader_status": "ok",
+          "reader_error": null,
+          "browser_view_or_error": "ab!",
+          "writer_view": "ab!",
+          "writer_view_preserved": true,
+          "future_reload_edit": "{:ok, \"ab!?\"}",
+          "intended_final": "aX!"
+        },
+        {
+          "browser_status": "ok",
+          "stage": 3,
+          "view": "aXb!",
+          "reader_status": "ok",
+          "reader_error": null,
+          "browser_view_or_error": "aXb!",
+          "writer_view": "aXb!",
+          "writer_view_preserved": true,
+          "future_reload_edit": "{:ok, \"aXb!?\"}",
+          "intended_final": "aX!"
+        },
+        {
+          "browser_status": "ok",
+          "stage": 4,
+          "view": "aX!",
+          "reader_status": "ok",
+          "reader_error": null,
+          "browser_view_or_error": "aX!",
+          "writer_view": "aX!",
+          "writer_view_preserved": true,
+          "future_reload_edit": "{:ok, \"aX!?\"}",
+          "intended_final": "aX!"
+        }
+      ],
+      "transport": "updates_hex"
+    },
+    {
+      "name": "ascii",
+      "writer": "bc35a0e9ff374449c71fb29be159bd9a711635bb",
+      "stages": [
+        {
+          "browser_status": "ok",
+          "stage": 1,
+          "view": "ab",
+          "reader_status": "ok",
+          "reader_error": null,
+          "browser_view_or_error": "ab",
+          "writer_view": "ab",
+          "writer_view_preserved": true,
+          "future_reload_edit": "{:ok, \"ab?\"}",
+          "intended_final": "aX!"
+        },
+        {
+          "browser_status": "ok",
+          "stage": 2,
+          "view": "ab!",
+          "reader_status": "ok",
+          "reader_error": null,
+          "browser_view_or_error": "ab!",
+          "writer_view": "ab!",
+          "writer_view_preserved": true,
+          "future_reload_edit": "{:ok, \"ab!?\"}",
+          "intended_final": "aX!"
+        },
+        {
+          "browser_status": "ok",
+          "stage": 3,
+          "view": "aXb!",
+          "reader_status": "ok",
+          "reader_error": null,
+          "browser_view_or_error": "aXb!",
+          "writer_view": "aXb!",
+          "writer_view_preserved": true,
+          "future_reload_edit": "{:ok, \"aXb!?\"}",
+          "intended_final": "aX!"
+        },
+        {
+          "browser_status": "ok",
+          "stage": 4,
+          "view": "aX!",
+          "reader_status": "ok",
+          "reader_error": null,
+          "browser_view_or_error": "aX!",
+          "writer_view": "aX!",
+          "writer_view_preserved": true,
+          "future_reload_edit": "{:ok, \"aX!?\"}",
+          "intended_final": "aX!"
+        }
+      ],
+      "transport": "full_updates_hex"
+    },
+    {
+      "name": "combining",
+      "writer": "bc35a0e9ff374449c71fb29be159bd9a711635bb",
+      "stages": [
+        {
+          "browser_status": "ok",
+          "stage": 1,
+          "view": "e\u0301b",
+          "reader_status": "ok",
+          "reader_error": null,
+          "browser_view_or_error": "e\u0301b",
+          "writer_view": "e\u0301b",
+          "writer_view_preserved": true,
+          "future_reload_edit": "{:ok, \"e\u0301b?\"}",
+          "intended_final": "e\u0301X!"
+        },
+        {
+          "browser_status": "ok",
+          "stage": 2,
+          "view": "e\u0301b!",
+          "reader_status": "ok",
+          "reader_error": null,
+          "browser_view_or_error": "e\u0301b",
+          "writer_view": "e\u0301b!",
+          "writer_view_preserved": true,
+          "future_reload_edit": "{:ok, \"e\u0301b!?\"}",
+          "intended_final": "e\u0301X!"
+        },
+        {
+          "browser_status": "ok",
+          "stage": 3,
+          "view": "e\u0301Xb!",
+          "reader_status": "ok",
+          "reader_error": null,
+          "browser_view_or_error": "eX\u0301b",
+          "writer_view": "e\u0301Xb!",
+          "writer_view_preserved": true,
+          "future_reload_edit": "{:ok, \"e\u0301Xb!?\"}",
+          "intended_final": "e\u0301X!"
+        },
+        {
+          "browser_status": "ok",
+          "stage": 4,
+          "view": "e\u0301X!",
+          "reader_status": "ok",
+          "reader_error": null,
+          "browser_view_or_error": "eXb",
+          "writer_view": "e\u0301X!",
+          "writer_view_preserved": true,
+          "future_reload_edit": "{:ok, \"e\u0301X!?\"}",
+          "intended_final": "e\u0301X!"
+        }
+      ],
+      "transport": "updates_hex"
+    },
+    {
+      "name": "combining",
+      "writer": "bc35a0e9ff374449c71fb29be159bd9a711635bb",
+      "stages": [
+        {
+          "browser_status": "ok",
+          "stage": 1,
+          "view": "e\u0301b",
+          "reader_status": "ok",
+          "reader_error": null,
+          "browser_view_or_error": "e\u0301b",
+          "writer_view": "e\u0301b",
+          "writer_view_preserved": true,
+          "future_reload_edit": "{:ok, \"e\u0301b?\"}",
+          "intended_final": "e\u0301X!"
+        },
+        {
+          "browser_status": "ok",
+          "stage": 2,
+          "view": "e\u0301b!",
+          "reader_status": "ok",
+          "reader_error": null,
+          "browser_view_or_error": "e\u0301!b",
+          "writer_view": "e\u0301b!",
+          "writer_view_preserved": true,
+          "future_reload_edit": "{:ok, \"e\u0301b!?\"}",
+          "intended_final": "e\u0301X!"
+        },
+        {
+          "browser_status": "ok",
+          "stage": 3,
+          "view": "e\u0301Xb!",
+          "reader_status": "ok",
+          "reader_error": null,
+          "browser_view_or_error": "eXb\u0301!",
+          "writer_view": "e\u0301Xb!",
+          "writer_view_preserved": true,
+          "future_reload_edit": "{:ok, \"e\u0301Xb!?\"}",
+          "intended_final": "e\u0301X!"
+        },
+        {
+          "browser_status": "ok",
+          "stage": 4,
+          "view": "e\u0301X!",
+          "reader_status": "ok",
+          "reader_error": null,
+          "browser_view_or_error": "eX!",
+          "writer_view": "e\u0301X!",
+          "writer_view_preserved": true,
+          "future_reload_edit": "{:ok, \"e\u0301X!?\"}",
+          "intended_final": "e\u0301X!"
+        }
+      ],
+      "transport": "full_updates_hex"
+    },
+    {
+      "name": "astral",
+      "writer": "bc35a0e9ff374449c71fb29be159bd9a711635bb",
+      "stages": [
+        {
+          "browser_status": "ok",
+          "stage": 1,
+          "view": "\ud83d\ude00b",
+          "reader_status": "ok",
+          "reader_error": null,
+          "browser_view_or_error": "\ud83d\ude00b",
+          "writer_view": "\ud83d\ude00b",
+          "writer_view_preserved": true,
+          "future_reload_edit": "{:ok, \"\ud83d\ude00b?\"}",
+          "intended_final": "\ud83d\ude00X!"
+        },
+        {
+          "browser_status": "ok",
+          "stage": 2,
+          "view": "\ud83d\ude00b!",
+          "reader_status": "ok",
+          "reader_error": null,
+          "browser_view_or_error": "\ud83d\ude00b",
+          "writer_view": "\ud83d\ude00b!",
+          "writer_view_preserved": true,
+          "future_reload_edit": "{:ok, \"\ud83d\ude00b!?\"}",
+          "intended_final": "\ud83d\ude00X!"
+        },
+        {
+          "browser_status": "ok",
+          "stage": 3,
+          "view": "\ud83d\ude00Xb!",
+          "reader_status": "ok",
+          "reader_error": null,
+          "browser_view_or_error": "\ufffdX\ufffdb",
+          "writer_view": "\ud83d\ude00Xb!",
+          "writer_view_preserved": true,
+          "future_reload_edit": "{:ok, \"\ud83d\ude00Xb!?\"}",
+          "intended_final": "\ud83d\ude00X!"
+        },
+        {
+          "browser_status": "ok",
+          "stage": 4,
+          "view": "\ud83d\ude00X!",
+          "reader_status": "ok",
+          "reader_error": null,
+          "browser_view_or_error": "\ufffdXb",
+          "writer_view": "\ud83d\ude00X!",
+          "writer_view_preserved": true,
+          "future_reload_edit": "{:ok, \"\ud83d\ude00X!?\"}",
+          "intended_final": "\ud83d\ude00X!"
+        }
+      ],
+      "transport": "updates_hex"
+    },
+    {
+      "name": "astral",
+      "writer": "bc35a0e9ff374449c71fb29be159bd9a711635bb",
+      "stages": [
+        {
+          "browser_status": "ok",
+          "stage": 1,
+          "view": "\ud83d\ude00b",
+          "reader_status": "ok",
+          "reader_error": null,
+          "browser_view_or_error": "\ud83d\ude00b",
+          "writer_view": "\ud83d\ude00b",
+          "writer_view_preserved": true,
+          "future_reload_edit": "{:ok, \"\ud83d\ude00b?\"}",
+          "intended_final": "\ud83d\ude00X!"
+        },
+        {
+          "browser_status": "ok",
+          "stage": 2,
+          "view": "\ud83d\ude00b!",
+          "reader_status": "ok",
+          "reader_error": null,
+          "browser_view_or_error": "\ud83d\ude00!b",
+          "writer_view": "\ud83d\ude00b!",
+          "writer_view_preserved": true,
+          "future_reload_edit": "{:ok, \"\ud83d\ude00b!?\"}",
+          "intended_final": "\ud83d\ude00X!"
+        },
+        {
+          "browser_status": "ok",
+          "stage": 3,
+          "view": "\ud83d\ude00Xb!",
+          "reader_status": "ok",
+          "reader_error": null,
+          "browser_view_or_error": "\ufffdXb\ufffd!",
+          "writer_view": "\ud83d\ude00Xb!",
+          "writer_view_preserved": true,
+          "future_reload_edit": "{:ok, \"\ud83d\ude00Xb!?\"}",
+          "intended_final": "\ud83d\ude00X!"
+        },
+        {
+          "browser_status": "ok",
+          "stage": 4,
+          "view": "\ud83d\ude00X!",
+          "reader_status": "ok",
+          "reader_error": null,
+          "browser_view_or_error": "\ufffdX!",
+          "writer_view": "\ud83d\ude00X!",
+          "writer_view_preserved": true,
+          "future_reload_edit": "{:ok, \"\ud83d\ude00X!?\"}",
+          "intended_final": "\ud83d\ude00X!"
+        }
+      ],
+      "transport": "full_updates_hex"
+    },
+    {
+      "name": "zwj",
+      "writer": "bc35a0e9ff374449c71fb29be159bd9a711635bb",
+      "stages": [
+        {
+          "browser_status": "ok",
+          "stage": 1,
+          "view": "\ud83d\udc69\u200d\ud83d\udcbbb",
+          "reader_status": "ok",
+          "reader_error": null,
+          "browser_view_or_error": "\ud83d\udc69\u200d\ud83d\udcbbb",
+          "writer_view": "\ud83d\udc69\u200d\ud83d\udcbbb",
+          "writer_view_preserved": true,
+          "future_reload_edit": "{:ok, \"\ud83d\udc69\\u200D\ud83d\udcbbb?\"}",
+          "intended_final": "\ud83d\udc69\u200d\ud83d\udcbbX!"
+        },
+        {
+          "browser_status": "ok",
+          "stage": 2,
+          "view": "\ud83d\udc69\u200d\ud83d\udcbbb!",
+          "reader_status": "ok",
+          "reader_error": null,
+          "browser_view_or_error": "\ud83d\udc69\u200d\ud83d\udcbbb",
+          "writer_view": "\ud83d\udc69\u200d\ud83d\udcbbb!",
+          "writer_view_preserved": true,
+          "future_reload_edit": "{:ok, \"\ud83d\udc69\\u200D\ud83d\udcbbb!?\"}",
+          "intended_final": "\ud83d\udc69\u200d\ud83d\udcbbX!"
+        },
+        {
+          "browser_status": "ok",
+          "stage": 3,
+          "view": "\ud83d\udc69\u200d\ud83d\udcbbXb!",
+          "reader_status": "ok",
+          "reader_error": null,
+          "browser_view_or_error": "\ufffd\ufffd\u200d\ud83d\udcbbb",
+          "writer_view": "\ud83d\udc69\u200d\ud83d\udcbbXb!",
+          "writer_view_preserved": true,
+          "future_reload_edit": "{:ok, \"\ud83d\udc69\\u200D\ud83d\udcbbXb!?\"}",
+          "intended_final": "\ud83d\udc69\u200d\ud83d\udcbbX!"
+        },
+        {
+          "browser_status": "ok",
+          "stage": 4,
+          "view": "\ud83d\udc69\u200d\ud83d\udcbbX!",
+          "reader_status": "ok",
+          "reader_error": null,
+          "browser_view_or_error": "\ufffd\u200d\ud83d\udcbbb",
+          "writer_view": "\ud83d\udc69\u200d\ud83d\udcbbX!",
+          "writer_view_preserved": true,
+          "future_reload_edit": "{:ok, \"\ud83d\udc69\\u200D\ud83d\udcbbX!?\"}",
+          "intended_final": "\ud83d\udc69\u200d\ud83d\udcbbX!"
+        }
+      ],
+      "transport": "updates_hex"
+    },
+    {
+      "name": "zwj",
+      "writer": "bc35a0e9ff374449c71fb29be159bd9a711635bb",
+      "stages": [
+        {
+          "browser_status": "ok",
+          "stage": 1,
+          "view": "\ud83d\udc69\u200d\ud83d\udcbbb",
+          "reader_status": "ok",
+          "reader_error": null,
+          "browser_view_or_error": "\ud83d\udc69\u200d\ud83d\udcbbb",
+          "writer_view": "\ud83d\udc69\u200d\ud83d\udcbbb",
+          "writer_view_preserved": true,
+          "future_reload_edit": "{:ok, \"\ud83d\udc69\\u200D\ud83d\udcbbb?\"}",
+          "intended_final": "\ud83d\udc69\u200d\ud83d\udcbbX!"
+        },
+        {
+          "browser_status": "ok",
+          "stage": 2,
+          "view": "\ud83d\udc69\u200d\ud83d\udcbbb!",
+          "reader_status": "ok",
+          "reader_error": null,
+          "browser_view_or_error": "\ud83d\udc69!\u200d\ud83d\udcbbb",
+          "writer_view": "\ud83d\udc69\u200d\ud83d\udcbbb!",
+          "writer_view_preserved": true,
+          "future_reload_edit": "{:ok, \"\ud83d\udc69\\u200D\ud83d\udcbbb!?\"}",
+          "intended_final": "\ud83d\udc69\u200d\ud83d\udcbbX!"
+        },
+        {
+          "browser_status": "ok",
+          "stage": 3,
+          "view": "\ud83d\udc69\u200d\ud83d\udcbbXb!",
+          "reader_status": "ok",
+          "reader_error": null,
+          "browser_view_or_error": "\ufffdXb\ufffd!\u200d\ud83d\udcbb",
+          "writer_view": "\ud83d\udc69\u200d\ud83d\udcbbXb!",
+          "writer_view_preserved": true,
+          "future_reload_edit": "{:ok, \"\ud83d\udc69\\u200D\ud83d\udcbbXb!?\"}",
+          "intended_final": "\ud83d\udc69\u200d\ud83d\udcbbX!"
+        },
+        {
+          "browser_status": "ok",
+          "stage": 4,
+          "view": "\ud83d\udc69\u200d\ud83d\udcbbX!",
+          "reader_status": "ok",
+          "reader_error": null,
+          "browser_view_or_error": "\ufffdX!\u200d\ud83d\udcbb",
+          "writer_view": "\ud83d\udc69\u200d\ud83d\udcbbX!",
+          "writer_view_preserved": true,
+          "future_reload_edit": "{:ok, \"\ud83d\udc69\\u200D\ud83d\udcbbX!?\"}",
+          "intended_final": "\ud83d\udc69\u200d\ud83d\udcbbX!"
+        }
+      ],
+      "transport": "full_updates_hex"
+    }
+  ],
+  "pure-yjs-candidate-reader": [
+    {
+      "name": "ascii",
+      "writer": "Yjs 13.6.32",
+      "stages": [
+        {
+          "browser_status": "ok",
+          "stage": 1,
+          "view": "ab",
+          "reader_status": "ok",
+          "reader_error": null,
+          "browser_view_or_error": "ab",
+          "writer_view": "ab",
+          "writer_view_preserved": true,
+          "future_reload_edit": "{:ok, \"ab?\"}",
+          "intended_final": "aX!"
+        },
+        {
+          "browser_status": "ok",
+          "stage": 2,
+          "view": "ab!",
+          "reader_status": "ok",
+          "reader_error": null,
+          "browser_view_or_error": "ab!",
+          "writer_view": "ab!",
+          "writer_view_preserved": true,
+          "future_reload_edit": "{:ok, \"ab!?\"}",
+          "intended_final": "aX!"
+        },
+        {
+          "browser_status": "ok",
+          "stage": 3,
+          "view": "aXb!",
+          "reader_status": "ok",
+          "reader_error": null,
+          "browser_view_or_error": "aXb!",
+          "writer_view": "aXb!",
+          "writer_view_preserved": true,
+          "future_reload_edit": "{:ok, \"aXb!?\"}",
+          "intended_final": "aX!"
+        },
+        {
+          "browser_status": "ok",
+          "stage": 4,
+          "view": "aX!",
+          "reader_status": "ok",
+          "reader_error": null,
+          "browser_view_or_error": "aX!",
+          "writer_view": "aX!",
+          "writer_view_preserved": true,
+          "future_reload_edit": "{:ok, \"aX!?\"}",
+          "intended_final": "aX!"
+        }
+      ],
+      "transport": "updates_hex"
+    },
+    {
+      "name": "ascii",
+      "writer": "Yjs 13.6.32",
+      "stages": [
+        {
+          "browser_status": "ok",
+          "stage": 1,
+          "view": "ab",
+          "reader_status": "ok",
+          "reader_error": null,
+          "browser_view_or_error": "ab",
+          "writer_view": "ab",
+          "writer_view_preserved": true,
+          "future_reload_edit": "{:ok, \"ab?\"}",
+          "intended_final": "aX!"
+        },
+        {
+          "browser_status": "ok",
+          "stage": 2,
+          "view": "ab!",
+          "reader_status": "ok",
+          "reader_error": null,
+          "browser_view_or_error": "ab!",
+          "writer_view": "ab!",
+          "writer_view_preserved": true,
+          "future_reload_edit": "{:ok, \"ab!?\"}",
+          "intended_final": "aX!"
+        },
+        {
+          "browser_status": "ok",
+          "stage": 3,
+          "view": "aXb!",
+          "reader_status": "ok",
+          "reader_error": null,
+          "browser_view_or_error": "aXb!",
+          "writer_view": "aXb!",
+          "writer_view_preserved": true,
+          "future_reload_edit": "{:ok, \"aXb!?\"}",
+          "intended_final": "aX!"
+        },
+        {
+          "browser_status": "ok",
+          "stage": 4,
+          "view": "aX!",
+          "reader_status": "ok",
+          "reader_error": null,
+          "browser_view_or_error": "aX!",
+          "writer_view": "aX!",
+          "writer_view_preserved": true,
+          "future_reload_edit": "{:ok, \"aX!?\"}",
+          "intended_final": "aX!"
+        }
+      ],
+      "transport": "full_updates_hex"
+    },
+    {
+      "name": "combining",
+      "writer": "Yjs 13.6.32",
+      "stages": [
+        {
+          "browser_status": "ok",
+          "stage": 1,
+          "view": "e\u0301b",
+          "reader_status": "ok",
+          "reader_error": null,
+          "browser_view_or_error": "e\u0301b",
+          "writer_view": "e\u0301b",
+          "writer_view_preserved": true,
+          "future_reload_edit": "{:ok, \"e\u0301b?\"}",
+          "intended_final": "e\u0301X!"
+        },
+        {
+          "browser_status": "ok",
+          "stage": 2,
+          "view": "e\u0301b!",
+          "reader_status": "ok",
+          "reader_error": null,
+          "browser_view_or_error": "e\u0301b!",
+          "writer_view": "e\u0301b!",
+          "writer_view_preserved": true,
+          "future_reload_edit": "{:ok, \"e\u0301b!?\"}",
+          "intended_final": "e\u0301X!"
+        },
+        {
+          "browser_status": "ok",
+          "stage": 3,
+          "view": "e\u0301Xb!",
+          "reader_status": "ok",
+          "reader_error": null,
+          "browser_view_or_error": "e\u0301Xb!",
+          "writer_view": "e\u0301Xb!",
+          "writer_view_preserved": true,
+          "future_reload_edit": "{:ok, \"e\u0301Xb!?\"}",
+          "intended_final": "e\u0301X!"
+        },
+        {
+          "browser_status": "ok",
+          "stage": 4,
+          "view": "e\u0301X!",
+          "reader_status": "ok",
+          "reader_error": null,
+          "browser_view_or_error": "e\u0301X!",
+          "writer_view": "e\u0301X!",
+          "writer_view_preserved": true,
+          "future_reload_edit": "{:ok, \"e\u0301X!?\"}",
+          "intended_final": "e\u0301X!"
+        }
+      ],
+      "transport": "updates_hex"
+    },
+    {
+      "name": "combining",
+      "writer": "Yjs 13.6.32",
+      "stages": [
+        {
+          "browser_status": "ok",
+          "stage": 1,
+          "view": "e\u0301b",
+          "reader_status": "ok",
+          "reader_error": null,
+          "browser_view_or_error": "e\u0301b",
+          "writer_view": "e\u0301b",
+          "writer_view_preserved": true,
+          "future_reload_edit": "{:ok, \"e\u0301b?\"}",
+          "intended_final": "e\u0301X!"
+        },
+        {
+          "browser_status": "ok",
+          "stage": 2,
+          "view": "e\u0301b!",
+          "reader_status": "ok",
+          "reader_error": null,
+          "browser_view_or_error": "e\u0301b!",
+          "writer_view": "e\u0301b!",
+          "writer_view_preserved": true,
+          "future_reload_edit": "{:ok, \"e\u0301b!?\"}",
+          "intended_final": "e\u0301X!"
+        },
+        {
+          "browser_status": "ok",
+          "stage": 3,
+          "view": "e\u0301Xb!",
+          "reader_status": "ok",
+          "reader_error": null,
+          "browser_view_or_error": "e\u0301Xb!",
+          "writer_view": "e\u0301Xb!",
+          "writer_view_preserved": true,
+          "future_reload_edit": "{:ok, \"e\u0301Xb!?\"}",
+          "intended_final": "e\u0301X!"
+        },
+        {
+          "browser_status": "ok",
+          "stage": 4,
+          "view": "e\u0301X!",
+          "reader_status": "ok",
+          "reader_error": null,
+          "browser_view_or_error": "e\u0301X!",
+          "writer_view": "e\u0301X!",
+          "writer_view_preserved": true,
+          "future_reload_edit": "{:ok, \"e\u0301X!?\"}",
+          "intended_final": "e\u0301X!"
+        }
+      ],
+      "transport": "full_updates_hex"
+    },
+    {
+      "name": "astral",
+      "writer": "Yjs 13.6.32",
+      "stages": [
+        {
+          "browser_status": "ok",
+          "stage": 1,
+          "view": "\ud83d\ude00b",
+          "reader_status": "ok",
+          "reader_error": null,
+          "browser_view_or_error": "\ud83d\ude00b",
+          "writer_view": "\ud83d\ude00b",
+          "writer_view_preserved": true,
+          "future_reload_edit": "{:ok, \"\ud83d\ude00b?\"}",
+          "intended_final": "\ud83d\ude00X!"
+        },
+        {
+          "browser_status": "ok",
+          "stage": 2,
+          "view": "\ud83d\ude00b!",
+          "reader_status": "ok",
+          "reader_error": null,
+          "browser_view_or_error": "\ud83d\ude00b!",
+          "writer_view": "\ud83d\ude00b!",
+          "writer_view_preserved": true,
+          "future_reload_edit": "{:ok, \"\ud83d\ude00b!?\"}",
+          "intended_final": "\ud83d\ude00X!"
+        },
+        {
+          "browser_status": "ok",
+          "stage": 3,
+          "view": "\ud83d\ude00Xb!",
+          "reader_status": "ok",
+          "reader_error": null,
+          "browser_view_or_error": "\ud83d\ude00Xb!",
+          "writer_view": "\ud83d\ude00Xb!",
+          "writer_view_preserved": true,
+          "future_reload_edit": "{:ok, \"\ud83d\ude00Xb!?\"}",
+          "intended_final": "\ud83d\ude00X!"
+        },
+        {
+          "browser_status": "ok",
+          "stage": 4,
+          "view": "\ud83d\ude00X!",
+          "reader_status": "ok",
+          "reader_error": null,
+          "browser_view_or_error": "\ud83d\ude00X!",
+          "writer_view": "\ud83d\ude00X!",
+          "writer_view_preserved": true,
+          "future_reload_edit": "{:ok, \"\ud83d\ude00X!?\"}",
+          "intended_final": "\ud83d\ude00X!"
+        }
+      ],
+      "transport": "updates_hex"
+    },
+    {
+      "name": "astral",
+      "writer": "Yjs 13.6.32",
+      "stages": [
+        {
+          "browser_status": "ok",
+          "stage": 1,
+          "view": "\ud83d\ude00b",
+          "reader_status": "ok",
+          "reader_error": null,
+          "browser_view_or_error": "\ud83d\ude00b",
+          "writer_view": "\ud83d\ude00b",
+          "writer_view_preserved": true,
+          "future_reload_edit": "{:ok, \"\ud83d\ude00b?\"}",
+          "intended_final": "\ud83d\ude00X!"
+        },
+        {
+          "browser_status": "ok",
+          "stage": 2,
+          "view": "\ud83d\ude00b!",
+          "reader_status": "ok",
+          "reader_error": null,
+          "browser_view_or_error": "\ud83d\ude00b!",
+          "writer_view": "\ud83d\ude00b!",
+          "writer_view_preserved": true,
+          "future_reload_edit": "{:ok, \"\ud83d\ude00b!?\"}",
+          "intended_final": "\ud83d\ude00X!"
+        },
+        {
+          "browser_status": "ok",
+          "stage": 3,
+          "view": "\ud83d\ude00Xb!",
+          "reader_status": "ok",
+          "reader_error": null,
+          "browser_view_or_error": "\ud83d\ude00Xb!",
+          "writer_view": "\ud83d\ude00Xb!",
+          "writer_view_preserved": true,
+          "future_reload_edit": "{:ok, \"\ud83d\ude00Xb!?\"}",
+          "intended_final": "\ud83d\ude00X!"
+        },
+        {
+          "browser_status": "ok",
+          "stage": 4,
+          "view": "\ud83d\ude00X!",
+          "reader_status": "ok",
+          "reader_error": null,
+          "browser_view_or_error": "\ud83d\ude00X!",
+          "writer_view": "\ud83d\ude00X!",
+          "writer_view_preserved": true,
+          "future_reload_edit": "{:ok, \"\ud83d\ude00X!?\"}",
+          "intended_final": "\ud83d\ude00X!"
+        }
+      ],
+      "transport": "full_updates_hex"
+    },
+    {
+      "name": "zwj",
+      "writer": "Yjs 13.6.32",
+      "stages": [
+        {
+          "browser_status": "ok",
+          "stage": 1,
+          "view": "\ud83d\udc69\u200d\ud83d\udcbbb",
+          "reader_status": "ok",
+          "reader_error": null,
+          "browser_view_or_error": "\ud83d\udc69\u200d\ud83d\udcbbb",
+          "writer_view": "\ud83d\udc69\u200d\ud83d\udcbbb",
+          "writer_view_preserved": true,
+          "future_reload_edit": "{:ok, \"\ud83d\udc69\\u200D\ud83d\udcbbb?\"}",
+          "intended_final": "\ud83d\udc69\u200d\ud83d\udcbbX!"
+        },
+        {
+          "browser_status": "ok",
+          "stage": 2,
+          "view": "\ud83d\udc69\u200d\ud83d\udcbbb!",
+          "reader_status": "ok",
+          "reader_error": null,
+          "browser_view_or_error": "\ud83d\udc69\u200d\ud83d\udcbbb!",
+          "writer_view": "\ud83d\udc69\u200d\ud83d\udcbbb!",
+          "writer_view_preserved": true,
+          "future_reload_edit": "{:ok, \"\ud83d\udc69\\u200D\ud83d\udcbbb!?\"}",
+          "intended_final": "\ud83d\udc69\u200d\ud83d\udcbbX!"
+        },
+        {
+          "browser_status": "ok",
+          "stage": 3,
+          "view": "\ud83d\udc69\u200d\ud83d\udcbbXb!",
+          "reader_status": "ok",
+          "reader_error": null,
+          "browser_view_or_error": "\ud83d\udc69\u200d\ud83d\udcbbXb!",
+          "writer_view": "\ud83d\udc69\u200d\ud83d\udcbbXb!",
+          "writer_view_preserved": true,
+          "future_reload_edit": "{:ok, \"\ud83d\udc69\\u200D\ud83d\udcbbXb!?\"}",
+          "intended_final": "\ud83d\udc69\u200d\ud83d\udcbbX!"
+        },
+        {
+          "browser_status": "ok",
+          "stage": 4,
+          "view": "\ud83d\udc69\u200d\ud83d\udcbbX!",
+          "reader_status": "ok",
+          "reader_error": null,
+          "browser_view_or_error": "\ud83d\udc69\u200d\ud83d\udcbbX!",
+          "writer_view": "\ud83d\udc69\u200d\ud83d\udcbbX!",
+          "writer_view_preserved": true,
+          "future_reload_edit": "{:ok, \"\ud83d\udc69\\u200D\ud83d\udcbbX!?\"}",
+          "intended_final": "\ud83d\udc69\u200d\ud83d\udcbbX!"
+        }
+      ],
+      "transport": "updates_hex"
+    },
+    {
+      "name": "zwj",
+      "writer": "Yjs 13.6.32",
+      "stages": [
+        {
+          "browser_status": "ok",
+          "stage": 1,
+          "view": "\ud83d\udc69\u200d\ud83d\udcbbb",
+          "reader_status": "ok",
+          "reader_error": null,
+          "browser_view_or_error": "\ud83d\udc69\u200d\ud83d\udcbbb",
+          "writer_view": "\ud83d\udc69\u200d\ud83d\udcbbb",
+          "writer_view_preserved": true,
+          "future_reload_edit": "{:ok, \"\ud83d\udc69\\u200D\ud83d\udcbbb?\"}",
+          "intended_final": "\ud83d\udc69\u200d\ud83d\udcbbX!"
+        },
+        {
+          "browser_status": "ok",
+          "stage": 2,
+          "view": "\ud83d\udc69\u200d\ud83d\udcbbb!",
+          "reader_status": "ok",
+          "reader_error": null,
+          "browser_view_or_error": "\ud83d\udc69\u200d\ud83d\udcbbb!",
+          "writer_view": "\ud83d\udc69\u200d\ud83d\udcbbb!",
+          "writer_view_preserved": true,
+          "future_reload_edit": "{:ok, \"\ud83d\udc69\\u200D\ud83d\udcbbb!?\"}",
+          "intended_final": "\ud83d\udc69\u200d\ud83d\udcbbX!"
+        },
+        {
+          "browser_status": "ok",
+          "stage": 3,
+          "view": "\ud83d\udc69\u200d\ud83d\udcbbXb!",
+          "reader_status": "ok",
+          "reader_error": null,
+          "browser_view_or_error": "\ud83d\udc69\u200d\ud83d\udcbbXb!",
+          "writer_view": "\ud83d\udc69\u200d\ud83d\udcbbXb!",
+          "writer_view_preserved": true,
+          "future_reload_edit": "{:ok, \"\ud83d\udc69\\u200D\ud83d\udcbbXb!?\"}",
+          "intended_final": "\ud83d\udc69\u200d\ud83d\udcbbX!"
+        },
+        {
+          "browser_status": "ok",
+          "stage": 4,
+          "view": "\ud83d\udc69\u200d\ud83d\udcbbX!",
+          "reader_status": "ok",
+          "reader_error": null,
+          "browser_view_or_error": "\ud83d\udc69\u200d\ud83d\udcbbX!",
+          "writer_view": "\ud83d\udc69\u200d\ud83d\udcbbX!",
+          "writer_view_preserved": true,
+          "future_reload_edit": "{:ok, \"\ud83d\udc69\\u200D\ud83d\udcbbX!?\"}",
+          "intended_final": "\ud83d\udc69\u200d\ud83d\udcbbX!"
+        }
+      ],
+      "transport": "full_updates_hex"
+    }
+  ],
+  "pure-yjs-old-reader": [
+    {
+      "name": "ascii",
+      "writer": "Yjs 13.6.32",
+      "stages": [
+        {
+          "browser_status": "ok",
+          "stage": 1,
+          "view": "ab",
+          "reader_status": "ok",
+          "reader_error": null,
+          "browser_view_or_error": "ab",
+          "writer_view": "ab",
+          "writer_view_preserved": true,
+          "future_reload_edit": "{:ok, \"ab?\"}",
+          "intended_final": "aX!"
+        },
+        {
+          "browser_status": "ok",
+          "stage": 2,
+          "view": "ab!",
+          "reader_status": "ok",
+          "reader_error": null,
+          "browser_view_or_error": "ab!",
+          "writer_view": "ab!",
+          "writer_view_preserved": true,
+          "future_reload_edit": "{:ok, \"ab!?\"}",
+          "intended_final": "aX!"
+        },
+        {
+          "browser_status": "ok",
+          "stage": 3,
+          "view": "aXb!",
+          "reader_status": "ok",
+          "reader_error": null,
+          "browser_view_or_error": "aXb!",
+          "writer_view": "aXb!",
+          "writer_view_preserved": true,
+          "future_reload_edit": "{:ok, \"aXb!?\"}",
+          "intended_final": "aX!"
+        },
+        {
+          "browser_status": "ok",
+          "stage": 4,
+          "view": "aX!",
+          "reader_status": "ok",
+          "reader_error": null,
+          "browser_view_or_error": "aX!",
+          "writer_view": "aX!",
+          "writer_view_preserved": true,
+          "future_reload_edit": "{:ok, \"aX!?\"}",
+          "intended_final": "aX!"
+        }
+      ],
+      "transport": "updates_hex"
+    },
+    {
+      "name": "ascii",
+      "writer": "Yjs 13.6.32",
+      "stages": [
+        {
+          "browser_status": "ok",
+          "stage": 1,
+          "view": "ab",
+          "reader_status": "ok",
+          "reader_error": null,
+          "browser_view_or_error": "ab",
+          "writer_view": "ab",
+          "writer_view_preserved": true,
+          "future_reload_edit": "{:ok, \"ab?\"}",
+          "intended_final": "aX!"
+        },
+        {
+          "browser_status": "ok",
+          "stage": 2,
+          "view": "ab!",
+          "reader_status": "ok",
+          "reader_error": null,
+          "browser_view_or_error": "ab!",
+          "writer_view": "ab!",
+          "writer_view_preserved": true,
+          "future_reload_edit": "{:ok, \"ab!?\"}",
+          "intended_final": "aX!"
+        },
+        {
+          "browser_status": "ok",
+          "stage": 3,
+          "view": "aXb!",
+          "reader_status": "ok",
+          "reader_error": null,
+          "browser_view_or_error": "aXb!",
+          "writer_view": "aXb!",
+          "writer_view_preserved": true,
+          "future_reload_edit": "{:ok, \"aXb!?\"}",
+          "intended_final": "aX!"
+        },
+        {
+          "browser_status": "ok",
+          "stage": 4,
+          "view": "aX!",
+          "reader_status": "ok",
+          "reader_error": null,
+          "browser_view_or_error": "aX!",
+          "writer_view": "aX!",
+          "writer_view_preserved": true,
+          "future_reload_edit": "{:ok, \"aX!?\"}",
+          "intended_final": "aX!"
+        }
+      ],
+      "transport": "full_updates_hex"
+    },
+    {
+      "name": "combining",
+      "writer": "Yjs 13.6.32",
+      "stages": [
+        {
+          "browser_status": "ok",
+          "stage": 1,
+          "view": "e\u0301b",
+          "reader_status": "ok",
+          "reader_error": null,
+          "browser_view_or_error": "e\u0301b",
+          "writer_view": "e\u0301b",
+          "writer_view_preserved": true,
+          "future_reload_edit": "{:ok, \"e\u0301b?\"}",
+          "intended_final": "e\u0301X!"
+        },
+        {
+          "browser_status": "ok",
+          "stage": 2,
+          "view": "e\u0301b",
+          "reader_status": "ok",
+          "reader_error": null,
+          "browser_view_or_error": "e\u0301b!",
+          "writer_view": "e\u0301b!",
+          "writer_view_preserved": false,
+          "future_reload_edit": "{:ok, \"e\u0301b?\"}",
+          "intended_final": "e\u0301X!"
+        },
+        {
+          "browser_status": "ok",
+          "stage": 3,
+          "view": "e\u0301bX",
+          "reader_status": "ok",
+          "reader_error": null,
+          "browser_view_or_error": "e\u0301Xb!",
+          "writer_view": "e\u0301Xb!",
+          "writer_view_preserved": false,
+          "future_reload_edit": "{:ok, \"e\u0301bX?\"}",
+          "intended_final": "e\u0301X!"
+        },
+        {
+          "browser_status": "ok",
+          "stage": 4,
+          "view": "e\u0301bX",
+          "reader_status": "ok",
+          "reader_error": null,
+          "browser_view_or_error": "e\u0301X!",
+          "writer_view": "e\u0301X!",
+          "writer_view_preserved": false,
+          "future_reload_edit": "{:ok, \"e\u0301b?\"}",
+          "intended_final": "e\u0301X!"
+        }
+      ],
+      "transport": "updates_hex"
+    },
+    {
+      "name": "combining",
+      "writer": "Yjs 13.6.32",
+      "stages": [
+        {
+          "browser_status": "ok",
+          "stage": 1,
+          "view": "e\u0301b",
+          "reader_status": "ok",
+          "reader_error": null,
+          "browser_view_or_error": "e\u0301b",
+          "writer_view": "e\u0301b",
+          "writer_view_preserved": true,
+          "future_reload_edit": "{:ok, \"e\u0301b?\"}",
+          "intended_final": "e\u0301X!"
+        },
+        {
+          "browser_status": "ok",
+          "stage": 2,
+          "view": "e\u0301b!",
+          "reader_status": "ok",
+          "reader_error": null,
+          "browser_view_or_error": "e\u0301b!",
+          "writer_view": "e\u0301b!",
+          "writer_view_preserved": true,
+          "future_reload_edit": "{:ok, \"e\u0301b!?\"}",
+          "intended_final": "e\u0301X!"
+        },
+        {
+          "browser_status": "ok",
+          "stage": 3,
+          "view": "e\u0301",
+          "reader_status": "ok",
+          "reader_error": null,
+          "browser_view_or_error": "e\u0301Xb!",
+          "writer_view": "e\u0301Xb!",
+          "writer_view_preserved": false,
+          "future_reload_edit": "{:ok, \"e\u0301?\"}",
+          "intended_final": "e\u0301X!"
+        },
+        {
+          "browser_status": "ok",
+          "stage": 4,
+          "view": "e\u0301",
+          "reader_status": "ok",
+          "reader_error": null,
+          "browser_view_or_error": "e\u0301X!",
+          "writer_view": "e\u0301X!",
+          "writer_view_preserved": false,
+          "future_reload_edit": "{:ok, \"e\u0301?\"}",
+          "intended_final": "e\u0301X!"
+        }
+      ],
+      "transport": "full_updates_hex"
+    },
+    {
+      "name": "astral",
+      "writer": "Yjs 13.6.32",
+      "stages": [
+        {
+          "browser_status": "ok",
+          "stage": 1,
+          "view": "\ud83d\ude00b",
+          "reader_status": "ok",
+          "reader_error": null,
+          "browser_view_or_error": "\ud83d\ude00b",
+          "writer_view": "\ud83d\ude00b",
+          "writer_view_preserved": true,
+          "future_reload_edit": "{:ok, \"\ud83d\ude00b?\"}",
+          "intended_final": "\ud83d\ude00X!"
+        },
+        {
+          "browser_status": "ok",
+          "stage": 2,
+          "view": "\ud83d\ude00b",
+          "reader_status": "ok",
+          "reader_error": null,
+          "browser_view_or_error": "\ud83d\ude00b!",
+          "writer_view": "\ud83d\ude00b!",
+          "writer_view_preserved": false,
+          "future_reload_edit": "{:ok, \"\ud83d\ude00b?\"}",
+          "intended_final": "\ud83d\ude00X!"
+        },
+        {
+          "browser_status": "ok",
+          "stage": 3,
+          "view": "\ud83d\ude00bX",
+          "reader_status": "ok",
+          "reader_error": null,
+          "browser_view_or_error": "\ud83d\ude00Xb!",
+          "writer_view": "\ud83d\ude00Xb!",
+          "writer_view_preserved": false,
+          "future_reload_edit": "{:ok, \"\ud83d\ude00bX?\"}",
+          "intended_final": "\ud83d\ude00X!"
+        },
+        {
+          "browser_status": "ok",
+          "stage": 4,
+          "view": "\ud83d\ude00bX",
+          "reader_status": "ok",
+          "reader_error": null,
+          "browser_view_or_error": "\ud83d\ude00X!",
+          "writer_view": "\ud83d\ude00X!",
+          "writer_view_preserved": false,
+          "future_reload_edit": "{:ok, \"\ud83d\ude00b?\"}",
+          "intended_final": "\ud83d\ude00X!"
+        }
+      ],
+      "transport": "updates_hex"
+    },
+    {
+      "name": "astral",
+      "writer": "Yjs 13.6.32",
+      "stages": [
+        {
+          "browser_status": "ok",
+          "stage": 1,
+          "view": "\ud83d\ude00b",
+          "reader_status": "ok",
+          "reader_error": null,
+          "browser_view_or_error": "\ud83d\ude00b",
+          "writer_view": "\ud83d\ude00b",
+          "writer_view_preserved": true,
+          "future_reload_edit": "{:ok, \"\ud83d\ude00b?\"}",
+          "intended_final": "\ud83d\ude00X!"
+        },
+        {
+          "browser_status": "ok",
+          "stage": 2,
+          "view": "\ud83d\ude00b!",
+          "reader_status": "ok",
+          "reader_error": null,
+          "browser_view_or_error": "\ud83d\ude00b!",
+          "writer_view": "\ud83d\ude00b!",
+          "writer_view_preserved": true,
+          "future_reload_edit": "{:ok, \"\ud83d\ude00b!?\"}",
+          "intended_final": "\ud83d\ude00X!"
+        },
+        {
+          "browser_status": "ok",
+          "stage": 3,
+          "view": "\ud83d\ude00",
+          "reader_status": "ok",
+          "reader_error": null,
+          "browser_view_or_error": "\ud83d\ude00Xb!",
+          "writer_view": "\ud83d\ude00Xb!",
+          "writer_view_preserved": false,
+          "future_reload_edit": "{:ok, \"\ud83d\ude00?\"}",
+          "intended_final": "\ud83d\ude00X!"
+        },
+        {
+          "browser_status": "ok",
+          "stage": 4,
+          "view": "\ud83d\ude00",
+          "reader_status": "ok",
+          "reader_error": null,
+          "browser_view_or_error": "\ud83d\ude00X!",
+          "writer_view": "\ud83d\ude00X!",
+          "writer_view_preserved": false,
+          "future_reload_edit": "{:ok, \"\ud83d\ude00?\"}",
+          "intended_final": "\ud83d\ude00X!"
+        }
+      ],
+      "transport": "full_updates_hex"
+    },
+    {
+      "name": "zwj",
+      "writer": "Yjs 13.6.32",
+      "stages": [
+        {
+          "browser_status": "ok",
+          "stage": 1,
+          "view": "\ud83d\udc69\u200d\ud83d\udcbbb",
+          "reader_status": "ok",
+          "reader_error": null,
+          "browser_view_or_error": "\ud83d\udc69\u200d\ud83d\udcbbb",
+          "writer_view": "\ud83d\udc69\u200d\ud83d\udcbbb",
+          "writer_view_preserved": true,
+          "future_reload_edit": "{:ok, \"\ud83d\udc69\\u200D\ud83d\udcbbb?\"}",
+          "intended_final": "\ud83d\udc69\u200d\ud83d\udcbbX!"
+        },
+        {
+          "browser_status": "ok",
+          "stage": 2,
+          "view": "\ud83d\udc69\u200d\ud83d\udcbbb",
+          "reader_status": "ok",
+          "reader_error": null,
+          "browser_view_or_error": "\ud83d\udc69\u200d\ud83d\udcbbb!",
+          "writer_view": "\ud83d\udc69\u200d\ud83d\udcbbb!",
+          "writer_view_preserved": false,
+          "future_reload_edit": "{:ok, \"\ud83d\udc69\\u200D\ud83d\udcbbb?\"}",
+          "intended_final": "\ud83d\udc69\u200d\ud83d\udcbbX!"
+        },
+        {
+          "browser_status": "ok",
+          "stage": 3,
+          "view": "\ud83d\udc69\u200d\ud83d\udcbbb",
+          "reader_status": "ok",
+          "reader_error": null,
+          "browser_view_or_error": "\ud83d\udc69\u200d\ud83d\udcbbXb!",
+          "writer_view": "\ud83d\udc69\u200d\ud83d\udcbbXb!",
+          "writer_view_preserved": false,
+          "future_reload_edit": "{:ok, \"\ud83d\udc69\\u200D\ud83d\udcbbb?\"}",
+          "intended_final": "\ud83d\udc69\u200d\ud83d\udcbbX!"
+        },
+        {
+          "browser_status": "ok",
+          "stage": 4,
+          "view": "\ud83d\udc69\u200d\ud83d\udcbbb",
+          "reader_status": "ok",
+          "reader_error": null,
+          "browser_view_or_error": "\ud83d\udc69\u200d\ud83d\udcbbX!",
+          "writer_view": "\ud83d\udc69\u200d\ud83d\udcbbX!",
+          "writer_view_preserved": false,
+          "future_reload_edit": "{:ok, \"\ud83d\udc69\\u200D\ud83d\udcbbb?\"}",
+          "intended_final": "\ud83d\udc69\u200d\ud83d\udcbbX!"
+        }
+      ],
+      "transport": "updates_hex"
+    },
+    {
+      "name": "zwj",
+      "writer": "Yjs 13.6.32",
+      "stages": [
+        {
+          "browser_status": "ok",
+          "stage": 1,
+          "view": "\ud83d\udc69\u200d\ud83d\udcbbb",
+          "reader_status": "ok",
+          "reader_error": null,
+          "browser_view_or_error": "\ud83d\udc69\u200d\ud83d\udcbbb",
+          "writer_view": "\ud83d\udc69\u200d\ud83d\udcbbb",
+          "writer_view_preserved": true,
+          "future_reload_edit": "{:ok, \"\ud83d\udc69\\u200D\ud83d\udcbbb?\"}",
+          "intended_final": "\ud83d\udc69\u200d\ud83d\udcbbX!"
+        },
+        {
+          "browser_status": "ok",
+          "stage": 2,
+          "view": "\ud83d\udc69\u200d\ud83d\udcbbb!",
+          "reader_status": "ok",
+          "reader_error": null,
+          "browser_view_or_error": "\ud83d\udc69\u200d\ud83d\udcbbb!",
+          "writer_view": "\ud83d\udc69\u200d\ud83d\udcbbb!",
+          "writer_view_preserved": true,
+          "future_reload_edit": "{:ok, \"\ud83d\udc69\\u200D\ud83d\udcbbb!?\"}",
+          "intended_final": "\ud83d\udc69\u200d\ud83d\udcbbX!"
+        },
+        {
+          "browser_status": "ok",
+          "stage": 3,
+          "view": "\ud83d\udc69\u200d\ud83d\udcbb",
+          "reader_status": "ok",
+          "reader_error": null,
+          "browser_view_or_error": "\ud83d\udc69\u200d\ud83d\udcbbXb!",
+          "writer_view": "\ud83d\udc69\u200d\ud83d\udcbbXb!",
+          "writer_view_preserved": false,
+          "future_reload_edit": "{:ok, \"\ud83d\udc69\\u200D\ud83d\udcbb?\"}",
+          "intended_final": "\ud83d\udc69\u200d\ud83d\udcbbX!"
+        },
+        {
+          "browser_status": "ok",
+          "stage": 4,
+          "view": "\ud83d\udc69\u200d\ud83d\udcbb",
+          "reader_status": "ok",
+          "reader_error": null,
+          "browser_view_or_error": "\ud83d\udc69\u200d\ud83d\udcbbX!",
+          "writer_view": "\ud83d\udc69\u200d\ud83d\udcbbX!",
+          "writer_view_preserved": false,
+          "future_reload_edit": "{:ok, \"\ud83d\udc69\\u200D\ud83d\udcbb?\"}",
+          "intended_final": "\ud83d\udc69\u200d\ud83d\udcbbX!"
+        }
+      ],
+      "transport": "full_updates_hex"
+    }
+  ],
+  "candidate-utf16-candidate-reader": [
+    {
+      "name": "ascii",
+      "writer": "bcaec6a3520c59464bab87daaab7e4f76546c9c5",
+      "stages": [
+        {
+          "browser_status": "ok",
+          "stage": 1,
+          "view": "ab",
+          "reader_status": "ok",
+          "reader_error": null,
+          "browser_view_or_error": "ab",
+          "writer_view": "ab",
+          "writer_view_preserved": true,
+          "future_reload_edit": "{:ok, \"ab?\"}",
+          "intended_final": "aX!"
+        },
+        {
+          "browser_status": "ok",
+          "stage": 2,
+          "view": "ab!",
+          "reader_status": "ok",
+          "reader_error": null,
+          "browser_view_or_error": "ab!",
+          "writer_view": "ab!",
+          "writer_view_preserved": true,
+          "future_reload_edit": "{:ok, \"ab!?\"}",
+          "intended_final": "aX!"
+        },
+        {
+          "browser_status": "ok",
+          "stage": 3,
+          "view": "aXb!",
+          "reader_status": "ok",
+          "reader_error": null,
+          "browser_view_or_error": "aXb!",
+          "writer_view": "aXb!",
+          "writer_view_preserved": true,
+          "future_reload_edit": "{:ok, \"aXb!?\"}",
+          "intended_final": "aX!"
+        },
+        {
+          "browser_status": "ok",
+          "stage": 4,
+          "view": "aX!",
+          "reader_status": "ok",
+          "reader_error": null,
+          "browser_view_or_error": "aX!",
+          "writer_view": "aX!",
+          "writer_view_preserved": true,
+          "future_reload_edit": "{:ok, \"aX!?\"}",
+          "intended_final": "aX!"
+        }
+      ],
+      "transport": "updates_hex"
+    },
+    {
+      "name": "ascii",
+      "writer": "bcaec6a3520c59464bab87daaab7e4f76546c9c5",
+      "stages": [
+        {
+          "browser_status": "ok",
+          "stage": 1,
+          "view": "ab",
+          "reader_status": "ok",
+          "reader_error": null,
+          "browser_view_or_error": "ab",
+          "writer_view": "ab",
+          "writer_view_preserved": true,
+          "future_reload_edit": "{:ok, \"ab?\"}",
+          "intended_final": "aX!"
+        },
+        {
+          "browser_status": "ok",
+          "stage": 2,
+          "view": "ab!",
+          "reader_status": "ok",
+          "reader_error": null,
+          "browser_view_or_error": "ab!",
+          "writer_view": "ab!",
+          "writer_view_preserved": true,
+          "future_reload_edit": "{:ok, \"ab!?\"}",
+          "intended_final": "aX!"
+        },
+        {
+          "browser_status": "ok",
+          "stage": 3,
+          "view": "aXb!",
+          "reader_status": "ok",
+          "reader_error": null,
+          "browser_view_or_error": "aXb!",
+          "writer_view": "aXb!",
+          "writer_view_preserved": true,
+          "future_reload_edit": "{:ok, \"aXb!?\"}",
+          "intended_final": "aX!"
+        },
+        {
+          "browser_status": "ok",
+          "stage": 4,
+          "view": "aX!",
+          "reader_status": "ok",
+          "reader_error": null,
+          "browser_view_or_error": "aX!",
+          "writer_view": "aX!",
+          "writer_view_preserved": true,
+          "future_reload_edit": "{:ok, \"aX!?\"}",
+          "intended_final": "aX!"
+        }
+      ],
+      "transport": "full_updates_hex"
+    },
+    {
+      "name": "combining",
+      "writer": "bcaec6a3520c59464bab87daaab7e4f76546c9c5",
+      "stages": [
+        {
+          "browser_status": "ok",
+          "stage": 1,
+          "view": "e\u0301b",
+          "reader_status": "ok",
+          "reader_error": null,
+          "browser_view_or_error": "e\u0301b",
+          "writer_view": "e\u0301b",
+          "writer_view_preserved": true,
+          "future_reload_edit": "{:ok, \"e\u0301b?\"}",
+          "intended_final": "e\u0301X!"
+        },
+        {
+          "browser_status": "ok",
+          "stage": 2,
+          "view": "e\u0301b!",
+          "reader_status": "ok",
+          "reader_error": null,
+          "browser_view_or_error": "e\u0301b!",
+          "writer_view": "e\u0301b!",
+          "writer_view_preserved": true,
+          "future_reload_edit": "{:ok, \"e\u0301b!?\"}",
+          "intended_final": "e\u0301X!"
+        },
+        {
+          "browser_status": "ok",
+          "stage": 3,
+          "view": "e\u0301Xb!",
+          "reader_status": "ok",
+          "reader_error": null,
+          "browser_view_or_error": "e\u0301Xb!",
+          "writer_view": "e\u0301Xb!",
+          "writer_view_preserved": true,
+          "future_reload_edit": "{:ok, \"e\u0301Xb!?\"}",
+          "intended_final": "e\u0301X!"
+        },
+        {
+          "browser_status": "ok",
+          "stage": 4,
+          "view": "e\u0301X!",
+          "reader_status": "ok",
+          "reader_error": null,
+          "browser_view_or_error": "e\u0301X!",
+          "writer_view": "e\u0301X!",
+          "writer_view_preserved": true,
+          "future_reload_edit": "{:ok, \"e\u0301X!?\"}",
+          "intended_final": "e\u0301X!"
+        }
+      ],
+      "transport": "updates_hex"
+    },
+    {
+      "name": "combining",
+      "writer": "bcaec6a3520c59464bab87daaab7e4f76546c9c5",
+      "stages": [
+        {
+          "browser_status": "ok",
+          "stage": 1,
+          "view": "e\u0301b",
+          "reader_status": "ok",
+          "reader_error": null,
+          "browser_view_or_error": "e\u0301b",
+          "writer_view": "e\u0301b",
+          "writer_view_preserved": true,
+          "future_reload_edit": "{:ok, \"e\u0301b?\"}",
+          "intended_final": "e\u0301X!"
+        },
+        {
+          "browser_status": "ok",
+          "stage": 2,
+          "view": "e\u0301b!",
+          "reader_status": "ok",
+          "reader_error": null,
+          "browser_view_or_error": "e\u0301b!",
+          "writer_view": "e\u0301b!",
+          "writer_view_preserved": true,
+          "future_reload_edit": "{:ok, \"e\u0301b!?\"}",
+          "intended_final": "e\u0301X!"
+        },
+        {
+          "browser_status": "ok",
+          "stage": 3,
+          "view": "e\u0301Xb!",
+          "reader_status": "ok",
+          "reader_error": null,
+          "browser_view_or_error": "e\u0301Xb!",
+          "writer_view": "e\u0301Xb!",
+          "writer_view_preserved": true,
+          "future_reload_edit": "{:ok, \"e\u0301Xb!?\"}",
+          "intended_final": "e\u0301X!"
+        },
+        {
+          "browser_status": "ok",
+          "stage": 4,
+          "view": "e\u0301X!",
+          "reader_status": "ok",
+          "reader_error": null,
+          "browser_view_or_error": "e\u0301X!",
+          "writer_view": "e\u0301X!",
+          "writer_view_preserved": true,
+          "future_reload_edit": "{:ok, \"e\u0301X!?\"}",
+          "intended_final": "e\u0301X!"
+        }
+      ],
+      "transport": "full_updates_hex"
+    },
+    {
+      "name": "astral",
+      "writer": "bcaec6a3520c59464bab87daaab7e4f76546c9c5",
+      "stages": [
+        {
+          "browser_status": "ok",
+          "stage": 1,
+          "view": "\ud83d\ude00b",
+          "reader_status": "ok",
+          "reader_error": null,
+          "browser_view_or_error": "\ud83d\ude00b",
+          "writer_view": "\ud83d\ude00b",
+          "writer_view_preserved": true,
+          "future_reload_edit": "{:ok, \"\ud83d\ude00b?\"}",
+          "intended_final": "\ud83d\ude00X!"
+        },
+        {
+          "browser_status": "ok",
+          "stage": 2,
+          "view": "\ud83d\ude00b!",
+          "reader_status": "ok",
+          "reader_error": null,
+          "browser_view_or_error": "\ud83d\ude00b!",
+          "writer_view": "\ud83d\ude00b!",
+          "writer_view_preserved": true,
+          "future_reload_edit": "{:ok, \"\ud83d\ude00b!?\"}",
+          "intended_final": "\ud83d\ude00X!"
+        },
+        {
+          "browser_status": "ok",
+          "stage": 3,
+          "view": "\ud83d\ude00Xb!",
+          "reader_status": "ok",
+          "reader_error": null,
+          "browser_view_or_error": "\ud83d\ude00Xb!",
+          "writer_view": "\ud83d\ude00Xb!",
+          "writer_view_preserved": true,
+          "future_reload_edit": "{:ok, \"\ud83d\ude00Xb!?\"}",
+          "intended_final": "\ud83d\ude00X!"
+        },
+        {
+          "browser_status": "ok",
+          "stage": 4,
+          "view": "\ud83d\ude00X!",
+          "reader_status": "ok",
+          "reader_error": null,
+          "browser_view_or_error": "\ud83d\ude00X!",
+          "writer_view": "\ud83d\ude00X!",
+          "writer_view_preserved": true,
+          "future_reload_edit": "{:ok, \"\ud83d\ude00X!?\"}",
+          "intended_final": "\ud83d\ude00X!"
+        }
+      ],
+      "transport": "updates_hex"
+    },
+    {
+      "name": "astral",
+      "writer": "bcaec6a3520c59464bab87daaab7e4f76546c9c5",
+      "stages": [
+        {
+          "browser_status": "ok",
+          "stage": 1,
+          "view": "\ud83d\ude00b",
+          "reader_status": "ok",
+          "reader_error": null,
+          "browser_view_or_error": "\ud83d\ude00b",
+          "writer_view": "\ud83d\ude00b",
+          "writer_view_preserved": true,
+          "future_reload_edit": "{:ok, \"\ud83d\ude00b?\"}",
+          "intended_final": "\ud83d\ude00X!"
+        },
+        {
+          "browser_status": "ok",
+          "stage": 2,
+          "view": "\ud83d\ude00b!",
+          "reader_status": "ok",
+          "reader_error": null,
+          "browser_view_or_error": "\ud83d\ude00b!",
+          "writer_view": "\ud83d\ude00b!",
+          "writer_view_preserved": true,
+          "future_reload_edit": "{:ok, \"\ud83d\ude00b!?\"}",
+          "intended_final": "\ud83d\ude00X!"
+        },
+        {
+          "browser_status": "ok",
+          "stage": 3,
+          "view": "\ud83d\ude00Xb!",
+          "reader_status": "ok",
+          "reader_error": null,
+          "browser_view_or_error": "\ud83d\ude00Xb!",
+          "writer_view": "\ud83d\ude00Xb!",
+          "writer_view_preserved": true,
+          "future_reload_edit": "{:ok, \"\ud83d\ude00Xb!?\"}",
+          "intended_final": "\ud83d\ude00X!"
+        },
+        {
+          "browser_status": "ok",
+          "stage": 4,
+          "view": "\ud83d\ude00X!",
+          "reader_status": "ok",
+          "reader_error": null,
+          "browser_view_or_error": "\ud83d\ude00X!",
+          "writer_view": "\ud83d\ude00X!",
+          "writer_view_preserved": true,
+          "future_reload_edit": "{:ok, \"\ud83d\ude00X!?\"}",
+          "intended_final": "\ud83d\ude00X!"
+        }
+      ],
+      "transport": "full_updates_hex"
+    },
+    {
+      "name": "zwj",
+      "writer": "bcaec6a3520c59464bab87daaab7e4f76546c9c5",
+      "stages": [
+        {
+          "browser_status": "ok",
+          "stage": 1,
+          "view": "\ud83d\udc69\u200d\ud83d\udcbbb",
+          "reader_status": "ok",
+          "reader_error": null,
+          "browser_view_or_error": "\ud83d\udc69\u200d\ud83d\udcbbb",
+          "writer_view": "\ud83d\udc69\u200d\ud83d\udcbbb",
+          "writer_view_preserved": true,
+          "future_reload_edit": "{:ok, \"\ud83d\udc69\\u200D\ud83d\udcbbb?\"}",
+          "intended_final": "\ud83d\udc69\u200d\ud83d\udcbbX!"
+        },
+        {
+          "browser_status": "ok",
+          "stage": 2,
+          "view": "\ud83d\udc69\u200d\ud83d\udcbbb!",
+          "reader_status": "ok",
+          "reader_error": null,
+          "browser_view_or_error": "\ud83d\udc69\u200d\ud83d\udcbbb!",
+          "writer_view": "\ud83d\udc69\u200d\ud83d\udcbbb!",
+          "writer_view_preserved": true,
+          "future_reload_edit": "{:ok, \"\ud83d\udc69\\u200D\ud83d\udcbbb!?\"}",
+          "intended_final": "\ud83d\udc69\u200d\ud83d\udcbbX!"
+        },
+        {
+          "browser_status": "ok",
+          "stage": 3,
+          "view": "\ud83d\udc69\u200d\ud83d\udcbbXb!",
+          "reader_status": "ok",
+          "reader_error": null,
+          "browser_view_or_error": "\ud83d\udc69\u200d\ud83d\udcbbXb!",
+          "writer_view": "\ud83d\udc69\u200d\ud83d\udcbbXb!",
+          "writer_view_preserved": true,
+          "future_reload_edit": "{:ok, \"\ud83d\udc69\\u200D\ud83d\udcbbXb!?\"}",
+          "intended_final": "\ud83d\udc69\u200d\ud83d\udcbbX!"
+        },
+        {
+          "browser_status": "ok",
+          "stage": 4,
+          "view": "\ud83d\udc69\u200d\ud83d\udcbbX!",
+          "reader_status": "ok",
+          "reader_error": null,
+          "browser_view_or_error": "\ud83d\udc69\u200d\ud83d\udcbbX!",
+          "writer_view": "\ud83d\udc69\u200d\ud83d\udcbbX!",
+          "writer_view_preserved": true,
+          "future_reload_edit": "{:ok, \"\ud83d\udc69\\u200D\ud83d\udcbbX!?\"}",
+          "intended_final": "\ud83d\udc69\u200d\ud83d\udcbbX!"
+        }
+      ],
+      "transport": "updates_hex"
+    },
+    {
+      "name": "zwj",
+      "writer": "bcaec6a3520c59464bab87daaab7e4f76546c9c5",
+      "stages": [
+        {
+          "browser_status": "ok",
+          "stage": 1,
+          "view": "\ud83d\udc69\u200d\ud83d\udcbbb",
+          "reader_status": "ok",
+          "reader_error": null,
+          "browser_view_or_error": "\ud83d\udc69\u200d\ud83d\udcbbb",
+          "writer_view": "\ud83d\udc69\u200d\ud83d\udcbbb",
+          "writer_view_preserved": true,
+          "future_reload_edit": "{:ok, \"\ud83d\udc69\\u200D\ud83d\udcbbb?\"}",
+          "intended_final": "\ud83d\udc69\u200d\ud83d\udcbbX!"
+        },
+        {
+          "browser_status": "ok",
+          "stage": 2,
+          "view": "\ud83d\udc69\u200d\ud83d\udcbbb!",
+          "reader_status": "ok",
+          "reader_error": null,
+          "browser_view_or_error": "\ud83d\udc69\u200d\ud83d\udcbbb!",
+          "writer_view": "\ud83d\udc69\u200d\ud83d\udcbbb!",
+          "writer_view_preserved": true,
+          "future_reload_edit": "{:ok, \"\ud83d\udc69\\u200D\ud83d\udcbbb!?\"}",
+          "intended_final": "\ud83d\udc69\u200d\ud83d\udcbbX!"
+        },
+        {
+          "browser_status": "ok",
+          "stage": 3,
+          "view": "\ud83d\udc69\u200d\ud83d\udcbbXb!",
+          "reader_status": "ok",
+          "reader_error": null,
+          "browser_view_or_error": "\ud83d\udc69\u200d\ud83d\udcbbXb!",
+          "writer_view": "\ud83d\udc69\u200d\ud83d\udcbbXb!",
+          "writer_view_preserved": true,
+          "future_reload_edit": "{:ok, \"\ud83d\udc69\\u200D\ud83d\udcbbXb!?\"}",
+          "intended_final": "\ud83d\udc69\u200d\ud83d\udcbbX!"
+        },
+        {
+          "browser_status": "ok",
+          "stage": 4,
+          "view": "\ud83d\udc69\u200d\ud83d\udcbbX!",
+          "reader_status": "ok",
+          "reader_error": null,
+          "browser_view_or_error": "\ud83d\udc69\u200d\ud83d\udcbbX!",
+          "writer_view": "\ud83d\udc69\u200d\ud83d\udcbbX!",
+          "writer_view_preserved": true,
+          "future_reload_edit": "{:ok, \"\ud83d\udc69\\u200D\ud83d\udcbbX!?\"}",
+          "intended_final": "\ud83d\udc69\u200d\ud83d\udcbbX!"
+        }
+      ],
+      "transport": "full_updates_hex"
+    }
+  ],
+  "candidate-utf16-old-reader": [
+    {
+      "name": "ascii",
+      "writer": "bcaec6a3520c59464bab87daaab7e4f76546c9c5",
+      "stages": [
+        {
+          "browser_status": "ok",
+          "stage": 1,
+          "view": "ab",
+          "reader_status": "ok",
+          "reader_error": null,
+          "browser_view_or_error": "ab",
+          "writer_view": "ab",
+          "writer_view_preserved": true,
+          "future_reload_edit": "{:ok, \"ab?\"}",
+          "intended_final": "aX!"
+        },
+        {
+          "browser_status": "ok",
+          "stage": 2,
+          "view": "ab!",
+          "reader_status": "ok",
+          "reader_error": null,
+          "browser_view_or_error": "ab!",
+          "writer_view": "ab!",
+          "writer_view_preserved": true,
+          "future_reload_edit": "{:ok, \"ab!?\"}",
+          "intended_final": "aX!"
+        },
+        {
+          "browser_status": "ok",
+          "stage": 3,
+          "view": "aXb!",
+          "reader_status": "ok",
+          "reader_error": null,
+          "browser_view_or_error": "aXb!",
+          "writer_view": "aXb!",
+          "writer_view_preserved": true,
+          "future_reload_edit": "{:ok, \"aXb!?\"}",
+          "intended_final": "aX!"
+        },
+        {
+          "browser_status": "ok",
+          "stage": 4,
+          "view": "aX!",
+          "reader_status": "ok",
+          "reader_error": null,
+          "browser_view_or_error": "aX!",
+          "writer_view": "aX!",
+          "writer_view_preserved": true,
+          "future_reload_edit": "{:ok, \"aX!?\"}",
+          "intended_final": "aX!"
+        }
+      ],
+      "transport": "updates_hex"
+    },
+    {
+      "name": "ascii",
+      "writer": "bcaec6a3520c59464bab87daaab7e4f76546c9c5",
+      "stages": [
+        {
+          "browser_status": "ok",
+          "stage": 1,
+          "view": "ab",
+          "reader_status": "ok",
+          "reader_error": null,
+          "browser_view_or_error": "ab",
+          "writer_view": "ab",
+          "writer_view_preserved": true,
+          "future_reload_edit": "{:ok, \"ab?\"}",
+          "intended_final": "aX!"
+        },
+        {
+          "browser_status": "ok",
+          "stage": 2,
+          "view": "ab!",
+          "reader_status": "ok",
+          "reader_error": null,
+          "browser_view_or_error": "ab!",
+          "writer_view": "ab!",
+          "writer_view_preserved": true,
+          "future_reload_edit": "{:ok, \"ab!?\"}",
+          "intended_final": "aX!"
+        },
+        {
+          "browser_status": "ok",
+          "stage": 3,
+          "view": "aXb!",
+          "reader_status": "ok",
+          "reader_error": null,
+          "browser_view_or_error": "aXb!",
+          "writer_view": "aXb!",
+          "writer_view_preserved": true,
+          "future_reload_edit": "{:ok, \"aXb!?\"}",
+          "intended_final": "aX!"
+        },
+        {
+          "browser_status": "ok",
+          "stage": 4,
+          "view": "aX!",
+          "reader_status": "ok",
+          "reader_error": null,
+          "browser_view_or_error": "aX!",
+          "writer_view": "aX!",
+          "writer_view_preserved": true,
+          "future_reload_edit": "{:ok, \"aX!?\"}",
+          "intended_final": "aX!"
+        }
+      ],
+      "transport": "full_updates_hex"
+    },
+    {
+      "name": "combining",
+      "writer": "bcaec6a3520c59464bab87daaab7e4f76546c9c5",
+      "stages": [
+        {
+          "browser_status": "ok",
+          "stage": 1,
+          "view": "e\u0301b",
+          "reader_status": "ok",
+          "reader_error": null,
+          "browser_view_or_error": "e\u0301b",
+          "writer_view": "e\u0301b",
+          "writer_view_preserved": true,
+          "future_reload_edit": "{:ok, \"e\u0301b?\"}",
+          "intended_final": "e\u0301X!"
+        },
+        {
+          "browser_status": "ok",
+          "stage": 2,
+          "view": "e\u0301b",
+          "reader_status": "ok",
+          "reader_error": null,
+          "browser_view_or_error": "e\u0301b!",
+          "writer_view": "e\u0301b!",
+          "writer_view_preserved": false,
+          "future_reload_edit": "{:ok, \"e\u0301b?\"}",
+          "intended_final": "e\u0301X!"
+        },
+        {
+          "browser_status": "ok",
+          "stage": 3,
+          "view": "e\u0301bX",
+          "reader_status": "ok",
+          "reader_error": null,
+          "browser_view_or_error": "e\u0301Xb!",
+          "writer_view": "e\u0301Xb!",
+          "writer_view_preserved": false,
+          "future_reload_edit": "{:ok, \"e\u0301bX?\"}",
+          "intended_final": "e\u0301X!"
+        },
+        {
+          "browser_status": "ok",
+          "stage": 4,
+          "view": "e\u0301bX",
+          "reader_status": "ok",
+          "reader_error": null,
+          "browser_view_or_error": "e\u0301X!",
+          "writer_view": "e\u0301X!",
+          "writer_view_preserved": false,
+          "future_reload_edit": "{:ok, \"e\u0301b?\"}",
+          "intended_final": "e\u0301X!"
+        }
+      ],
+      "transport": "updates_hex"
+    },
+    {
+      "name": "combining",
+      "writer": "bcaec6a3520c59464bab87daaab7e4f76546c9c5",
+      "stages": [
+        {
+          "browser_status": "ok",
+          "stage": 1,
+          "view": "e\u0301b",
+          "reader_status": "ok",
+          "reader_error": null,
+          "browser_view_or_error": "e\u0301b",
+          "writer_view": "e\u0301b",
+          "writer_view_preserved": true,
+          "future_reload_edit": "{:ok, \"e\u0301b?\"}",
+          "intended_final": "e\u0301X!"
+        },
+        {
+          "browser_status": "ok",
+          "stage": 2,
+          "view": "e\u0301b",
+          "reader_status": "ok",
+          "reader_error": null,
+          "browser_view_or_error": "e\u0301b!",
+          "writer_view": "e\u0301b!",
+          "writer_view_preserved": false,
+          "future_reload_edit": "{:ok, \"e\u0301b?\"}",
+          "intended_final": "e\u0301X!"
+        },
+        {
+          "browser_status": "ok",
+          "stage": 3,
+          "view": "e\u0301",
+          "reader_status": "ok",
+          "reader_error": null,
+          "browser_view_or_error": "e\u0301Xb!",
+          "writer_view": "e\u0301Xb!",
+          "writer_view_preserved": false,
+          "future_reload_edit": "{:ok, \"e\u0301?\"}",
+          "intended_final": "e\u0301X!"
+        },
+        {
+          "browser_status": "ok",
+          "stage": 4,
+          "view": "e\u0301",
+          "reader_status": "ok",
+          "reader_error": null,
+          "browser_view_or_error": "e\u0301X!",
+          "writer_view": "e\u0301X!",
+          "writer_view_preserved": false,
+          "future_reload_edit": "{:ok, \"e\u0301?\"}",
+          "intended_final": "e\u0301X!"
+        }
+      ],
+      "transport": "full_updates_hex"
+    },
+    {
+      "name": "astral",
+      "writer": "bcaec6a3520c59464bab87daaab7e4f76546c9c5",
+      "stages": [
+        {
+          "browser_status": "ok",
+          "stage": 1,
+          "view": "\ud83d\ude00b",
+          "reader_status": "ok",
+          "reader_error": null,
+          "browser_view_or_error": "\ud83d\ude00b",
+          "writer_view": "\ud83d\ude00b",
+          "writer_view_preserved": true,
+          "future_reload_edit": "{:ok, \"\ud83d\ude00b?\"}",
+          "intended_final": "\ud83d\ude00X!"
+        },
+        {
+          "browser_status": "ok",
+          "stage": 2,
+          "view": "\ud83d\ude00b",
+          "reader_status": "ok",
+          "reader_error": null,
+          "browser_view_or_error": "\ud83d\ude00b!",
+          "writer_view": "\ud83d\ude00b!",
+          "writer_view_preserved": false,
+          "future_reload_edit": "{:ok, \"\ud83d\ude00b?\"}",
+          "intended_final": "\ud83d\ude00X!"
+        },
+        {
+          "browser_status": "ok",
+          "stage": 3,
+          "view": "\ud83d\ude00bX",
+          "reader_status": "ok",
+          "reader_error": null,
+          "browser_view_or_error": "\ud83d\ude00Xb!",
+          "writer_view": "\ud83d\ude00Xb!",
+          "writer_view_preserved": false,
+          "future_reload_edit": "{:ok, \"\ud83d\ude00bX?\"}",
+          "intended_final": "\ud83d\ude00X!"
+        },
+        {
+          "browser_status": "ok",
+          "stage": 4,
+          "view": "\ud83d\ude00bX",
+          "reader_status": "ok",
+          "reader_error": null,
+          "browser_view_or_error": "\ud83d\ude00X!",
+          "writer_view": "\ud83d\ude00X!",
+          "writer_view_preserved": false,
+          "future_reload_edit": "{:ok, \"\ud83d\ude00b?\"}",
+          "intended_final": "\ud83d\ude00X!"
+        }
+      ],
+      "transport": "updates_hex"
+    },
+    {
+      "name": "astral",
+      "writer": "bcaec6a3520c59464bab87daaab7e4f76546c9c5",
+      "stages": [
+        {
+          "browser_status": "ok",
+          "stage": 1,
+          "view": "\ud83d\ude00b",
+          "reader_status": "ok",
+          "reader_error": null,
+          "browser_view_or_error": "\ud83d\ude00b",
+          "writer_view": "\ud83d\ude00b",
+          "writer_view_preserved": true,
+          "future_reload_edit": "{:ok, \"\ud83d\ude00b?\"}",
+          "intended_final": "\ud83d\ude00X!"
+        },
+        {
+          "browser_status": "ok",
+          "stage": 2,
+          "view": "\ud83d\ude00b",
+          "reader_status": "ok",
+          "reader_error": null,
+          "browser_view_or_error": "\ud83d\ude00b!",
+          "writer_view": "\ud83d\ude00b!",
+          "writer_view_preserved": false,
+          "future_reload_edit": "{:ok, \"\ud83d\ude00b?\"}",
+          "intended_final": "\ud83d\ude00X!"
+        },
+        {
+          "browser_status": "ok",
+          "stage": 3,
+          "view": "\ud83d\ude00",
+          "reader_status": "ok",
+          "reader_error": null,
+          "browser_view_or_error": "\ud83d\ude00Xb!",
+          "writer_view": "\ud83d\ude00Xb!",
+          "writer_view_preserved": false,
+          "future_reload_edit": "{:ok, \"\ud83d\ude00?\"}",
+          "intended_final": "\ud83d\ude00X!"
+        },
+        {
+          "browser_status": "ok",
+          "stage": 4,
+          "view": "\ud83d\ude00",
+          "reader_status": "ok",
+          "reader_error": null,
+          "browser_view_or_error": "\ud83d\ude00X!",
+          "writer_view": "\ud83d\ude00X!",
+          "writer_view_preserved": false,
+          "future_reload_edit": "{:ok, \"\ud83d\ude00?\"}",
+          "intended_final": "\ud83d\ude00X!"
+        }
+      ],
+      "transport": "full_updates_hex"
+    },
+    {
+      "name": "zwj",
+      "writer": "bcaec6a3520c59464bab87daaab7e4f76546c9c5",
+      "stages": [
+        {
+          "browser_status": "ok",
+          "stage": 1,
+          "view": "\ud83d\udc69\u200d\ud83d\udcbbb",
+          "reader_status": "ok",
+          "reader_error": null,
+          "browser_view_or_error": "\ud83d\udc69\u200d\ud83d\udcbbb",
+          "writer_view": "\ud83d\udc69\u200d\ud83d\udcbbb",
+          "writer_view_preserved": true,
+          "future_reload_edit": "{:ok, \"\ud83d\udc69\\u200D\ud83d\udcbbb?\"}",
+          "intended_final": "\ud83d\udc69\u200d\ud83d\udcbbX!"
+        },
+        {
+          "browser_status": "ok",
+          "stage": 2,
+          "view": "\ud83d\udc69\u200d\ud83d\udcbbb",
+          "reader_status": "ok",
+          "reader_error": null,
+          "browser_view_or_error": "\ud83d\udc69\u200d\ud83d\udcbbb!",
+          "writer_view": "\ud83d\udc69\u200d\ud83d\udcbbb!",
+          "writer_view_preserved": false,
+          "future_reload_edit": "{:ok, \"\ud83d\udc69\\u200D\ud83d\udcbbb?\"}",
+          "intended_final": "\ud83d\udc69\u200d\ud83d\udcbbX!"
+        },
+        {
+          "browser_status": "ok",
+          "stage": 3,
+          "view": "\ud83d\udc69\u200d\ud83d\udcbbb",
+          "reader_status": "ok",
+          "reader_error": null,
+          "browser_view_or_error": "\ud83d\udc69\u200d\ud83d\udcbbXb!",
+          "writer_view": "\ud83d\udc69\u200d\ud83d\udcbbXb!",
+          "writer_view_preserved": false,
+          "future_reload_edit": "{:ok, \"\ud83d\udc69\\u200D\ud83d\udcbbb?\"}",
+          "intended_final": "\ud83d\udc69\u200d\ud83d\udcbbX!"
+        },
+        {
+          "browser_status": "ok",
+          "stage": 4,
+          "view": "\ud83d\udc69\u200d\ud83d\udcbbb",
+          "reader_status": "ok",
+          "reader_error": null,
+          "browser_view_or_error": "\ud83d\udc69\u200d\ud83d\udcbbX!",
+          "writer_view": "\ud83d\udc69\u200d\ud83d\udcbbX!",
+          "writer_view_preserved": false,
+          "future_reload_edit": "{:ok, \"\ud83d\udc69\\u200D\ud83d\udcbbb?\"}",
+          "intended_final": "\ud83d\udc69\u200d\ud83d\udcbbX!"
+        }
+      ],
+      "transport": "updates_hex"
+    },
+    {
+      "name": "zwj",
+      "writer": "bcaec6a3520c59464bab87daaab7e4f76546c9c5",
+      "stages": [
+        {
+          "browser_status": "ok",
+          "stage": 1,
+          "view": "\ud83d\udc69\u200d\ud83d\udcbbb",
+          "reader_status": "ok",
+          "reader_error": null,
+          "browser_view_or_error": "\ud83d\udc69\u200d\ud83d\udcbbb",
+          "writer_view": "\ud83d\udc69\u200d\ud83d\udcbbb",
+          "writer_view_preserved": true,
+          "future_reload_edit": "{:ok, \"\ud83d\udc69\\u200D\ud83d\udcbbb?\"}",
+          "intended_final": "\ud83d\udc69\u200d\ud83d\udcbbX!"
+        },
+        {
+          "browser_status": "ok",
+          "stage": 2,
+          "view": "\ud83d\udc69\u200d\ud83d\udcbbb",
+          "reader_status": "ok",
+          "reader_error": null,
+          "browser_view_or_error": "\ud83d\udc69\u200d\ud83d\udcbbb!",
+          "writer_view": "\ud83d\udc69\u200d\ud83d\udcbbb!",
+          "writer_view_preserved": false,
+          "future_reload_edit": "{:ok, \"\ud83d\udc69\\u200D\ud83d\udcbbb?\"}",
+          "intended_final": "\ud83d\udc69\u200d\ud83d\udcbbX!"
+        },
+        {
+          "browser_status": "ok",
+          "stage": 3,
+          "view": "\ud83d\udc69\u200d\ud83d\udcbb",
+          "reader_status": "ok",
+          "reader_error": null,
+          "browser_view_or_error": "\ud83d\udc69\u200d\ud83d\udcbbXb!",
+          "writer_view": "\ud83d\udc69\u200d\ud83d\udcbbXb!",
+          "writer_view_preserved": false,
+          "future_reload_edit": "{:ok, \"\ud83d\udc69\\u200D\ud83d\udcbb?\"}",
+          "intended_final": "\ud83d\udc69\u200d\ud83d\udcbbX!"
+        },
+        {
+          "browser_status": "ok",
+          "stage": 4,
+          "view": "\ud83d\udc69\u200d\ud83d\udcbb",
+          "reader_status": "ok",
+          "reader_error": null,
+          "browser_view_or_error": "\ud83d\udc69\u200d\ud83d\udcbbX!",
+          "writer_view": "\ud83d\udc69\u200d\ud83d\udcbbX!",
+          "writer_view_preserved": false,
+          "future_reload_edit": "{:ok, \"\ud83d\udc69\\u200D\ud83d\udcbb?\"}",
+          "intended_final": "\ud83d\udc69\u200d\ud83d\udcbbX!"
+        }
+      ],
+      "transport": "full_updates_hex"
+    }
+  ],
+  "mixed-legacy-candidate-reader": [
+    {
+      "name": "ascii",
+      "writer": "bc35a0e9ff374449c71fb29be159bd9a711635bb",
+      "stages": [
+        {
+          "browser_status": "ok",
+          "stage": 1,
+          "view": "ab",
+          "reader_status": "ok",
+          "reader_error": null,
+          "browser_view_or_error": "ab",
+          "writer_view": "ab",
+          "writer_view_preserved": true,
+          "future_reload_edit": "{:ok, \"ab?\"}",
+          "intended_final": "aX!"
+        },
+        {
+          "browser_status": "ok",
+          "stage": 2,
+          "view": "ab!",
+          "reader_status": "ok",
+          "reader_error": null,
+          "browser_view_or_error": "ab!",
+          "writer_view": "ab!",
+          "writer_view_preserved": true,
+          "future_reload_edit": "{:ok, \"ab!?\"}",
+          "intended_final": "aX!"
+        },
+        {
+          "browser_status": "ok",
+          "stage": 3,
+          "view": "aXb!",
+          "reader_status": "ok",
+          "reader_error": null,
+          "browser_view_or_error": "aXb!",
+          "writer_view": "aXb!",
+          "writer_view_preserved": true,
+          "future_reload_edit": "{:ok, \"aXb!?\"}",
+          "intended_final": "aX!"
+        },
+        {
+          "browser_status": "ok",
+          "stage": 4,
+          "view": "aX!",
+          "reader_status": "ok",
+          "reader_error": null,
+          "browser_view_or_error": "aX!",
+          "writer_view": "aX!",
+          "writer_view_preserved": true,
+          "future_reload_edit": "{:ok, \"aX!?\"}",
+          "intended_final": "aX!"
+        }
+      ],
+      "transport": "updates_hex"
+    },
+    {
+      "name": "ascii",
+      "writer": "bc35a0e9ff374449c71fb29be159bd9a711635bb",
+      "stages": [
+        {
+          "browser_status": "ok",
+          "stage": 1,
+          "view": "ab",
+          "reader_status": "ok",
+          "reader_error": null,
+          "browser_view_or_error": "ab",
+          "writer_view": "ab",
+          "writer_view_preserved": true,
+          "future_reload_edit": "{:ok, \"ab?\"}",
+          "intended_final": "aX!"
+        },
+        {
+          "browser_status": "ok",
+          "stage": 2,
+          "view": "ab!",
+          "reader_status": "ok",
+          "reader_error": null,
+          "browser_view_or_error": "ab!",
+          "writer_view": "ab!",
+          "writer_view_preserved": true,
+          "future_reload_edit": "{:ok, \"ab!?\"}",
+          "intended_final": "aX!"
+        },
+        {
+          "browser_status": "ok",
+          "stage": 3,
+          "view": "aXb!",
+          "reader_status": "ok",
+          "reader_error": null,
+          "browser_view_or_error": "aXb!",
+          "writer_view": "aXb!",
+          "writer_view_preserved": true,
+          "future_reload_edit": "{:ok, \"aXb!?\"}",
+          "intended_final": "aX!"
+        },
+        {
+          "browser_status": "ok",
+          "stage": 4,
+          "view": "aX!",
+          "reader_status": "ok",
+          "reader_error": null,
+          "browser_view_or_error": "aX!",
+          "writer_view": "aX!",
+          "writer_view_preserved": true,
+          "future_reload_edit": "{:ok, \"aX!?\"}",
+          "intended_final": "aX!"
+        }
+      ],
+      "transport": "full_updates_hex"
+    },
+    {
+      "name": "combining",
+      "writer": "bc35a0e9ff374449c71fb29be159bd9a711635bb",
+      "stages": [
+        {
+          "browser_status": "ok",
+          "stage": 1,
+          "view": "e\u0301b",
+          "reader_status": "ok",
+          "reader_error": null,
+          "browser_view_or_error": "e\u0301b",
+          "writer_view": "e\u0301b",
+          "writer_view_preserved": true,
+          "future_reload_edit": "{:ok, \"e\u0301b?\"}",
+          "intended_final": "e\u0301X!"
+        },
+        {
+          "browser_status": "ok",
+          "stage": 2,
+          "view": "e\u0301b!",
+          "reader_status": "ok",
+          "reader_error": null,
+          "browser_view_or_error": "e\u0301b!",
+          "writer_view": "e\u0301b!",
+          "writer_view_preserved": true,
+          "future_reload_edit": "{:ok, \"e\u0301b!?\"}",
+          "intended_final": "e\u0301X!"
+        },
+        {
+          "browser_status": "ok",
+          "stage": 3,
+          "view": "eX\u0301b!",
+          "reader_status": "ok",
+          "reader_error": null,
+          "browser_view_or_error": "eX\u0301b!",
+          "writer_view": "e\u0301Xb!",
+          "writer_view_preserved": false,
+          "future_reload_edit": "{:ok, \"eX\u0301b!?\"}",
+          "intended_final": "e\u0301X!"
+        },
+        {
+          "browser_status": "ok",
+          "stage": 4,
+          "view": "eXb!",
+          "reader_status": "ok",
+          "reader_error": null,
+          "browser_view_or_error": "eXb!",
+          "writer_view": "e\u0301X!",
+          "writer_view_preserved": false,
+          "future_reload_edit": "{:ok, \"eXb!?\"}",
+          "intended_final": "e\u0301X!"
+        }
+      ],
+      "transport": "updates_hex"
+    },
+    {
+      "name": "combining",
+      "writer": "bc35a0e9ff374449c71fb29be159bd9a711635bb",
+      "stages": [
+        {
+          "browser_status": "ok",
+          "stage": 1,
+          "view": "e\u0301b",
+          "reader_status": "ok",
+          "reader_error": null,
+          "browser_view_or_error": "e\u0301b",
+          "writer_view": "e\u0301b",
+          "writer_view_preserved": true,
+          "future_reload_edit": "{:ok, \"e\u0301b?\"}",
+          "intended_final": "e\u0301X!"
+        },
+        {
+          "browser_status": "ok",
+          "stage": 2,
+          "view": "e\u0301b!",
+          "reader_status": "ok",
+          "reader_error": null,
+          "browser_view_or_error": "e\u0301b!",
+          "writer_view": "e\u0301b!",
+          "writer_view_preserved": true,
+          "future_reload_edit": "{:ok, \"e\u0301b!?\"}",
+          "intended_final": "e\u0301X!"
+        },
+        {
+          "browser_status": "ok",
+          "stage": 3,
+          "view": "ebX\u0301!",
+          "reader_status": "ok",
+          "reader_error": null,
+          "browser_view_or_error": "ebX\u0301!",
+          "writer_view": "e\u0301Xb!",
+          "writer_view_preserved": false,
+          "future_reload_edit": "{:ok, \"ebX\u0301!?\"}",
+          "intended_final": "e\u0301X!"
+        },
+        {
+          "browser_status": "ok",
+          "stage": 4,
+          "view": "eX!",
+          "reader_status": "ok",
+          "reader_error": null,
+          "browser_view_or_error": "eX!",
+          "writer_view": "e\u0301X!",
+          "writer_view_preserved": false,
+          "future_reload_edit": "{:ok, \"eX!?\"}",
+          "intended_final": "e\u0301X!"
+        }
+      ],
+      "transport": "full_updates_hex"
+    },
+    {
+      "name": "astral",
+      "writer": "bc35a0e9ff374449c71fb29be159bd9a711635bb",
+      "stages": [
+        {
+          "browser_status": "ok",
+          "stage": 1,
+          "view": "\ud83d\ude00b",
+          "reader_status": "ok",
+          "reader_error": null,
+          "browser_view_or_error": "\ud83d\ude00b",
+          "writer_view": "\ud83d\ude00b",
+          "writer_view_preserved": true,
+          "future_reload_edit": "{:ok, \"\ud83d\ude00b?\"}",
+          "intended_final": "\ud83d\ude00X!"
+        },
+        {
+          "browser_status": "ok",
+          "stage": 2,
+          "view": "\ud83d\ude00b!",
+          "reader_status": "ok",
+          "reader_error": null,
+          "browser_view_or_error": "\ud83d\ude00b!",
+          "writer_view": "\ud83d\ude00b!",
+          "writer_view_preserved": true,
+          "future_reload_edit": "{:ok, \"\ud83d\ude00b!?\"}",
+          "intended_final": "\ud83d\ude00X!"
+        },
+        {
+          "browser_status": "ok",
+          "stage": 3,
+          "view": "\ud83d\ude00Xbbb!",
+          "reader_status": "ok",
+          "reader_error": null,
+          "browser_view_or_error": "\ufffdX\ufffdb!",
+          "writer_view": "\ud83d\ude00Xb!",
+          "writer_view_preserved": false,
+          "future_reload_edit": "{:ok, \"\ud83d\ude00Xbbb!?\"}",
+          "intended_final": "\ud83d\ude00X!"
+        },
+        {
+          "browser_status": "ok",
+          "stage": 4,
+          "view": "bbXbbb!",
+          "reader_status": "ok",
+          "reader_error": null,
+          "browser_view_or_error": "\ufffdXb!",
+          "writer_view": "\ud83d\ude00X!",
+          "writer_view_preserved": false,
+          "future_reload_edit": "{:ok, \"Xb!?\"}",
+          "intended_final": "\ud83d\ude00X!"
+        }
+      ],
+      "transport": "updates_hex"
+    },
+    {
+      "name": "astral",
+      "writer": "bc35a0e9ff374449c71fb29be159bd9a711635bb",
+      "stages": [
+        {
+          "browser_status": "ok",
+          "stage": 1,
+          "view": "\ud83d\ude00b",
+          "reader_status": "ok",
+          "reader_error": null,
+          "browser_view_or_error": "\ud83d\ude00b",
+          "writer_view": "\ud83d\ude00b",
+          "writer_view_preserved": true,
+          "future_reload_edit": "{:ok, \"\ud83d\ude00b?\"}",
+          "intended_final": "\ud83d\ude00X!"
+        },
+        {
+          "browser_status": "ok",
+          "stage": 2,
+          "view": "\ud83d\ude00b!",
+          "reader_status": "ok",
+          "reader_error": null,
+          "browser_view_or_error": "\ud83d\ude00b!",
+          "writer_view": "\ud83d\ude00b!",
+          "writer_view_preserved": true,
+          "future_reload_edit": "{:ok, \"\ud83d\ude00b!?\"}",
+          "intended_final": "\ud83d\ude00X!"
+        },
+        {
+          "browser_status": "ok",
+          "stage": 3,
+          "view": "\ud83d\ude00Xbb!bb",
+          "reader_status": "ok",
+          "reader_error": null,
+          "browser_view_or_error": "\ufffdbX\ufffd!",
+          "writer_view": "\ud83d\ude00Xb!",
+          "writer_view_preserved": false,
+          "future_reload_edit": "{:ok, \"\ud83d\ude00Xbb!bb?\"}",
+          "intended_final": "\ud83d\ude00X!"
+        },
+        {
+          "browser_status": "ok",
+          "stage": 4,
+          "view": "X!",
+          "reader_status": "ok",
+          "reader_error": null,
+          "browser_view_or_error": "\ufffdX!",
+          "writer_view": "\ud83d\ude00X!",
+          "writer_view_preserved": false,
+          "future_reload_edit": "{:ok, \"X!?\"}",
+          "intended_final": "\ud83d\ude00X!"
+        }
+      ],
+      "transport": "full_updates_hex"
+    },
+    {
+      "name": "zwj",
+      "writer": "bc35a0e9ff374449c71fb29be159bd9a711635bb",
+      "stages": [
+        {
+          "browser_status": "ok",
+          "stage": 1,
+          "view": "\ud83d\udc69\u200d\ud83d\udcbbb",
+          "reader_status": "ok",
+          "reader_error": null,
+          "browser_view_or_error": "\ud83d\udc69\u200d\ud83d\udcbbb",
+          "writer_view": "\ud83d\udc69\u200d\ud83d\udcbbb",
+          "writer_view_preserved": true,
+          "future_reload_edit": "{:ok, \"\ud83d\udc69\\u200D\ud83d\udcbbb?\"}",
+          "intended_final": "\ud83d\udc69\u200d\ud83d\udcbbX!"
+        },
+        {
+          "browser_status": "ok",
+          "stage": 2,
+          "view": "\ud83d\udc69\u200d\ud83d\udcbbb!",
+          "reader_status": "ok",
+          "reader_error": null,
+          "browser_view_or_error": "\ud83d\udc69\u200d\ud83d\udcbbb!",
+          "writer_view": "\ud83d\udc69\u200d\ud83d\udcbbb!",
+          "writer_view_preserved": true,
+          "future_reload_edit": "{:ok, \"\ud83d\udc69\\u200D\ud83d\udcbbb!?\"}",
+          "intended_final": "\ud83d\udc69\u200d\ud83d\udcbbX!"
+        },
+        {
+          "browser_status": "ok",
+          "stage": 3,
+          "view": "\ud83d\udc69X\u200d\ud83d\udcbbb\u200d\ud83d\udcbbb\u200d\ud83d\udcbbb!",
+          "reader_status": "ok",
+          "reader_error": null,
+          "browser_view_or_error": "\ufffdX\ufffd\u200d\ud83d\udcbbb!",
+          "writer_view": "\ud83d\udc69\u200d\ud83d\udcbbXb!",
+          "writer_view_preserved": false,
+          "future_reload_edit": "{:ok, \"\ud83d\udc69X\\u200D\ud83d\udcbbb\\u200D\ud83d\udcbbb\\u200D\ud83d\udcbbb!?\"}",
+          "intended_final": "\ud83d\udc69\u200d\ud83d\udcbbX!"
+        },
+        {
+          "browser_status": "ok",
+          "stage": 4,
+          "view": "\u200d\ud83d\udcbbb\u200d\ud83d\udcbbbX\u200d\ud83d\udcbbb\u200d\ud83d\udcbbb\u200d\ud83d\udcbbb!",
+          "reader_status": "ok",
+          "reader_error": null,
+          "browser_view_or_error": "\ufffdX\u200d\ud83d\udcbbb!",
+          "writer_view": "\ud83d\udc69\u200d\ud83d\udcbbX!",
+          "writer_view_preserved": false,
+          "future_reload_edit": "{:ok, \"X\\u200D\ud83d\udcbbb!?\"}",
+          "intended_final": "\ud83d\udc69\u200d\ud83d\udcbbX!"
+        }
+      ],
+      "transport": "updates_hex"
+    },
+    {
+      "name": "zwj",
+      "writer": "bc35a0e9ff374449c71fb29be159bd9a711635bb",
+      "stages": [
+        {
+          "browser_status": "ok",
+          "stage": 1,
+          "view": "\ud83d\udc69\u200d\ud83d\udcbbb",
+          "reader_status": "ok",
+          "reader_error": null,
+          "browser_view_or_error": "\ud83d\udc69\u200d\ud83d\udcbbb",
+          "writer_view": "\ud83d\udc69\u200d\ud83d\udcbbb",
+          "writer_view_preserved": true,
+          "future_reload_edit": "{:ok, \"\ud83d\udc69\\u200D\ud83d\udcbbb?\"}",
+          "intended_final": "\ud83d\udc69\u200d\ud83d\udcbbX!"
+        },
+        {
+          "browser_status": "ok",
+          "stage": 2,
+          "view": "\ud83d\udc69\u200d\ud83d\udcbbb!",
+          "reader_status": "ok",
+          "reader_error": null,
+          "browser_view_or_error": "\ud83d\udc69\u200d\ud83d\udcbbb!",
+          "writer_view": "\ud83d\udc69\u200d\ud83d\udcbbb!",
+          "writer_view_preserved": true,
+          "future_reload_edit": "{:ok, \"\ud83d\udc69\\u200D\ud83d\udcbbb!?\"}",
+          "intended_final": "\ud83d\udc69\u200d\ud83d\udcbbX!"
+        },
+        {
+          "browser_status": "ok",
+          "stage": 3,
+          "view": "\ud83d\udc69X\u200d\ud83d\udcbb\u200d\ud83d\udcbb!b\u200d\ud83d\udcbb",
+          "reader_status": "ok",
+          "reader_error": null,
+          "browser_view_or_error": "\ufffdbX\ufffd\u200d\ud83d\udcbb!",
+          "writer_view": "\ud83d\udc69\u200d\ud83d\udcbbXb!",
+          "writer_view_preserved": false,
+          "future_reload_edit": "{:ok, \"\ud83d\udc69X\\u200D\ud83d\udcbb\\u200D\ud83d\udcbb!b\\u200D\ud83d\udcbb\\u200D\ud83d\udcbb?\"}",
+          "intended_final": "\ud83d\udc69\u200d\ud83d\udcbbX!"
+        },
+        {
+          "browser_status": "ok",
+          "stage": 4,
+          "view": "\u200d\ud83d\udcbb\u200d\ud83d\udcbbX\u200d\ud83d\udcbb\u200d\ud83d\udcbb!\u200d\ud83d\udcbb",
+          "reader_status": "ok",
+          "reader_error": null,
+          "browser_view_or_error": "\ufffdX\u200d\ud83d\udcbb!",
+          "writer_view": "\ud83d\udc69\u200d\ud83d\udcbbX!",
+          "writer_view_preserved": false,
+          "future_reload_edit": "{:ok, \"X\\u200D\ud83d\udcbb!?\"}",
+          "intended_final": "\ud83d\udc69\u200d\ud83d\udcbbX!"
+        }
+      ],
+      "transport": "full_updates_hex"
+    }
+  ],
+  "mixed-legacy-old-reader": [
+    {
+      "name": "ascii",
+      "writer": "bc35a0e9ff374449c71fb29be159bd9a711635bb",
+      "stages": [
+        {
+          "browser_status": "ok",
+          "stage": 1,
+          "view": "ab",
+          "reader_status": "ok",
+          "reader_error": null,
+          "browser_view_or_error": "ab",
+          "writer_view": "ab",
+          "writer_view_preserved": true,
+          "future_reload_edit": "{:ok, \"ab?\"}",
+          "intended_final": "aX!"
+        },
+        {
+          "browser_status": "ok",
+          "stage": 2,
+          "view": "ab!",
+          "reader_status": "ok",
+          "reader_error": null,
+          "browser_view_or_error": "ab!",
+          "writer_view": "ab!",
+          "writer_view_preserved": true,
+          "future_reload_edit": "{:ok, \"ab!?\"}",
+          "intended_final": "aX!"
+        },
+        {
+          "browser_status": "ok",
+          "stage": 3,
+          "view": "aXb!",
+          "reader_status": "ok",
+          "reader_error": null,
+          "browser_view_or_error": "aXb!",
+          "writer_view": "aXb!",
+          "writer_view_preserved": true,
+          "future_reload_edit": "{:ok, \"aXb!?\"}",
+          "intended_final": "aX!"
+        },
+        {
+          "browser_status": "ok",
+          "stage": 4,
+          "view": "aX!",
+          "reader_status": "ok",
+          "reader_error": null,
+          "browser_view_or_error": "aX!",
+          "writer_view": "aX!",
+          "writer_view_preserved": true,
+          "future_reload_edit": "{:ok, \"aX!?\"}",
+          "intended_final": "aX!"
+        }
+      ],
+      "transport": "updates_hex"
+    },
+    {
+      "name": "ascii",
+      "writer": "bc35a0e9ff374449c71fb29be159bd9a711635bb",
+      "stages": [
+        {
+          "browser_status": "ok",
+          "stage": 1,
+          "view": "ab",
+          "reader_status": "ok",
+          "reader_error": null,
+          "browser_view_or_error": "ab",
+          "writer_view": "ab",
+          "writer_view_preserved": true,
+          "future_reload_edit": "{:ok, \"ab?\"}",
+          "intended_final": "aX!"
+        },
+        {
+          "browser_status": "ok",
+          "stage": 2,
+          "view": "ab!",
+          "reader_status": "ok",
+          "reader_error": null,
+          "browser_view_or_error": "ab!",
+          "writer_view": "ab!",
+          "writer_view_preserved": true,
+          "future_reload_edit": "{:ok, \"ab!?\"}",
+          "intended_final": "aX!"
+        },
+        {
+          "browser_status": "ok",
+          "stage": 3,
+          "view": "aXb!",
+          "reader_status": "ok",
+          "reader_error": null,
+          "browser_view_or_error": "aXb!",
+          "writer_view": "aXb!",
+          "writer_view_preserved": true,
+          "future_reload_edit": "{:ok, \"aXb!?\"}",
+          "intended_final": "aX!"
+        },
+        {
+          "browser_status": "ok",
+          "stage": 4,
+          "view": "aX!",
+          "reader_status": "ok",
+          "reader_error": null,
+          "browser_view_or_error": "aX!",
+          "writer_view": "aX!",
+          "writer_view_preserved": true,
+          "future_reload_edit": "{:ok, \"aX!?\"}",
+          "intended_final": "aX!"
+        }
+      ],
+      "transport": "full_updates_hex"
+    },
+    {
+      "name": "combining",
+      "writer": "bc35a0e9ff374449c71fb29be159bd9a711635bb",
+      "stages": [
+        {
+          "browser_status": "ok",
+          "stage": 1,
+          "view": "e\u0301b",
+          "reader_status": "ok",
+          "reader_error": null,
+          "browser_view_or_error": "e\u0301b",
+          "writer_view": "e\u0301b",
+          "writer_view_preserved": true,
+          "future_reload_edit": "{:ok, \"e\u0301b?\"}",
+          "intended_final": "e\u0301X!"
+        },
+        {
+          "browser_status": "ok",
+          "stage": 2,
+          "view": "e\u0301b!",
+          "reader_status": "ok",
+          "reader_error": null,
+          "browser_view_or_error": "e\u0301b!",
+          "writer_view": "e\u0301b!",
+          "writer_view_preserved": true,
+          "future_reload_edit": "{:ok, \"e\u0301b!?\"}",
+          "intended_final": "e\u0301X!"
+        },
+        {
+          "browser_status": "ok",
+          "stage": 3,
+          "view": "e\u0301Xb!",
+          "reader_status": "ok",
+          "reader_error": null,
+          "browser_view_or_error": "eX\u0301b!",
+          "writer_view": "e\u0301Xb!",
+          "writer_view_preserved": true,
+          "future_reload_edit": "{:ok, \"e\u0301Xb!?\"}",
+          "intended_final": "e\u0301X!"
+        },
+        {
+          "browser_status": "ok",
+          "stage": 4,
+          "view": "e\u0301X!",
+          "reader_status": "ok",
+          "reader_error": null,
+          "browser_view_or_error": "eXb!",
+          "writer_view": "e\u0301X!",
+          "writer_view_preserved": true,
+          "future_reload_edit": "{:ok, \"e\u0301X!?\"}",
+          "intended_final": "e\u0301X!"
+        }
+      ],
+      "transport": "updates_hex"
+    },
+    {
+      "name": "combining",
+      "writer": "bc35a0e9ff374449c71fb29be159bd9a711635bb",
+      "stages": [
+        {
+          "browser_status": "ok",
+          "stage": 1,
+          "view": "e\u0301b",
+          "reader_status": "ok",
+          "reader_error": null,
+          "browser_view_or_error": "e\u0301b",
+          "writer_view": "e\u0301b",
+          "writer_view_preserved": true,
+          "future_reload_edit": "{:ok, \"e\u0301b?\"}",
+          "intended_final": "e\u0301X!"
+        },
+        {
+          "browser_status": "ok",
+          "stage": 2,
+          "view": "e\u0301b!",
+          "reader_status": "ok",
+          "reader_error": null,
+          "browser_view_or_error": "e\u0301b!",
+          "writer_view": "e\u0301b!",
+          "writer_view_preserved": true,
+          "future_reload_edit": "{:ok, \"e\u0301b!?\"}",
+          "intended_final": "e\u0301X!"
+        },
+        {
+          "browser_status": "ok",
+          "stage": 3,
+          "view": "e\u0301Xb!",
+          "reader_status": "ok",
+          "reader_error": null,
+          "browser_view_or_error": "ebX\u0301!",
+          "writer_view": "e\u0301Xb!",
+          "writer_view_preserved": true,
+          "future_reload_edit": "{:ok, \"e\u0301Xb!?\"}",
+          "intended_final": "e\u0301X!"
+        },
+        {
+          "browser_status": "ok",
+          "stage": 4,
+          "view": "e\u0301X!",
+          "reader_status": "ok",
+          "reader_error": null,
+          "browser_view_or_error": "eX!",
+          "writer_view": "e\u0301X!",
+          "writer_view_preserved": true,
+          "future_reload_edit": "{:ok, \"e\u0301X!?\"}",
+          "intended_final": "e\u0301X!"
+        }
+      ],
+      "transport": "full_updates_hex"
+    },
+    {
+      "name": "astral",
+      "writer": "bc35a0e9ff374449c71fb29be159bd9a711635bb",
+      "stages": [
+        {
+          "browser_status": "ok",
+          "stage": 1,
+          "view": "\ud83d\ude00b",
+          "reader_status": "ok",
+          "reader_error": null,
+          "browser_view_or_error": "\ud83d\ude00b",
+          "writer_view": "\ud83d\ude00b",
+          "writer_view_preserved": true,
+          "future_reload_edit": "{:ok, \"\ud83d\ude00b?\"}",
+          "intended_final": "\ud83d\ude00X!"
+        },
+        {
+          "browser_status": "ok",
+          "stage": 2,
+          "view": "\ud83d\ude00b!",
+          "reader_status": "ok",
+          "reader_error": null,
+          "browser_view_or_error": "\ud83d\ude00b!",
+          "writer_view": "\ud83d\ude00b!",
+          "writer_view_preserved": true,
+          "future_reload_edit": "{:ok, \"\ud83d\ude00b!?\"}",
+          "intended_final": "\ud83d\ude00X!"
+        },
+        {
+          "browser_status": "ok",
+          "stage": 3,
+          "view": "\ud83d\ude00Xb!",
+          "reader_status": "ok",
+          "reader_error": null,
+          "browser_view_or_error": "\ufffdX\ufffdb!",
+          "writer_view": "\ud83d\ude00Xb!",
+          "writer_view_preserved": true,
+          "future_reload_edit": "{:ok, \"\ud83d\ude00Xb!?\"}",
+          "intended_final": "\ud83d\ude00X!"
+        },
+        {
+          "browser_status": "ok",
+          "stage": 4,
+          "view": "\ud83d\ude00X!",
+          "reader_status": "ok",
+          "reader_error": null,
+          "browser_view_or_error": "\ufffdXb!",
+          "writer_view": "\ud83d\ude00X!",
+          "writer_view_preserved": true,
+          "future_reload_edit": "{:ok, \"\ud83d\ude00X!?\"}",
+          "intended_final": "\ud83d\ude00X!"
+        }
+      ],
+      "transport": "updates_hex"
+    },
+    {
+      "name": "astral",
+      "writer": "bc35a0e9ff374449c71fb29be159bd9a711635bb",
+      "stages": [
+        {
+          "browser_status": "ok",
+          "stage": 1,
+          "view": "\ud83d\ude00b",
+          "reader_status": "ok",
+          "reader_error": null,
+          "browser_view_or_error": "\ud83d\ude00b",
+          "writer_view": "\ud83d\ude00b",
+          "writer_view_preserved": true,
+          "future_reload_edit": "{:ok, \"\ud83d\ude00b?\"}",
+          "intended_final": "\ud83d\ude00X!"
+        },
+        {
+          "browser_status": "ok",
+          "stage": 2,
+          "view": "\ud83d\ude00b!",
+          "reader_status": "ok",
+          "reader_error": null,
+          "browser_view_or_error": "\ud83d\ude00b!",
+          "writer_view": "\ud83d\ude00b!",
+          "writer_view_preserved": true,
+          "future_reload_edit": "{:ok, \"\ud83d\ude00b!?\"}",
+          "intended_final": "\ud83d\ude00X!"
+        },
+        {
+          "browser_status": "ok",
+          "stage": 3,
+          "view": "\ud83d\ude00Xb!",
+          "reader_status": "ok",
+          "reader_error": null,
+          "browser_view_or_error": "\ufffdbX\ufffd!",
+          "writer_view": "\ud83d\ude00Xb!",
+          "writer_view_preserved": true,
+          "future_reload_edit": "{:ok, \"\ud83d\ude00Xb!?\"}",
+          "intended_final": "\ud83d\ude00X!"
+        },
+        {
+          "browser_status": "ok",
+          "stage": 4,
+          "view": "\ud83d\ude00X!",
+          "reader_status": "ok",
+          "reader_error": null,
+          "browser_view_or_error": "\ufffdX!",
+          "writer_view": "\ud83d\ude00X!",
+          "writer_view_preserved": true,
+          "future_reload_edit": "{:ok, \"\ud83d\ude00X!?\"}",
+          "intended_final": "\ud83d\ude00X!"
+        }
+      ],
+      "transport": "full_updates_hex"
+    },
+    {
+      "name": "zwj",
+      "writer": "bc35a0e9ff374449c71fb29be159bd9a711635bb",
+      "stages": [
+        {
+          "browser_status": "ok",
+          "stage": 1,
+          "view": "\ud83d\udc69\u200d\ud83d\udcbbb",
+          "reader_status": "ok",
+          "reader_error": null,
+          "browser_view_or_error": "\ud83d\udc69\u200d\ud83d\udcbbb",
+          "writer_view": "\ud83d\udc69\u200d\ud83d\udcbbb",
+          "writer_view_preserved": true,
+          "future_reload_edit": "{:ok, \"\ud83d\udc69\\u200D\ud83d\udcbbb?\"}",
+          "intended_final": "\ud83d\udc69\u200d\ud83d\udcbbX!"
+        },
+        {
+          "browser_status": "ok",
+          "stage": 2,
+          "view": "\ud83d\udc69\u200d\ud83d\udcbbb!",
+          "reader_status": "ok",
+          "reader_error": null,
+          "browser_view_or_error": "\ud83d\udc69\u200d\ud83d\udcbbb!",
+          "writer_view": "\ud83d\udc69\u200d\ud83d\udcbbb!",
+          "writer_view_preserved": true,
+          "future_reload_edit": "{:ok, \"\ud83d\udc69\\u200D\ud83d\udcbbb!?\"}",
+          "intended_final": "\ud83d\udc69\u200d\ud83d\udcbbX!"
+        },
+        {
+          "browser_status": "ok",
+          "stage": 3,
+          "view": "\ud83d\udc69\u200d\ud83d\udcbbXb!",
+          "reader_status": "ok",
+          "reader_error": null,
+          "browser_view_or_error": "\ufffdX\ufffd\u200d\ud83d\udcbbb!",
+          "writer_view": "\ud83d\udc69\u200d\ud83d\udcbbXb!",
+          "writer_view_preserved": true,
+          "future_reload_edit": "{:ok, \"\ud83d\udc69\\u200D\ud83d\udcbbXb!?\"}",
+          "intended_final": "\ud83d\udc69\u200d\ud83d\udcbbX!"
+        },
+        {
+          "browser_status": "ok",
+          "stage": 4,
+          "view": "\ud83d\udc69\u200d\ud83d\udcbbX!",
+          "reader_status": "ok",
+          "reader_error": null,
+          "browser_view_or_error": "\ufffdX\u200d\ud83d\udcbbb!",
+          "writer_view": "\ud83d\udc69\u200d\ud83d\udcbbX!",
+          "writer_view_preserved": true,
+          "future_reload_edit": "{:ok, \"\ud83d\udc69\\u200D\ud83d\udcbbX!?\"}",
+          "intended_final": "\ud83d\udc69\u200d\ud83d\udcbbX!"
+        }
+      ],
+      "transport": "updates_hex"
+    },
+    {
+      "name": "zwj",
+      "writer": "bc35a0e9ff374449c71fb29be159bd9a711635bb",
+      "stages": [
+        {
+          "browser_status": "ok",
+          "stage": 1,
+          "view": "\ud83d\udc69\u200d\ud83d\udcbbb",
+          "reader_status": "ok",
+          "reader_error": null,
+          "browser_view_or_error": "\ud83d\udc69\u200d\ud83d\udcbbb",
+          "writer_view": "\ud83d\udc69\u200d\ud83d\udcbbb",
+          "writer_view_preserved": true,
+          "future_reload_edit": "{:ok, \"\ud83d\udc69\\u200D\ud83d\udcbbb?\"}",
+          "intended_final": "\ud83d\udc69\u200d\ud83d\udcbbX!"
+        },
+        {
+          "browser_status": "ok",
+          "stage": 2,
+          "view": "\ud83d\udc69\u200d\ud83d\udcbbb!",
+          "reader_status": "ok",
+          "reader_error": null,
+          "browser_view_or_error": "\ud83d\udc69\u200d\ud83d\udcbbb!",
+          "writer_view": "\ud83d\udc69\u200d\ud83d\udcbbb!",
+          "writer_view_preserved": true,
+          "future_reload_edit": "{:ok, \"\ud83d\udc69\\u200D\ud83d\udcbbb!?\"}",
+          "intended_final": "\ud83d\udc69\u200d\ud83d\udcbbX!"
+        },
+        {
+          "browser_status": "ok",
+          "stage": 3,
+          "view": "\ud83d\udc69\u200d\ud83d\udcbbXb!",
+          "reader_status": "ok",
+          "reader_error": null,
+          "browser_view_or_error": "\ufffdbX\ufffd\u200d\ud83d\udcbb!",
+          "writer_view": "\ud83d\udc69\u200d\ud83d\udcbbXb!",
+          "writer_view_preserved": true,
+          "future_reload_edit": "{:ok, \"\ud83d\udc69\\u200D\ud83d\udcbbXb!?\"}",
+          "intended_final": "\ud83d\udc69\u200d\ud83d\udcbbX!"
+        },
+        {
+          "browser_status": "ok",
+          "stage": 4,
+          "view": "\ud83d\udc69\u200d\ud83d\udcbbX!",
+          "reader_status": "ok",
+          "reader_error": null,
+          "browser_view_or_error": "\ufffdX\u200d\ud83d\udcbb!",
+          "writer_view": "\ud83d\udc69\u200d\ud83d\udcbbX!",
+          "writer_view_preserved": true,
+          "future_reload_edit": "{:ok, \"\ud83d\udc69\\u200D\ud83d\udcbbX!?\"}",
+          "intended_final": "\ud83d\udc69\u200d\ud83d\udcbbX!"
+        }
+      ],
+      "transport": "full_updates_hex"
+    }
+  ]
+}

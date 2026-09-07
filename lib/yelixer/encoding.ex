@@ -513,7 +513,7 @@ defmodule Yelixer.Encoding do
        iteration, which is unspecified.
     2. **Blocks split at the remote clock boundary** — when a block
        straddles the cutoff (`clock < remote_clock < clock + len`),
-       only its tail is encoded via `Item.split/2`.
+       only its tail is encoded via `Item.split_at_clock/2`.
     3. **Tombstoned items emit `:deleted` content** — the original
        payload is dropped but the ID-range slot is preserved, matching
        the in-memory `:deleted` content variant.
@@ -570,7 +570,7 @@ defmodule Yelixer.Encoding do
               if item.id.clock < remote_clock do
                 # Partial item — only encode the portion after remote_clock
                 offset = remote_clock - item.id.clock
-                {_left, right} = Item.split(item, offset)
+                {_left, right} = Item.split_at_clock(item, offset)
                 <<iacc::binary, encode_item(right, store)::binary>>
               else
                 <<iacc::binary, encode_item(item, store)::binary>>
@@ -1302,7 +1302,7 @@ defmodule Yelixer.Encoding do
     type_key = parent_type_key(item)
     store = if type_key, do: BlockStore.materialize_sequence(store, type_key), else: store
 
-    {left, right} = Item.split(item, offset)
+    {left, right} = Item.split_at_clock(item, offset)
 
     clients =
       Map.update!(store.clients, client, fn blocks ->
@@ -1411,7 +1411,7 @@ defmodule Yelixer.Encoding do
       item.id.clock < client_clock ->
         # Partial overlap — trim the already-known portion and integrate the rest
         offset = client_clock - item.id.clock
-        {_left, trimmed} = Item.split(item, offset)
+        {_left, trimmed} = Item.split_at_clock(item, offset)
 
         case try_integrate_item(trimmed, doc, sv) do
           {:ok, doc, sv} ->

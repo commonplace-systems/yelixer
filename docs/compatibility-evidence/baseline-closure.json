@@ -1,0 +1,138 @@
+{
+  "yelixer": {
+    "checkout_head": "a30c81e853fc4cadd45ba4840a8ffc17a816c975",
+    "installed_git_deps": {},
+    "locked_git_deps": {},
+    "hex_versions": {
+      "jason": "1.4.5",
+      "stream_data": "1.4.0",
+      "telemetry": "1.4.2"
+    }
+  },
+  "yepochs": {
+    "checkout_head": "32c6dd3eeb9556e00d9aa0299295496fcec35d45",
+    "installed_git_deps": {
+      "yelixer": "b688b6b17b0cba00ad00b5d0863a1ef88223d271"
+    },
+    "locked_git_deps": {
+      "yelixer": "b688b6b17b0cba00ad00b5d0863a1ef88223d271"
+    },
+    "hex_versions": {
+      "dialyxir": "1.4.7",
+      "erlex": "0.2.9",
+      "jason": "1.4.5",
+      "stream_data": "1.4.0",
+      "telemetry": "1.4.2"
+    }
+  },
+  "commonplace-merkle-crdt": {
+    "checkout_head": "484a393b2020f44cda0c36cbf01d2195677ae661",
+    "installed_git_deps": {
+      "commonplace_log_reducer": "d081529b8a97d31c55254b0637f404793ab35810",
+      "yelixer": "bc35a0e9ff374449c71fb29be159bd9a711635bb",
+      "yepochs": "fdc808f43ac42238c27abf2ff51c301b76a889cb"
+    },
+    "locked_git_deps": {
+      "commonplace_log_reducer": "d081529b8a97d31c55254b0637f404793ab35810",
+      "yelixer": "bc35a0e9ff374449c71fb29be159bd9a711635bb",
+      "yepochs": "fdc808f43ac42238c27abf2ff51c301b76a889cb"
+    },
+    "hex_versions": {
+      "jason": "1.4.5",
+      "telemetry": "1.4.2"
+    }
+  },
+  "commonplace-next": {
+    "checkout_head": "a4903d36087550d5e876e4f0324be49c756c2608",
+    "installed_git_deps": {
+      "commonplace_attribute_map": "4695d407d7fa5775ca375962eac978fabd78a8c5",
+      "commonplace_biscuit": "1044bc35cfabcd91dff174f8c4e6cb3be42978ba",
+      "commonplace_cell": "68214dc6b4cc0bba927060b55fc8c166df34678b",
+      "commonplace_dir": "8b525a9ff9c3e23121fcafd260f8209afa2f5ea7",
+      "commonplace_doc": "faeea17d2bc053ac2e51d1e5722ce5ee257b199f",
+      "commonplace_doc_sync": "9d8aba81728e68c9a9e49fd89179a5b499ba20da",
+      "commonplace_log": "778997e5b5e90d304343f3a7cb24b768c09de172",
+      "commonplace_log_reducer": "4695d407d7fa5775ca375962eac978fabd78a8c5",
+      "commonplace_markdown": "04a2aa437ac472dff067fe0979854d5300da5769",
+      "commonplace_merkle_crdt": "6608f3d7cec1fbae88826a672299812798a66b76",
+      "commonplace_value": "177567aad51e1f48201cfd893a0f24d9c7166e19",
+      "yelixer": "bc35a0e9ff374449c71fb29be159bd9a711635bb",
+      "yepochs": "fdc808f43ac42238c27abf2ff51c301b76a889cb"
+    },
+    "locked_git_deps": {
+      "commonplace_attribute_map": "4695d407d7fa5775ca375962eac978fabd78a8c5",
+      "commonplace_biscuit": "c60790881d2207dba61d8d3c7e000c3719f3da93",
+      "commonplace_cell": "e2552defce6fe3eeaa1a13381dae1132a8b8dfaa",
+      "commonplace_dir": "8b525a9ff9c3e23121fcafd260f8209afa2f5ea7",
+      "commonplace_doc": "43eb6826d51332aa6d042c070887f0db4b6cae53",
+      "commonplace_doc_sync": "3c13642c85787f3a19cafb16b8192bc1db0495bf",
+      "commonplace_log": "4e949866b455cb176cc3445a4c74b1719a5b19f4",
+      "commonplace_log_reducer": "4695d407d7fa5775ca375962eac978fabd78a8c5",
+      "commonplace_markdown": "04a2aa437ac472dff067fe0979854d5300da5769",
+      "commonplace_merkle_crdt": "6608f3d7cec1fbae88826a672299812798a66b76",
+      "commonplace_value": "177567aad51e1f48201cfd893a0f24d9c7166e19",
+      "yelixer": "bc35a0e9ff374449c71fb29be159bd9a711635bb",
+      "yepochs": "fdc808f43ac42238c27abf2ff51c301b76a889cb"
+    },
+    "hex_versions": {
+      "bandit": "1.12.5",
+      "cc_precompiler": "0.1.11",
+      "db_connection": "2.10.2",
+      "elixir_make": "0.10.0",
+      "esbuild": "0.10.0",
+      "exqlite": "0.40.0",
+      "hpax": "1.0.4",
+      "jason": "1.4.5",
+      "mime": "2.0.7",
+      "mint": "1.9.3",
+      "mint_web_socket": "1.0.6",
+      "phoenix": "1.8.12",
+      "phoenix_pubsub": "2.2.0",
+      "phoenix_template": "1.0.4",
+      "plug": "1.20.3",
+      "plug_crypto": "2.2.0",
+      "rustler": "0.36.2",
+      "telemetry": "1.4.2",
+      "thousand_island": "1.5.0",
+      "toml": "0.7.0",
+      "websock": "0.5.3",
+      "websock_adapter": "0.6.0"
+    }
+  },
+  "node": "v24.13.1",
+  "stable_yjs": "13.6.32",
+  "browser_yjs": "13.6.32",
+  "next-executed-baseline": {
+    "checkout_head": "94abc915604cf93ee6c604d33bc2e14ae2d61441",
+    "locked_git_deps": {
+      "commonplace_attribute_map": "4695d407d7fa5775ca375962eac978fabd78a8c5",
+      "commonplace_biscuit": "1044bc35cfabcd91dff174f8c4e6cb3be42978ba",
+      "commonplace_cell": "68214dc6b4cc0bba927060b55fc8c166df34678b",
+      "commonplace_dir": "8b525a9ff9c3e23121fcafd260f8209afa2f5ea7",
+      "commonplace_doc": "faeea17d2bc053ac2e51d1e5722ce5ee257b199f",
+      "commonplace_doc_sync": "9d8aba81728e68c9a9e49fd89179a5b499ba20da",
+      "commonplace_log": "778997e5b5e90d304343f3a7cb24b768c09de172",
+      "commonplace_log_reducer": "4695d407d7fa5775ca375962eac978fabd78a8c5",
+      "commonplace_markdown": "04a2aa437ac472dff067fe0979854d5300da5769",
+      "commonplace_merkle_crdt": "6608f3d7cec1fbae88826a672299812798a66b76",
+      "commonplace_value": "177567aad51e1f48201cfd893a0f24d9c7166e19",
+      "yelixer": "bc35a0e9ff374449c71fb29be159bd9a711635bb",
+      "yepochs": "fdc808f43ac42238c27abf2ff51c301b76a889cb"
+    },
+    "installed_git_deps": {
+      "commonplace_attribute_map": "4695d407d7fa5775ca375962eac978fabd78a8c5",
+      "commonplace_biscuit": "1044bc35cfabcd91dff174f8c4e6cb3be42978ba",
+      "commonplace_cell": "68214dc6b4cc0bba927060b55fc8c166df34678b",
+      "commonplace_dir": "8b525a9ff9c3e23121fcafd260f8209afa2f5ea7",
+      "commonplace_doc": "faeea17d2bc053ac2e51d1e5722ce5ee257b199f",
+      "commonplace_doc_sync": "9d8aba81728e68c9a9e49fd89179a5b499ba20da",
+      "commonplace_log": "778997e5b5e90d304343f3a7cb24b768c09de172",
+      "commonplace_log_reducer": "4695d407d7fa5775ca375962eac978fabd78a8c5",
+      "commonplace_markdown": "04a2aa437ac472dff067fe0979854d5300da5769",
+      "commonplace_merkle_crdt": "6608f3d7cec1fbae88826a672299812798a66b76",
+      "commonplace_value": "177567aad51e1f48201cfd893a0f24d9c7166e19",
+      "yelixer": "bc35a0e9ff374449c71fb29be159bd9a711635bb",
+      "yepochs": "fdc808f43ac42238c27abf2ff51c301b76a889cb"
+    }
+  }
+}

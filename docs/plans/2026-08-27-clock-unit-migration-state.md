@@ -1,5 +1,10 @@
 # Clock-unit migration — state at 2026-08-27, before Round 1
 
+This is a historical timeline. Round 1 landed later in this document; the
+"not started" statement below describes its original date. See
+[the September compatibility assessment](../unicode-compatibility.md) for the
+current candidate and executable acceptance cases.
+
 **Read this before touching `lib/yelixer/item.ex`.** jes authorised the migration
 ("sure let's migrate", 16:50Z). Round 0 (measurement) is complete and landed.
 **Round 1 (the fix) has not started. `item.ex` is untouched.**

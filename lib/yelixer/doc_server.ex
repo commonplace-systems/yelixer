@@ -140,7 +140,7 @@ defmodule Yelixer.DocServer do
   def init(opts) do
     client_id = Keyword.get(opts, :client_id, :rand.uniform(1_000_000_000))
     doc = Doc.new(client_id: client_id)
-    {:ok, %{doc: doc, subscribers: MapSet.new()}}
+    {:ok, %{doc: doc, subscribers: %{}}}
   end
 
   @impl true
@@ -179,8 +179,10 @@ defmodule Yelixer.DocServer do
   end
 
   def handle_call({:apply_update, update}, _from, state) do
-    {:ok, doc} = Encoding.apply_update(state.doc, update)
-    {:reply, :ok, %{state | doc: doc}}
+    case Encoding.apply_update(state.doc, update) do
+      {:ok, doc} -> {:reply, :ok, %{state | doc: doc}}
+      {:error, _} = error -> {:reply, error, state}
+    end
   end
 
   def handle_call(:state_vector, _from, state) do
@@ -189,24 +191,31 @@ defmodule Yelixer.DocServer do
   end
 
   def handle_call({:subscribe, pid}, _from, state) do
-    Process.monitor(pid)
-    {:reply, :ok, %{state | subscribers: MapSet.put(state.subscribers, pid)}}
+    subscribers = Map.put_new_lazy(state.subscribers, pid, fn -> Process.monitor(pid) end)
+    {:reply, :ok, %{state | subscribers: subscribers}}
   end
 
   def handle_call({:unsubscribe, pid}, _from, state) do
-    {:reply, :ok, %{state | subscribers: MapSet.delete(state.subscribers, pid)}}
+    {ref, subscribers} = Map.pop(state.subscribers, pid)
+    if ref, do: Process.demonitor(ref, [:flush])
+    {:reply, :ok, %{state | subscribers: subscribers}}
   end
 
   @impl true
-  def handle_info({:DOWN, _ref, :process, pid, _reason}, state) do
-    {:noreply, %{state | subscribers: MapSet.delete(state.subscribers, pid)}}
+  def handle_info({:DOWN, ref, :process, pid, _reason}, state) do
+    subscribers =
+      if Map.get(state.subscribers, pid) == ref,
+        do: Map.delete(state.subscribers, pid),
+        else: state.subscribers
+
+    {:noreply, %{state | subscribers: subscribers}}
   end
 
   defp broadcast_diff(state, sv_before) do
-    if MapSet.size(state.subscribers) > 0 do
+    if map_size(state.subscribers) > 0 do
       diff = Encoding.encode_diff(state.doc, sv_before)
 
-      Enum.each(state.subscribers, fn pid ->
+      Enum.each(state.subscribers, fn {pid, _ref} ->
         send(pid, {:yelixer_update, diff})
       end)
     end

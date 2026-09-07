@@ -176,9 +176,15 @@ function handle(msg) {
       }
 
       case 'encode': {
-        const update = Y.encodeStateAsUpdate(ensureDoc())
+        const sv = msg.sv ? Y.encodeStateVector(new Map(Object.entries(msg.sv).map(([k, v]) => [Number(k), v]))) : undefined
+        const update = Y.encodeStateAsUpdate(ensureDoc(), sv)
         return { ok: true, update_hex: toHex(update) }
       }
+
+      case 'set_client':
+        clientId = msg.client_id
+        ensureDoc().clientID = clientId
+        return { ok: true }
 
       case 'state_vector': {
         // Per-client high-water clock, in yjs's own (UTF-16) unit
@@ -207,6 +213,9 @@ function handle(msg) {
         doc = new Y.Doc({ gc: false })
         doc.clientID = clientId
         Y.applyUpdate(doc, update)
+        // This command resumes the same logical author after discarding memory.
+        // applyUpdate may randomize a matching local ID while loading history.
+        doc.clientID = clientId
         return { ok: true, update_hex: toHex(update) }
       }
 

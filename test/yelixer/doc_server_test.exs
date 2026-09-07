@@ -3,6 +3,34 @@ defmodule Yelixer.DocServerTest do
 
   alias Yelixer.{DocServer, Encoding, StateVector}
 
+  test "malformed remote update preserves the live document and process" do
+    pid = start_supervised!({DocServer, client_id: 1})
+    :ok = DocServer.insert_text(pid, "text", 0, "retained")
+    before_update = DocServer.encode_update(pid)
+
+    assert {:error, {:malformed_update, _}} = DocServer.apply_update(pid, <<>>)
+    assert Process.alive?(pid)
+    assert DocServer.encode_update(pid) == before_update
+    :ok = DocServer.insert_text(pid, "text", 8, "!")
+    assert DocServer.get_text(pid, "text") == "retained!"
+  end
+
+  test "subscription is idempotent and unsubscribe releases its monitor" do
+    pid = start_supervised!({DocServer, client_id: 1})
+
+    Enum.each(1..16, fn _ ->
+      :ok = DocServer.subscribe(pid)
+      :ok = DocServer.subscribe(pid)
+      :ok = DocServer.unsubscribe(pid)
+    end)
+
+    assert {:monitors, []} = Process.info(pid, :monitors)
+    :ok = DocServer.subscribe(pid)
+    :ok = DocServer.insert_text(pid, "text", 0, "once")
+    assert_receive {:yelixer_update, _}
+    refute_receive {:yelixer_update, _}
+  end
+
   test "start and insert text" do
     {:ok, pid} = DocServer.start_link(client_id: 1)
     :ok = DocServer.insert_text(pid, "text", 0, "hello")

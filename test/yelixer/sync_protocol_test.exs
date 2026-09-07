@@ -9,6 +9,46 @@ defmodule Yelixer.SyncProtocolTest do
     doc
   end
 
+  # Golden frames from y-protocols 1.0.7 writeSyncStep1/writeSyncStep2/
+  # writeUpdate with Yjs 13.6.32. Self-round-trips alone missed framing drift.
+  test "step1 includes the upstream varUint8Array payload length" do
+    assert SyncProtocol.encode_step1(new_doc(7)) == <<0, 1, 0>>
+    doc = Text.insert(new_doc(7), "text", 0, "a")
+    assert SyncProtocol.encode_step1(doc) == <<0, 3, 1, 7, 1>>
+  end
+
+  test "upstream empty step1 produces a framed step2" do
+    assert {:step2, <<1, 2, 0, 0>>} = SyncProtocol.handle_message(new_doc(7), <<0, 1, 0>>)
+  end
+
+  test "upstream update tag applies an incremental document update" do
+    source = Text.insert(new_doc(7), "text", 0, "hello")
+    update = Yelixer.Encoding.encode_update(source)
+    frame = <<2, Yelixer.Encoding.encode_uint(byte_size(update))::binary, update::binary>>
+    assert {:update, received} = SyncProtocol.handle_message(new_doc(8), frame)
+    assert Text.to_string(received, "text") == "hello"
+    assert SyncProtocol.encode_update(update) == frame
+  end
+
+  test "malformed and unknown frames return errors instead of raising" do
+    doc = new_doc(7)
+
+    for frame <- [
+          <<>>,
+          <<0>>,
+          <<0, 1>>,
+          <<0, 1, 128>>,
+          <<1, 0>>,
+          <<1, 2, 128, 128>>,
+          <<3, 0>>,
+          <<0, 1, 0, 99>>
+        ] do
+      assert {:error, _} = SyncProtocol.handle_message(doc, frame)
+    end
+
+    assert Text.to_string(doc, "text") == ""
+  end
+
   test "full sync between two empty docs" do
     doc1 = new_doc(1)
     doc2 = new_doc(2)

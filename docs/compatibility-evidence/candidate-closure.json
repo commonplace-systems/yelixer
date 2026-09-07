@@ -1,0 +1,54 @@
+{
+  "yepochs": {
+    "locked_git_deps": {
+      "yelixer": "bcaec6a3520c59464bab87daaab7e4f76546c9c5"
+    },
+    "installed_git_deps": {
+      "yelixer": "bcaec6a3520c59464bab87daaab7e4f76546c9c5"
+    }
+  },
+  "commonplace-merkle-crdt": {
+    "locked_git_deps": {
+      "commonplace_log_reducer": "d081529b8a97d31c55254b0637f404793ab35810",
+      "yelixer": "bcaec6a3520c59464bab87daaab7e4f76546c9c5",
+      "yepochs": "f184c9e9dd99b7baced407fb46632e887e3fb948"
+    },
+    "installed_git_deps": {
+      "commonplace_log_reducer": "d081529b8a97d31c55254b0637f404793ab35810",
+      "yelixer": "bcaec6a3520c59464bab87daaab7e4f76546c9c5",
+      "yepochs": "f184c9e9dd99b7baced407fb46632e887e3fb948"
+    }
+  },
+  "commonplace-next": {
+    "locked_git_deps": {
+      "commonplace_attribute_map": "4695d407d7fa5775ca375962eac978fabd78a8c5",
+      "commonplace_biscuit": "1044bc35cfabcd91dff174f8c4e6cb3be42978ba",
+      "commonplace_cell": "68214dc6b4cc0bba927060b55fc8c166df34678b",
+      "commonplace_dir": "8b525a9ff9c3e23121fcafd260f8209afa2f5ea7",
+      "commonplace_doc": "faeea17d2bc053ac2e51d1e5722ce5ee257b199f",
+      "commonplace_doc_sync": "9d8aba81728e68c9a9e49fd89179a5b499ba20da",
+      "commonplace_log": "778997e5b5e90d304343f3a7cb24b768c09de172",
+      "commonplace_log_reducer": "4695d407d7fa5775ca375962eac978fabd78a8c5",
+      "commonplace_markdown": "04a2aa437ac472dff067fe0979854d5300da5769",
+      "commonplace_merkle_crdt": "9e7caf43e541864c68e9374b7a7f414a05cdfdc4",
+      "commonplace_value": "177567aad51e1f48201cfd893a0f24d9c7166e19",
+      "yelixer": "bcaec6a3520c59464bab87daaab7e4f76546c9c5",
+      "yepochs": "f184c9e9dd99b7baced407fb46632e887e3fb948"
+    },
+    "installed_git_deps": {
+      "commonplace_attribute_map": "4695d407d7fa5775ca375962eac978fabd78a8c5",
+      "commonplace_biscuit": "1044bc35cfabcd91dff174f8c4e6cb3be42978ba",
+      "commonplace_cell": "68214dc6b4cc0bba927060b55fc8c166df34678b",
+      "commonplace_dir": "8b525a9ff9c3e23121fcafd260f8209afa2f5ea7",
+      "commonplace_doc": "faeea17d2bc053ac2e51d1e5722ce5ee257b199f",
+      "commonplace_doc_sync": "9d8aba81728e68c9a9e49fd89179a5b499ba20da",
+      "commonplace_log": "778997e5b5e90d304343f3a7cb24b768c09de172",
+      "commonplace_log_reducer": "4695d407d7fa5775ca375962eac978fabd78a8c5",
+      "commonplace_markdown": "04a2aa437ac472dff067fe0979854d5300da5769",
+      "commonplace_merkle_crdt": "9e7caf43e541864c68e9374b7a7f414a05cdfdc4",
+      "commonplace_value": "177567aad51e1f48201cfd893a0f24d9c7166e19",
+      "yelixer": "bcaec6a3520c59464bab87daaab7e4f76546c9c5",
+      "yepochs": "f184c9e9dd99b7baced407fb46632e887e3fb948"
+    }
+  }
+}

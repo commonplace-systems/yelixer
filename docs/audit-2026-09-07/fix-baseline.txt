@@ -1,0 +1,188 @@
+yelixer rm-rf guard active: Yelixer.Test.FileRmRfGuard
+Running ExUnit with seed: 847387, max_cases: 1
+Excluding tags: [:divergence]
+
+.
+
+  1) test step1 includes the upstream varUint8Array payload length (Yelixer.SyncProtocolTest)
+     test/yelixer/sync_protocol_test.exs:14
+     Assertion with == failed
+     code:  assert SyncProtocol.encode_step1(new_doc(7)) == <<0, 1, 0>>
+     left:  <<0, 0>>
+     right: <<0, 1, 0>>
+     stacktrace:
+       test/yelixer/sync_protocol_test.exs:15: (test)
+
+...
+
+  2) test upstream empty step1 produces a framed step2 (Yelixer.SyncProtocolTest)
+     test/yelixer/sync_protocol_test.exs:20
+     ** (MatchError) no match of right hand side value: {:error, {:malformed_state_vector, "no function clause matching in Yelixer.Encoding.decode_uint/3"}}
+     code: assert {:step2, <<1, 2, 0, 0>>} = SyncProtocol.handle_message(new_doc(7), <<0, 1, 0>>)
+     stacktrace:
+       (yelixer 0.1.0) lib/yelixer/sync_protocol.ex:165: Yelixer.SyncProtocol.handle_message/2
+       test/yelixer/sync_protocol_test.exs:21: (test)
+
+
+
+  3) test malformed and unknown frames return errors instead of raising (Yelixer.SyncProtocolTest)
+     test/yelixer/sync_protocol_test.exs:33
+     ** (FunctionClauseError) no function clause matching in Yelixer.SyncProtocol.handle_message/2
+
+     The following arguments were given to Yelixer.SyncProtocol.handle_message/2:
+
+         # 1
+         %Yelixer.Doc{client_id: 7, store: %Yelixer.BlockStore{clients: %{}, sequences: %{}, client_tuples: %{}, client_pending: %{}, sequence_pending: %{}, sequence_len: %{}, map_index: %{}, sequence_index: %{}, sequence_positions: %{}, deleted_overlay: %{}}, delete_set: %Yelixer.DeleteSet{clients: %{}}, types: %{"text" => :text}, client_namespaces: %{}, pending: [], pending_bytes: 0, clock_floor: 0}
+
+         # 2
+         ""
+
+     Attempted function clauses (showing 2 out of 2):
+
+         def handle_message(%Yelixer.Doc{} = doc, -<<0, sv_bin::binary>>-)
+         def handle_message(%Yelixer.Doc{} = doc, -<<1, update::binary>>-)
+
+     code: for frame <- [<<>>, <<0>>, <<0, 1>>, <<0, 1, 128>>, <<1, 0>>,
+     stacktrace:
+       (yelixer 0.1.0) lib/yelixer/sync_protocol.ex:164: Yelixer.SyncProtocol.handle_message/2
+       test/yelixer/sync_protocol_test.exs:38: anonymous fn/3 in Yelixer.SyncProtocolTest."test malformed and unknown frames return errors instead of raising"/1
+       (elixir 1.18.4) lib/enum.ex:2546: Enum."-reduce/3-lists^foldl/2-0-"/3
+       test/yelixer/sync_protocol_test.exs:36: (test)
+
+.
+21:06:14.119 [error] GenServer #PID<0.229.0> terminating
+** (MatchError) no match of right hand side value: {:error, {:malformed_update, "no function clause matching in Yelixer.Encoding.decode_uint/3"}}
+    (yelixer 0.1.0) lib/yelixer/doc_server.ex:182: Yelixer.DocServer.handle_call/3
+    (stdlib 6.2.2.3) gen_server.erl:2381: :gen_server.try_handle_call/4
+    (stdlib 6.2.2.3) gen_server.erl:2410: :gen_server.handle_msg/6
+    (stdlib 6.2.2.3) proc_lib.erl:329: :proc_lib.init_p_do_apply/3
+Last message (from #PID<0.226.0>): {:apply_update, ""}
+State: %{doc: %Yelixer.Doc{client_id: 1, store: %Yelixer.BlockStore{clients: %{}, sequences: %{}, client_tuples: %{}, client_pending: %{1 => {1, {0, %Yelixer.Item{id: %Yelixer.ID{client: 1, clock: 0}, origin: nil, right_origin: nil, content: {:string, "retained"}, parent: {:named, "text"}, parent_sub: nil, deleted: false, length: 8}, nil, nil}}}, sequence_pending: %{"text" => [%Yelixer.ID{client: 1, clock: 0}]}, sequence_len: %{"text" => 1}, map_index: %{}, sequence_index: %{}, sequence_positions: %{}, deleted_overlay: %{}}, delete_set: %Yelixer.DeleteSet{clients: %{}}, types: %{"text" => :text}, client_namespaces: %{}, pending: [], pending_bytes: 0, clock_floor: 0}, subscribers: MapSet.new([])}
+Client #PID<0.226.0> is alive
+
+    (stdlib 6.2.2.3) gen.erl:260: :gen.do_call/4
+    (elixir 1.18.4) lib/gen_server.ex:1125: GenServer.call/3
+    test/yelixer/doc_server_test.exs:11: Yelixer.DocServerTest."test malformed remote update preserves the live document and process"/1
+    (ex_unit 1.18.4) lib/ex_unit/runner.ex:511: ExUnit.Runner.exec_test/2
+    (stdlib 6.2.2.3) timer.erl:595: :timer.tc/2
+    (ex_unit 1.18.4) lib/ex_unit/runner.ex:433: anonymous fn/6 in ExUnit.Runner.spawn_test_monitor/4
+
+
+  4) test upstream update tag applies an incremental document update (Yelixer.SyncProtocolTest)
+     test/yelixer/sync_protocol_test.exs:24
+     ** (FunctionClauseError) no function clause matching in Yelixer.SyncProtocol.handle_message/2
+
+     The following arguments were given to Yelixer.SyncProtocol.handle_message/2:
+
+         # 1
+         %Yelixer.Doc{client_id: 8, store: %Yelixer.BlockStore{clients: %{}, sequences: %{}, client_tuples: %{}, client_pending: %{}, sequence_pending: %{}, sequence_len: %{}, map_index: %{}, sequence_index: %{}, sequence_positions: %{}, deleted_overlay: %{}}, delete_set: %Yelixer.DeleteSet{clients: %{}}, types: %{"text" => :text}, client_namespaces: %{}, pending: [], pending_bytes: 0, clock_floor: 0}
+
+         # 2
+         <<2, 18, 1, 1, 7, 0, 4, 1, 4, 116, 101, 120, 116, 5, 104, 101, 108, 108, 111, 0>>
+
+     Attempted function clauses (showing 2 out of 2):
+
+         def handle_message(%Yelixer.Doc{} = doc, -<<0, sv_bin::binary>>-)
+         def handle_message(%Yelixer.Doc{} = doc, -<<1, update::binary>>-)
+
+     code: assert {:update, received} = SyncProtocol.handle_message(new_doc(8), frame)
+     stacktrace:
+       (yelixer 0.1.0) lib/yelixer/sync_protocol.ex:164: Yelixer.SyncProtocol.handle_message/2
+       test/yelixer/sync_protocol_test.exs:28: (test)
+
+.
+
+  5) test malformed remote update preserves the live document and process (Yelixer.DocServerTest)
+     test/yelixer/doc_server_test.exs:6
+     ** (exit) exited in: GenServer.call(#PID<0.229.0>, {:apply_update, ""}, 5000)
+         ** (EXIT) an exception was raised:
+             ** (MatchError) no match of right hand side value: {:error, {:malformed_update, "no function clause matching in Yelixer.Encoding.decode_uint/3"}}
+                 (yelixer 0.1.0) lib/yelixer/doc_server.ex:182: Yelixer.DocServer.handle_call/3
+                 (stdlib 6.2.2.3) gen_server.erl:2381: :gen_server.try_handle_call/4
+                 (stdlib 6.2.2.3) gen_server.erl:2410: :gen_server.handle_msg/6
+                 (stdlib 6.2.2.3) proc_lib.erl:329: :proc_lib.init_p_do_apply/3
+     code: assert {:error, {:malformed_update, _}} = DocServer.apply_update(pid, <<>>)
+     stacktrace:
+       (elixir 1.18.4) lib/gen_server.ex:1128: GenServer.call/3
+       test/yelixer/doc_server_test.exs:11: (test)
+
+...
+
+  6) test subscription is idempotent and unsubscribe releases its monitor (Yelixer.DocServerTest)
+     test/yelixer/doc_server_test.exs:18
+     match (=) failed
+     code:  assert {:monitors, []} = Process.info(pid, :monitors)
+     left:  {:monitors, []}
+     right: {:monitors,
+             [
+               process: #PID<0.238.0>,
+               process: #PID<0.238.0>,
+               process: #PID<0.238.0>,
+               process: #PID<0.238.0>,
+               process: #PID<0.238.0>,
+               process: #PID<0.238.0>,
+               process: #PID<0.238.0>,
+               process: #PID<0.238.0>,
+               process: #PID<0.238.0>,
+               process: #PID<0.238.0>,
+               process: #PID<0.238.0>,
+               process: #PID<0.238.0>,
+               process: #PID<0.238.0>,
+               process: #PID<0.238.0>,
+               process: #PID<0.238.0>,
+               process: #PID<0.238.0>,
+               process: #PID<0.238.0>,
+               process: #PID<0.238.0>,
+               process: #PID<0.238.0>,
+               process: #PID<0.238.0>,
+               process: #PID<0.238.0>,
+               process: #PID<0.238.0>,
+               process: #PID<0.238.0>,
+               process: #PID<0.238.0>,
+               process: #PID<0.238.0>,
+               process: #PID<0.238.0>,
+               process: #PID<0.238.0>,
+               process: #PID<0.238.0>,
+               process: #PID<0.238.0>,
+               process: #PID<0.238.0>,
+               process: #PID<0.238.0>,
+               process: #PID<0.238.0>
+             ]}
+     stacktrace:
+       test/yelixer/doc_server_test.exs:27: (test)
+
+....
+
+  7) test local surrogate-boundary insertion survives reload without duplicated text (Yelixer.Types.XMLTextTest)
+     test/yelixer/types/xml_text_test.exs:12
+     Assertion with == failed
+     code:  assert XMLText.to_string(doc, "xml_text") == "😀X"
+     left:  "😀XX"
+     right: "😀X"
+     stacktrace:
+       test/yelixer/types/xml_text_test.exs:15: (test)
+
+...
+
+  8) test local delete endpoints normalize independently in UTF-16 units (Yelixer.Types.XMLTextTest)
+     test/yelixer/types/xml_text_test.exs:21
+     Assertion with == failed
+     code:  assert XMLText.to_string(doc, "xml_text") == "😀AB"
+     left:  "😀B"
+     right: "😀AB"
+     stacktrace:
+       test/yelixer/types/xml_text_test.exs:24: (test)
+
+....    warning: Yelixer.SyncProtocol.encode_update/1 is undefined or private. Did you mean:
+
+          * encode_step1/1
+
+    │
+ 30 │     assert SyncProtocol.encode_update(update) == frame
+    │                         ~
+    │
+    └─ test/yelixer/sync_protocol_test.exs:30:25: Yelixer.SyncProtocolTest."test upstream update tag applies an incremental document update"/1
+
+
+Finished in 0.3 seconds (0.3s async, 0.00s sync)
+28 tests, 8 failures

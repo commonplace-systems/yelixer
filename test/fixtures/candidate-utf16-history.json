@@ -1,0 +1,205 @@
+{
+  "schema": 1,
+  "histories": [
+    {
+      "name": "ascii",
+      "origin": "candidate",
+      "writer": "bcaec6a3520c59464bab87daaab7e4f76546c9c5",
+      "authors": [
+        100
+      ],
+      "operations": [
+        [
+          "insert",
+          0,
+          "ab"
+        ],
+        [
+          "insert",
+          2,
+          "!"
+        ],
+        [
+          "insert",
+          1,
+          "X"
+        ],
+        [
+          "delete",
+          2,
+          1
+        ]
+      ],
+      "coordinate_contract": "UTF-16 scalar boundaries",
+      "updates_hex": [
+        "01016400040107636f6e74656e7402616200",
+        "01016402846401012100",
+        "01016403c464006401015800",
+        "000164010101"
+      ],
+      "full_updates_hex": [
+        "01016400040107636f6e74656e7402616200",
+        "01026400040107636f6e74656e74026162846401012100",
+        "01046400040107636f6e74656e74016184640001628464010121c464006401015800",
+        "01046400040107636f6e74656e740161816400018464010121c46400640101580164010101"
+      ],
+      "old_views": [
+        "ab",
+        "ab!",
+        "aXb!",
+        "aX!"
+      ],
+      "intended_final": "aX!"
+    },
+    {
+      "name": "combining",
+      "origin": "candidate",
+      "writer": "bcaec6a3520c59464bab87daaab7e4f76546c9c5",
+      "authors": [
+        100
+      ],
+      "operations": [
+        [
+          "insert",
+          0,
+          "e\u0301b"
+        ],
+        [
+          "insert",
+          3,
+          "!"
+        ],
+        [
+          "insert",
+          2,
+          "X"
+        ],
+        [
+          "delete",
+          3,
+          1
+        ]
+      ],
+      "coordinate_contract": "UTF-16 scalar boundaries",
+      "updates_hex": [
+        "01016400040107636f6e74656e740465cc816200",
+        "01016403846402012100",
+        "01016404c464016402015800",
+        "000164010201"
+      ],
+      "full_updates_hex": [
+        "01016400040107636f6e74656e740465cc816200",
+        "01026400040107636f6e74656e740465cc8162846402012100",
+        "01046400040107636f6e74656e740365cc8184640101628464020121c464016402015800",
+        "01046400040107636f6e74656e740365cc81816401018464020121c46401640201580164010201"
+      ],
+      "old_views": [
+        "e\u0301b",
+        "e\u0301b!",
+        "e\u0301Xb!",
+        "e\u0301X!"
+      ],
+      "intended_final": "e\u0301X!"
+    },
+    {
+      "name": "astral",
+      "origin": "candidate",
+      "writer": "bcaec6a3520c59464bab87daaab7e4f76546c9c5",
+      "authors": [
+        100
+      ],
+      "operations": [
+        [
+          "insert",
+          0,
+          "\ud83d\ude00b"
+        ],
+        [
+          "insert",
+          3,
+          "!"
+        ],
+        [
+          "insert",
+          2,
+          "X"
+        ],
+        [
+          "delete",
+          3,
+          1
+        ]
+      ],
+      "coordinate_contract": "UTF-16 scalar boundaries",
+      "updates_hex": [
+        "01016400040107636f6e74656e7405f09f98806200",
+        "01016403846402012100",
+        "01016404c464016402015800",
+        "000164010201"
+      ],
+      "full_updates_hex": [
+        "01016400040107636f6e74656e7405f09f98806200",
+        "01026400040107636f6e74656e7405f09f988062846402012100",
+        "01046400040107636f6e74656e7404f09f988084640101628464020121c464016402015800",
+        "01046400040107636f6e74656e7404f09f9880816401018464020121c46401640201580164010201"
+      ],
+      "old_views": [
+        "\ud83d\ude00b",
+        "\ud83d\ude00b!",
+        "\ud83d\ude00Xb!",
+        "\ud83d\ude00X!"
+      ],
+      "intended_final": "\ud83d\ude00X!"
+    },
+    {
+      "name": "zwj",
+      "origin": "candidate",
+      "writer": "bcaec6a3520c59464bab87daaab7e4f76546c9c5",
+      "authors": [
+        100
+      ],
+      "operations": [
+        [
+          "insert",
+          0,
+          "\ud83d\udc69\u200d\ud83d\udcbbb"
+        ],
+        [
+          "insert",
+          6,
+          "!"
+        ],
+        [
+          "insert",
+          5,
+          "X"
+        ],
+        [
+          "delete",
+          6,
+          1
+        ]
+      ],
+      "coordinate_contract": "UTF-16 scalar boundaries",
+      "updates_hex": [
+        "01016400040107636f6e74656e740cf09f91a9e2808df09f92bb6200",
+        "01016406846405012100",
+        "01016407c464046405015800",
+        "000164010501"
+      ],
+      "full_updates_hex": [
+        "01016400040107636f6e74656e740cf09f91a9e2808df09f92bb6200",
+        "01026400040107636f6e74656e740cf09f91a9e2808df09f92bb62846405012100",
+        "01046400040107636f6e74656e740bf09f91a9e2808df09f92bb84640401628464050121c464046405015800",
+        "01046400040107636f6e74656e740bf09f91a9e2808df09f92bb816404018464050121c46404640501580164010501"
+      ],
+      "old_views": [
+        "\ud83d\udc69\u200d\ud83d\udcbbb",
+        "\ud83d\udc69\u200d\ud83d\udcbbb!",
+        "\ud83d\udc69\u200d\ud83d\udcbbXb!",
+        "\ud83d\udc69\u200d\ud83d\udcbbX!"
+      ],
+      "intended_final": "\ud83d\udc69\u200d\ud83d\udcbbX!"
+    }
+  ]
+}

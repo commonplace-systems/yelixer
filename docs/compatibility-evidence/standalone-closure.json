@@ -1,0 +1,67 @@
+{
+  "scope": "Coherent standalone candidate repins, bounded affected controls per corrected Plan/boss30986; no full standalone run at59b claimed",
+  "codec": "59b04eb1ba4c03d003e91f8867db3bd90a517bf5",
+  "libraries": [
+    {
+      "package": "yepochs",
+      "head": "d76724b4198c2e1c4574a76842af583924bc1856",
+      "earlier_production_head": "f184c9e9dd99b7baced407fb46632e887e3fb948",
+      "lib_tree": "9e3e157d68c46d072fdf309bf8cd47ae99f5a3f1",
+      "production_diff_from_earlier": "",
+      "manifest_lock_diff": "diff --git a/mix.exs b/mix.exs\nindex c7d7859..1d1b4e1 100644\n--- a/mix.exs\n+++ b/mix.exs\n@@ -83,7 +83,7 @@ defmodule Yepochs.MixProject do\n     [\n       {:yelixer,\n        git: \"https://github.com/commonplace-systems/yelixer.git\",\n-       ref: \"bcaec6a3520c59464bab87daaab7e4f76546c9c5\"},\n+       ref: \"59b04eb1ba4c03d003e91f8867db3bd90a517bf5\"},\n       {:stream_data, \"~> 1.0\", only: [:test]},\n       {:jason, \"~> 1.4\"},\n       {:dialyxir, \"~> 1.4\", only: [:dev], runtime: false}\ndiff --git a/mix.lock b/mix.lock\nindex d0b5ff8..e0fff8c 100644\n--- a/mix.lock\n+++ b/mix.lock\n@@ -4,5 +4,5 @@\n   \"jason\": {:hex, :jason, \"1.4.5\", \"2e3a008590b0b8d7388c20293e9dcc9cf3e5d642fd2a114e4cbbb52e595d940a\", [:mix], [{:decimal, \"~> 1.0 or ~> 2.0 or ~> 3.0\", [hex: :decimal, repo: \"hexpm\", optional: true]}], \"hexpm\", \"b0c823996102bcd0239b3c2444eb00409b72f6a140c1950bc8b457d836b30684\"},\n   \"stream_data\": {:hex, :stream_data, \"1.4.0\", \"026f929db613aabea6208012ae9b8970d3fd5f88b3bdf26831bc536f98c42036\", [:mix], [], \"hexpm\", \"2b0ee3a340dcce1c8cf6302a763ee757d1e01c54d6e16d9069062509d68b1dc9\"},\n   \"telemetry\": {:hex, :telemetry, \"1.4.2\", \"a0cb522801dffb1c49fe6e30561badffc7b6d0e180db1300df759faa22062855\", [:rebar3], [], \"hexpm\", \"928f6495066506077862c0d1646609eed891a4326bee3126ba54b60af61febb1\"},\n-  \"yelixer\": {:git, \"https://github.com/commonplace-systems/yelixer.git\", \"bcaec6a3520c59464bab87daaab7e4f76546c9c5\", [ref: \"bcaec6a3520c59464bab87daaab7e4f76546c9c5\"]},\n+  \"yelixer\": {:git, \"https://github.com/commonplace-systems/yelixer.git\", \"59b04eb1ba4c03d003e91f8867db3bd90a517bf5\", [ref: \"59b04eb1ba4c03d003e91f8867db3bd90a517bf5\"]},\n }",
+      "resolved_closure": [
+        {
+          "package": "yelixer",
+          "url": "https://github.com/commonplace-systems/yelixer.git",
+          "lock": "59b04eb1ba4c03d003e91f8867db3bd90a517bf5",
+          "installed": "59b04eb1ba4c03d003e91f8867db3bd90a517bf5"
+        }
+      ],
+      "executed": 70,
+      "rc": 0,
+      "summary": [
+        "70 tests, 0 failures"
+      ],
+      "compiled_evidence_url": "https://github.com/commonplace-systems/yepochs/blob/d76724b4198c2e1c4574a76842af583924bc1856/docs/compatibility-evidence/standalone-inbound.json",
+      "report_url": "https://github.com/commonplace-systems/yepochs/blob/d76724b4198c2e1c4574a76842af583924bc1856/docs/standalone-inbound.md"
+    },
+    {
+      "package": "commonplace-merkle-crdt",
+      "head": "4c13d88b0e45f32e8b00fca59d747138255ff318",
+      "earlier_production_head": "9e7caf43e541864c68e9374b7a7f414a05cdfdc4",
+      "lib_tree": "a06d95290db50b89d95c26d98d1d2f8d1b96c938",
+      "production_diff_from_earlier": "",
+      "manifest_lock_diff": "diff --git a/mix.exs b/mix.exs\nindex acf0d4a..2ffb61f 100644\n--- a/mix.exs\n+++ b/mix.exs\n@@ -26,13 +26,13 @@ defmodule CommonplaceMerkleCrdt.MixProject do\n       # fails if this repo's lock and deps/yepochs/mix.lock ever name different yelixers.\n       {:yelixer,\n        git: \"https://github.com/commonplace-systems/yelixer.git\",\n-       ref: \"bcaec6a3520c59464bab87daaab7e4f76546c9c5\",\n+       ref: \"59b04eb1ba4c03d003e91f8867db3bd90a517bf5\",\n        override: true},\n       # Snapshot + derivation for compaction openers (jes ruling 22:38Z, 2026-08-24).\n       # Pinned to an origin sha; formerly the detached worktree ../yepochs-pin-fdc808f-merkle.\n       {:yepochs,\n        git: \"https://github.com/commonplace-systems/yepochs.git\",\n-       ref: \"f184c9e9dd99b7baced407fb46632e887e3fb948\"},\n+       ref: \"d76724b4198c2e1c4574a76842af583924bc1856\"},\n       # The engine, as an outside consumer would take it. Depending on the real behaviour\n       # rather than restating its callbacks is the point: \u00a742.10 asks whether this plugin\n       # drops in WITHOUT changing the core API, and a hand-copied behaviour would hide that.\ndiff --git a/mix.lock b/mix.lock\nindex 57721f6..33a431e 100644\n--- a/mix.lock\n+++ b/mix.lock\n@@ -2,6 +2,6 @@\n   \"commonplace_log_reducer\": {:git, \"https://github.com/commonplace-systems/commonplace-log-reducer.git\", \"d081529b8a97d31c55254b0637f404793ab35810\", [ref: \"d081529b8a97d31c55254b0637f404793ab35810\", sparse: \"commonplace_log_reducer\"]},\n   \"jason\": {:hex, :jason, \"1.4.5\", \"2e3a008590b0b8d7388c20293e9dcc9cf3e5d642fd2a114e4cbbb52e595d940a\", [:mix], [{:decimal, \"~> 1.0 or ~> 2.0 or ~> 3.0\", [hex: :decimal, repo: \"hexpm\", optional: true]}], \"hexpm\", \"b0c823996102bcd0239b3c2444eb00409b72f6a140c1950bc8b457d836b30684\"},\n   \"telemetry\": {:hex, :telemetry, \"1.4.2\", \"a0cb522801dffb1c49fe6e30561badffc7b6d0e180db1300df759faa22062855\", [:rebar3], [], \"hexpm\", \"928f6495066506077862c0d1646609eed891a4326bee3126ba54b60af61febb1\"},\n-  \"yelixer\": {:git, \"https://github.com/commonplace-systems/yelixer.git\", \"bcaec6a3520c59464bab87daaab7e4f76546c9c5\", [ref: \"bcaec6a3520c59464bab87daaab7e4f76546c9c5\"]},\n-  \"yepochs\": {:git, \"https://github.com/commonplace-systems/yepochs.git\", \"f184c9e9dd99b7baced407fb46632e887e3fb948\", [ref: \"f184c9e9dd99b7baced407fb46632e887e3fb948\"]},\n+  \"yelixer\": {:git, \"https://github.com/commonplace-systems/yelixer.git\", \"59b04eb1ba4c03d003e91f8867db3bd90a517bf5\", [ref: \"59b04eb1ba4c03d003e91f8867db3bd90a517bf5\"]},\n+  \"yepochs\": {:git, \"https://github.com/commonplace-systems/yepochs.git\", \"d76724b4198c2e1c4574a76842af583924bc1856\", [ref: \"d76724b4198c2e1c4574a76842af583924bc1856\"]},\n }",
+      "resolved_closure": [
+        {
+          "package": "commonplace_log_reducer",
+          "url": "https://github.com/commonplace-systems/commonplace-log-reducer.git",
+          "lock": "d081529b8a97d31c55254b0637f404793ab35810",
+          "installed": "d081529b8a97d31c55254b0637f404793ab35810"
+        },
+        {
+          "package": "yelixer",
+          "url": "https://github.com/commonplace-systems/yelixer.git",
+          "lock": "59b04eb1ba4c03d003e91f8867db3bd90a517bf5",
+          "installed": "59b04eb1ba4c03d003e91f8867db3bd90a517bf5"
+        },
+        {
+          "package": "yepochs",
+          "url": "https://github.com/commonplace-systems/yepochs.git",
+          "lock": "d76724b4198c2e1c4574a76842af583924bc1856",
+          "installed": "d76724b4198c2e1c4574a76842af583924bc1856"
+        }
+      ],
+      "executed": 62,
+      "rc": 0,
+      "summary": [
+        "62 tests, 0 failures"
+      ],
+      "compiled_evidence_url": "https://github.com/commonplace-systems/commonplace-merkle-crdt/blob/4c13d88b0e45f32e8b00fca59d747138255ff318/docs/compatibility-evidence/standalone-inbound.json",
+      "report_url": "https://github.com/commonplace-systems/commonplace-merkle-crdt/blob/4c13d88b0e45f32e8b00fca59d747138255ff318/docs/standalone-inbound.md"
+    }
+  ],
+  "current_app_validation": "Not performed by this repin round; integration owner must validate new declared set on current application head and explicitly include unicode_boundary_blocker",
+  "earlier_consumer_evidence": "fbae5bc27a2d4ed09eb23694d8416a0047cc8ab5 selected same production codec/lib trees via top-level override; measured old declarations remain separately recorded",
+  "review": "candidate branches pushed; no main adoption, landing or deployment warrant"
+}

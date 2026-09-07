@@ -372,7 +372,6 @@ defmodule Yelixer.DivergenceClockTest do
   # ---------------------------------------------------------------------------
 
   describe "axis: LOSS (same client_id, author's own clock)" do
-    @tag :divergence
     test "NFD, gap=7, safe origin (pos=1) — edit shorter than the gap must NOT be totally lost",
          %{port: port} do
       # FACT 1 fixture: NFD "Café 👩🏽‍💻\n" (@nfd_hex / @nfd_string)
@@ -418,7 +417,6 @@ defmodule Yelixer.DivergenceClockTest do
       # landing makes this arm GREEN, not merely non-vacuous.
     end
 
-    @tag :divergence
     test "NFD, gap=7, safe origin (pos=1) — edit longer than the gap must NOT be truncated",
          %{port: port} do
       # FACT 1/2/3 as above: NFD fixture, position 1, safe origin unit 0.
@@ -449,7 +447,6 @@ defmodule Yelixer.DivergenceClockTest do
       # and the same "goes green (not vacuous)" reasoning applies.
     end
 
-    @tag :divergence
     test "bounded, not cumulative: the deficit is spent once, then clocks REALIGN",
          %{port: port} do
       # This case exists to correct a too-pessimistic framing: the loss
@@ -585,143 +582,28 @@ defmodule Yelixer.DivergenceClockTest do
     #     uncorrected offset, is unconfirmed and NOT a reason to copy
     #     yrs's arithmetic — only its CHOICE of direction is precedent.)
     #
-    # CONSEQUENCE FOR THIS AXIS: yjs's own npm package is a fixed,
-    # external dependency we do not control and cannot patch; until
-    # upstream fixes yjs/yjs#248, real yjs will PERMANENTLY show U+FFFD
-    # for this exact shape of edit. Once yelixer clamps up (this
-    # decision, layered on top of the UTF-16-unit clock fix), yelixer's
-    # own text will PERMANENTLY, CORRECTLY differ from real yjs's
-    # corrupted output — this is a DECISION, not a defect, and it can
-    # never reach "oracle_text == yelixer_text". Placing it in the
-    # `:divergence` countdown (which is defined as counting DOWN to 0 as
-    # the underlying defect closes) would make the countdown
-    # un-completable and would make a deliberate decision look like an
-    # unfixed defect forever. These two arms therefore carry
-    # `@tag :parity_exception`, NOT `@tag :divergence` — a separate,
-    # explicitly-labelled population whose assertions are about
-    # YELIXER'S OWN self-consistency (never destroys a character), not
-    # about matching real yjs's output, which is expected to keep
-    # differing forever. `:parity_exception` is NOT excluded from the
-    # default suite: unlike `:divergence`, closing it does not depend on
-    # unimplemented work — the guarantee it asserts (Elixir has no
-    # native lone-surrogate representation, so yelixer's own view can
-    # never literally split one into two U+FFFD) already holds today,
-    # independent of whether the clock-unit fix has landed.
-    @tag :parity_exception
-    test "NFC, pos=6 — origin lands on the HIGH surrogate of 👩 -> yelixer must never destroy it, even though real yjs permanently does (decision, not a defect)",
-         %{port: port} do
-      # FACT 1 fixture: NFC "Café 👩🏽‍💻\n" (@nfc_string), authored LIVE by
-      #   the real oracle (not hand-rolled wire bytes).
-      # FACT 2 normalization: NFC (precomposed é — 1 codepoint/1 unit)
-      # FACT 3 offset: grapheme position 6 — right before the trailing
-      #   "\n", i.e. immediately after the whole 👩🏽‍💻 grapheme cluster.
-      # FACT 4 units at offset: yelixer mints one clock per GRAPHEME
-      #   (lib/yelixer/item.ex:266), so the left-origin for this insert
-      #   is yelixer-clock 5 (grapheme index 5 = the emoji cluster).
-      #   Upstream yjs reads that SAME integer as a UTF-16 CODE UNIT
-      #   index into the real 13-unit block: unit 5 is the HIGH
-      #   surrogate half of U+1F469 (👩).
-      # FACT 5 surrogate check: asserted programmatically below, against
-      #   the real UTF-16 units — not the `gap_at` proxy, which cannot
-      #   distinguish this offset from the SAFE pos=7 case right after it.
-      assert splits_surrogate_pair?(@nfc_string, 5) == true
-
-      assert %{"ok" => true} = rpc(port, %{cmd: "reset", client_id: 4103})
-
-      assert %{"ok" => true} =
-               rpc(port, %{cmd: "insert_text", name: "content", pos: 0, text: @nfc_string})
-
-      assert %{"ok" => true, "update_hex" => nfc_hex} = rpc(port, %{cmd: "encode"})
-
-      assert %{"ok" => true, "text" => authored_text} =
-               rpc(port, %{cmd: "text_content", name: "content"})
-
-      assert authored_text == @nfc_string
-
-      # Fresh peer doc that only knows the base bytes (the "already
-      # knows the fixture" side of the wire, standing in for a real peer).
-      assert %{"ok" => true} = rpc(port, %{cmd: "reset", client_id: 9})
-      assert %{"ok" => true} = rpc(port, %{cmd: "apply_update", update_hex: nfc_hex})
-
-      fresh_id = 555_601
-      {:ok, base} = Encoding.apply_update(Doc.new(client_id: fresh_id), unhex(nfc_hex))
-      edited = Text.insert(base, "content", 6, "X")
-      full_update = Encoding.encode_update(edited)
-
-      assert %{"ok" => true} = rpc(port, %{cmd: "apply_update", update_hex: hex(full_update)})
-      %{"ok" => true, "text" => oracle_text} = rpc(port, %{cmd: "text_content", name: "content"})
-      yelixer_text = Text.to_string(edited, "content")
-
-      # PERMANENT, EXPECTED FACT (real yjs's own accepted bug,
-      # yjs/yjs#248 — not ours to fix, and not expected to ever change
-      # here): oracle_text =~ "�", the destroyed 👩 surfaces as U+FFFD
-      # upstream, both before and after yelixer's own fix lands.
-      assert oracle_text =~ "�"
-
-      # THE DECISION, GREEN TODAY: yelixer's own view of the SAME edit
-      # never destroys a character into U+FFFD — this holds structurally
-      # (Elixir has no lone-surrogate representation to destroy INTO),
-      # independent of the clock-unit fix and independent of real yjs's
-      # permanently-differing, corrupted output above.
-      refute yelixer_text =~ "�"
-
-      # Recorded explicitly so a future reader does not "fix" this back
-      # into equality: this is an intentional, permanent asymmetry, not
-      # an unfixed defect.
-      assert oracle_text != yelixer_text
-
-      # Reinforces the origin-clock recomputation this arm is built on
-      # (see the moduledoc's B-UP ruling above): `pos=6` (a grapheme
-      # offset today, reinterpreted as a UTF-16 offset once the
-      # clock-unit fix lands) has the unit immediately to its left at
-      # index 5 — `splits_surrogate_pair?(@nfc_string, 5) == true`,
-      # asserted above — i.e. this arm is genuinely exercising a
-      # surrogate-interior origin both before and after that fix, not a
-      # coordinate that happens to stop applying once units are counted
-      # correctly.
-    end
-
-    @tag :parity_exception
-    test "NFD, pos=7 — same emoji, DIFFERENT offset — yelixer must never destroy it either (decision, not a defect)",
-         %{port: port} do
-      # FACT 1 fixture: NFD "Café 👩🏽‍💻\n" (@nfd_hex / @nfd_string).
-      # FACT 2 normalization: NFD (decomposed é — 2 codepoints/2 units,
-      #   which is exactly why the dangerous offset here is 7, not 6 —
-      #   normalization shifts WHICH offset is dangerous, it does not
-      #   determine WHETHER one is).
-      # FACT 3 offset: grapheme position 7 — the very end of the string
-      #   (append after the trailing "\n").
-      # FACT 4 units at offset: left-origin = yelixer-clock 6 (grapheme
-      #   index 6 = "\n"). Upstream reads clock 6 as UTF-16 unit 6 of
-      #   the real 14-unit block, which is the HIGH surrogate of 👩.
-      # FACT 5 surrogate check: programmatic, against real units.
-      assert splits_surrogate_pair?(@nfd_string, 6) == true
-
-      assert %{"ok" => true} = rpc(port, %{cmd: "reset", client_id: 9})
-      assert %{"ok" => true} = rpc(port, %{cmd: "apply_update", update_hex: @nfd_hex})
-
-      fresh_id = 555_602
-      {:ok, base} = Encoding.apply_update(Doc.new(client_id: fresh_id), unhex(@nfd_hex))
-      edited = Text.insert(base, "content", 7, "X")
-      full_update = Encoding.encode_update(edited)
-
-      assert %{"ok" => true} = rpc(port, %{cmd: "apply_update", update_hex: hex(full_update)})
-      %{"ok" => true, "text" => oracle_text} = rpc(port, %{cmd: "text_content", name: "content"})
-      yelixer_text = Text.to_string(edited, "content")
-
-      # PERMANENT, EXPECTED FACT (same as the NFC pos=6 case — real
-      # yjs's own accepted bug, yjs/yjs#248): oracle_text =~ "�".
-      assert oracle_text =~ "�"
-
-      # THE DECISION, GREEN TODAY: same as the NFC pos=6 case above.
-      refute yelixer_text =~ "�"
-      assert oracle_text != yelixer_text
-
-      # Same shape as the NFC pos=6 case: `pos=7` (a grapheme offset
-      # today) is reinterpreted as a UTF-16 offset once clocks are
-      # minted per unit, and the unit immediately to its left is index 6
-      # — the HIGH surrogate of 👩 (`splits_surrogate_pair?(@nfd_string,
-      # 6) == true`, asserted above) — both before and after that fix.
+    # The old implementation moved content but left raw clock IDs behind.
+    # That was corruption in our emitted references, not a necessary consequence
+    # of B-up. Local clamped edits now carry the actual scalar boundary to Yjs.
+    for {label, base, position, expected} <- [
+          {"NFC", @nfc_string, 6, "Caf\u{00E9} \u{1F469}X\u{1F3FD}\u{200D}\u{1F4BB}\n"},
+          {"NFD", @nfd_string, 7, "Cafe\u{0301} \u{1F469}X\u{1F3FD}\u{200D}\u{1F4BB}\n"}
+        ] do
+      @base base
+      @position position
+      @expected expected
+      test "#{label}: local B-up clamp preserves exact position in both runtimes", %{port: port} do
+        rpc(port, %{cmd: "reset", client_id: 4103})
+        rpc(port, %{cmd: "insert_text", pos: 0, text: @base})
+        %{"update_hex" => base_hex} = rpc(port, %{cmd: "encode"})
+        {:ok, doc} = Encoding.apply_update(Doc.new(client_id: 555_601), unhex(base_hex))
+        edited = Text.insert(doc, "content", @position, "X")
+        rpc(port, %{cmd: "apply_update", update_hex: hex(Encoding.encode_update(edited))})
+        %{"text" => text} = rpc(port, %{cmd: "text_content"})
+        assert Text.to_string(edited, "content") == @expected
+        assert text == @expected
+        assert remote_state_vector(port) == Doc.state_vector(edited)
+      end
     end
 
     test "negative control: NFC pos=7 — one unit past the same emoji, origin lands on the LOW surrogate (a valid boundary) — AGREES",
@@ -836,51 +718,21 @@ defmodule Yelixer.DivergenceClockTest do
   # ---------------------------------------------------------------------------
 
   describe "axis: UNDER-DELETION (any deleter id; delete-set names the deleted item's client)" do
-    @tag :divergence
-    test "NFD delete(0, 5 graphemes) straddles the é/space boundary -> the space must NOT survive",
-         %{port: port} do
-      # FACT 1 fixture: NFD "Café 👩🏽‍💻\n" (@nfd_hex / @nfd_string).
-      # FACT 2 normalization: NFD.
-      # FACT 3 offset: delete range [0, 5) graphemes — "C","a","f","é"
-      #   (2 codepoints),"(space)" — intended to remove "Café " (6 real
-      #   UTF-16 units: C,a,f,e,combining-acute,space).
-      # FACT 4 units at offset: yelixer's delete-set entry claims clock
-      #   range [0, 5) (5 "clocks"). Upstream reads that as UTF-16 UNITS
-      #   [0, 5) — "C","a","f","e","combining-acute" — 5 real units,
-      #   stopping ONE UNIT SHORT of the space. The space is not a
-      #   surrogate, so this is a clean boundary miss, not a corruption.
-      # FACT 5 surrogate check: N/A — this is the third, distinct
-      #   population (UNDER-DELETION), not CORRUPTION. Asserted false
-      #   to make that explicit rather than implicit.
-      assert splits_surrogate_pair?(@nfd_string, 4) == false
+    test "NFD delete endpoints are UTF-16 units: five leaves the space, six removes it", %{
+      port: port
+    } do
+      emoji = "\u{1F469}\u{1F3FD}\u{200D}\u{1F4BB}\n"
 
-      # any id may author the delete — using a FRESH one here on purpose
-      # to demonstrate LOSS cannot be the explanation for this axis.
-      deleter_id = 555_701
-      {:ok, doc} = Encoding.apply_update(Doc.new(client_id: deleter_id), unhex(@nfd_hex))
-      edited = Text.delete(doc, "content", 0, 5)
-      full_update = Encoding.encode_update(edited)
-
-      assert %{"ok" => true} = rpc(port, %{cmd: "reset", client_id: 9})
-      assert %{"ok" => true} = rpc(port, %{cmd: "apply_update", update_hex: @nfd_hex})
-      assert %{"ok" => true} = rpc(port, %{cmd: "apply_update", update_hex: hex(full_update)})
-      %{"ok" => true, "text" => oracle_text} = rpc(port, %{cmd: "text_content", name: "content"})
-      yelixer_text = Text.to_string(edited, "content")
-
-      # MEASURED TODAY: UNDER-deletion — the space survives upstream
-      # (oracle_text starts with " "), is absent in yelixer's own
-      # (correct-by-its-own-lights) local view (yelixer_text does not
-      # start with " ").
-
-      # DESIRED, RED TODAY: the space should be deleted on both sides,
-      # matching what the delete(0,5) call intends.
-      assert oracle_text == yelixer_text
-      refute String.starts_with?(oracle_text, " ")
-
-      # RETIREMENT: goes green when the delete-set's clock range is
-      # expressed in UTF-16 units, matching upstream's own accounting —
-      # then the space is removed on both sides and this arm's parity
-      # assertion holds for real, not vacuously.
+      for {units, expected} <- [{5, " " <> emoji}, {6, emoji}] do
+        {:ok, doc} = Encoding.apply_update(Doc.new(client_id: 555_701), unhex(@nfd_hex))
+        edited = Text.delete(doc, "content", 0, units)
+        rpc(port, %{cmd: "reset", client_id: 9})
+        rpc(port, %{cmd: "apply_update", update_hex: @nfd_hex})
+        rpc(port, %{cmd: "apply_update", update_hex: hex(Encoding.encode_update(edited))})
+        %{"text" => text} = rpc(port, %{cmd: "text_content"})
+        assert Text.to_string(edited, "content") == expected
+        assert text == expected
+      end
     end
 
     test "negative control: NFD delete(0, 3 graphemes) — entirely before any multi-unit grapheme — AGREES",
@@ -915,7 +767,6 @@ defmodule Yelixer.DivergenceClockTest do
   # ---------------------------------------------------------------------------
 
   describe "axis: READ/INTEGRATION (same bytes, both sides render differently)" do
-    @tag :divergence
     test "two real-yjs transactions, applied to both sides — yelixer's integration must NOT permanently drop the second one",
          %{port: port} do
       # FACT 1 fixture: built live from two separate real-yjs

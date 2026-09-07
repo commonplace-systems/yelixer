@@ -1,0 +1,9 @@
+[
+  {"name":"ascii","text":"ab","units":2,"graphemes":2,"codepoints":[97,98]},
+  {"name":"precomposed","text":"\u00e9","units":1,"graphemes":1,"codepoints":[233]},
+  {"name":"combining","text":"e\u0301","units":2,"graphemes":1,"codepoints":[101,769]},
+  {"name":"astral","text":"\ud83d\ude00","units":2,"graphemes":1,"codepoints":[128512]},
+  {"name":"zwj","text":"\ud83d\udc69\ud83c\udffd\u200d\ud83d\udcbb","units":7,"graphemes":1,"codepoints":[128105,127997,8205,128187]},
+  {"name":"flag","text":"\ud83c\uddfa\ud83c\uddf8","units":4,"graphemes":1,"codepoints":[127482,127480]},
+  {"name":"mixed","text":"\u00e9/e\u0301/\ud83d\ude00","units":7,"graphemes":5,"codepoints":[233,47,101,769,47,128512]}
+]

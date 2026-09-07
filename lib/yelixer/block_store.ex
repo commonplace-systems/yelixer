@@ -529,7 +529,21 @@ defmodule Yelixer.BlockStore do
   boundaries, so a split is the prerequisite for anchoring a new YATA
   insertion at an interior clock.
   """
-  def split_block(%__MODULE__{} = store, %ID{client: client, clock: clock} = id, type_name) do
+  def split_block(%__MODULE__{} = store, %ID{} = id, type_name) do
+    do_split_block(store, id, type_name, &Item.split/2)
+  end
+
+  @doc false
+  def split_block_at_clock(%__MODULE__{} = store, %ID{} = id, type_name) do
+    do_split_block(store, id, type_name, &Item.split_at_clock/2)
+  end
+
+  defp do_split_block(
+         %__MODULE__{} = store,
+         %ID{client: client, clock: clock} = id,
+         type_name,
+         split
+       ) do
     # get/2 checks client_pending first, so this doesn't force a
     # materialize for the common "already a boundary" no-op case (the
     # last item pushed for `client`, still pending, exactly on a
@@ -550,7 +564,7 @@ defmodule Yelixer.BlockStore do
         tuple = get_tuple(store, client)
         {idx, item} = bsearch_index(tuple, clock)
         offset = clock - item.id.clock
-        {left, right} = Item.split(item, offset)
+        {left, right} = split.(item, offset)
 
         clients =
           Map.update!(store.clients, client, fn blocks ->
