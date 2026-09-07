@@ -1,0 +1,240 @@
+yelixer rm-rf guard active: Yelixer.Test.FileRmRfGuard
+Running ExUnit with seed: 0, max_cases: 1
+Excluding tags: [:divergence]
+
+
+
+  1) test Any buffer keeps its wire type on decode and encode (Yelixer.AnyTypePreservationTest)
+     test/yelixer/any_type_preservation_test.exs:16
+     Assertion with == failed
+     code:  assert Encoding.encode_any_value(value) == bytes
+     left:  <<119, 4, 0, 65, 255, 128>>
+     right: <<116, 4, 0, 65, 255, 128>>
+     stacktrace:
+       test/yelixer/any_type_preservation_test.exs:19: (test)
+
+
+
+  2) test Any undefined keeps its wire type on decode and encode (Yelixer.AnyTypePreservationTest)
+     test/yelixer/any_type_preservation_test.exs:16
+     Assertion with == failed
+     code:  assert Encoding.encode_any_value(value) == bytes
+     left:  "~"
+     right: "\d"
+     stacktrace:
+       test/yelixer/any_type_preservation_test.exs:19: (test)
+
+
+
+  3) test Any bigint keeps its wire type on decode and encode (Yelixer.AnyTypePreservationTest)
+     test/yelixer/any_type_preservation_test.exs:16
+     Assertion with == failed
+     code:  assert Encoding.encode_any_value(value) == bytes
+     left:  "}*"
+     right: <<122, 0, 0, 0, 0, 0, 0, 0, 42>>
+     stacktrace:
+       test/yelixer/any_type_preservation_test.exs:19: (test)
+
+
+
+  4) test official Yjs buffer survives map and array update reloads (Yelixer.AnyTypePreservationTest)
+     test/yelixer/any_type_preservation_test.exs:24
+     Yjs rejected %{update: "0102070028010676616c7565730576616c7565017601077061796c6f616477040041ff800801056974656d73017601077061796c6f616477040041ff8000", cmd: "inspect"}: %{"error" => "The encoded data was not valid for encoding utf-8", "ok" => false}
+     code: assert O.rpc(port, %{cmd: "inspect", update: Base.encode16(encoded, case: :lower)}) == expected
+     stacktrace:
+       test/support/compat_oracle.exs:37: Yelixer.Test.CompatOracle.rpc/2
+       test/yelixer/any_type_preservation_test.exs:34: (test)
+
+
+
+  5) test official Yjs undefined survives map and array update reloads (Yelixer.AnyTypePreservationTest)
+     test/yelixer/any_type_preservation_test.exs:24
+     Assertion with == failed
+     code:  assert O.rpc(port, %{cmd: "inspect", update: Base.encode16(encoded, case: :lower)}) == expected
+     left:  %{
+              "array" => %{
+                "type" => "array",
+                "values" => [
+                  %{
+                    "entries" => %{"payload" => %{"type" => "null"}},
+                    "type" => "object"
+                  }
+                ]
+              },
+              "map" => %{
+                "entries" => %{"payload" => %{"type" => "null"}},
+                "type" => "object"
+              },
+              "ok" => true,
+              "sv" => "010702"
+            }
+     right: %{
+              "array" => %{
+                "type" => "array",
+                "values" => [
+                  %{
+                    "entries" => %{
+                      "payload" => %{"type" => "undefined"}
+                    },
+                    "type" => "object"
+                  }
+                ]
+              },
+              "map" => %{
+                "entries" => %{
+                  "payload" => %{"type" => "undefined"}
+                },
+                "type" => "object"
+              },
+              "ok" => true,
+              "sv" => "010702"
+            }
+     stacktrace:
+       test/yelixer/any_type_preservation_test.exs:34: (test)
+
+
+
+  6) test official Yjs bigint survives map and array update reloads (Yelixer.AnyTypePreservationTest)
+     test/yelixer/any_type_preservation_test.exs:24
+     Assertion with == failed
+     code:  assert O.rpc(port, %{cmd: "inspect", update: Base.encode16(encoded, case: :lower)}) == expected
+     left:  %{
+              "array" => %{
+                "type" => "array",
+                "values" => [
+                  %{
+                    "entries" => %{
+                      "payload" => %{
+                        "type" => "number",
+                        "value" => 42
+                      }
+                    },
+                    "type" => "object"
+                  }
+                ]
+              },
+              "map" => %{
+                "entries" => %{
+                  "payload" => %{"type" => "number", "value" => 42}
+                },
+                "type" => "object"
+              },
+              "ok" => true,
+              "sv" => "010702"
+            }
+     right: %{
+              "array" => %{
+                "type" => "array",
+                "values" => [
+                  %{
+                    "entries" => %{
+                      "payload" => %{
+                        "decimal" => "42",
+                        "type" => "bigint"
+                      }
+                    },
+                    "type" => "object"
+                  }
+                ]
+              },
+              "map" => %{
+                "entries" => %{
+                  "payload" => %{
+                    "decimal" => "42",
+                    "type" => "bigint"
+                  }
+                },
+                "type" => "object"
+              },
+              "ok" => true,
+              "sv" => "010702"
+            }
+     stacktrace:
+       test/yelixer/any_type_preservation_test.exs:34: (test)
+
+
+
+  7) test official Yjs bigint_min survives map and array update reloads (Yelixer.AnyTypePreservationTest)
+     test/yelixer/any_type_preservation_test.exs:24
+     Assertion with == failed
+     code:  assert O.rpc(port, %{cmd: "inspect", update: Base.encode16(encoded, case: :lower)}) == expected
+     left:  %{
+              "array" => %{
+                "type" => "array",
+                "values" => [
+                  %{
+                    "entries" => %{
+                      "payload" => %{
+                        "type" => "number",
+                        "value" => -9223372036854776000
+                      }
+                    },
+                    "type" => "object"
+                  }
+                ]
+              },
+              "map" => %{
+                "entries" => %{
+                  "payload" => %{
+                    "type" => "number",
+                    "value" => -9223372036854776000
+                  }
+                },
+                "type" => "object"
+              },
+              "ok" => true,
+              "sv" => "010702"
+            }
+     right: %{
+              "array" => %{
+                "type" => "array",
+                "values" => [
+                  %{
+                    "entries" => %{
+                      "payload" => %{
+                        "decimal" => "-9223372036854775808",
+                        "type" => "bigint"
+                      }
+                    },
+                    "type" => "object"
+                  }
+                ]
+              },
+              "map" => %{
+                "entries" => %{
+                  "payload" => %{
+                    "decimal" => "-9223372036854775808",
+                    "type" => "bigint"
+                  }
+                },
+                "type" => "object"
+              },
+              "ok" => true,
+              "sv" => "010702"
+            }
+     stacktrace:
+       test/yelixer/any_type_preservation_test.exs:34: (test)
+
+
+
+  8) test official Yjs bigint_max survives map and array update reloads (Yelixer.AnyTypePreservationTest)
+     test/yelixer/any_type_preservation_test.exs:24
+     Yjs rejected %{update: "0102070028010676616c7565730576616c7565017601077061796c6f61647dbfffffffffffffffff010801056974656d73017601077061796c6f61647dbfffffffffffffffff0100", cmd: "inspect"}: %{"error" => "Integer out of Range", "ok" => false}
+     code: assert O.rpc(port, %{cmd: "inspect", update: Base.encode16(encoded, case: :lower)}) == expected
+     stacktrace:
+       test/support/compat_oracle.exs:37: Yelixer.Test.CompatOracle.rpc/2
+       test/yelixer/any_type_preservation_test.exs:34: (test)
+
+
+
+  9) test official Yjs nested survives map and array update reloads (Yelixer.AnyTypePreservationTest)
+     test/yelixer/any_type_preservation_test.exs:24
+     Yjs rejected %{update: "0102070028010676616c7565730576616c7565017601077061796c6f61647602056368696c6476010562797465737701ff046c697374750377007e7d2a0801056974656d73017601077061796c6f61647602056368696c6476010562797465737701ff046c697374750377007e7d2a00", cmd: "inspect"}: %{"error" => "The encoded data was not valid for encoding utf-8", "ok" => false}
+     code: assert O.rpc(port, %{cmd: "inspect", update: Base.encode16(encoded, case: :lower)}) == expected
+     stacktrace:
+       test/support/compat_oracle.exs:37: Yelixer.Test.CompatOracle.rpc/2
+       test/yelixer/any_type_preservation_test.exs:34: (test)
+
+.
+Finished in 2.0 seconds (0.00s async, 2.0s sync)
+10 tests, 9 failures

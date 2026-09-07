@@ -1,0 +1,9 @@
+==> stream_data
+Compiling 3 files (.ex)
+Generated stream_data app
+==> yelixer
+===> Analyzing applications...
+===> Compiling telemetry
+==> jason
+Compiling 10 files (.ex)
+Generated jason app

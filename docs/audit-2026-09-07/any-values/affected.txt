@@ -1,0 +1,7 @@
+yelixer rm-rf guard active: Yelixer.Test.FileRmRfGuard
+Running ExUnit with seed: 0, max_cases: 1
+Excluding tags: [:divergence]
+
+.............................................................
+Finished in 0.5 seconds (0.5s async, 0.00s sync)
+61 tests, 0 failures

@@ -285,3 +285,22 @@ regressions went from five failures to zero. One-item diff cost grows 1–3%
 when the synthetic history doubles, versus about 90% before; matching output
 bytes are unchanged. Text positional authoring, uncached fallbacks, general
 pending retry work, snapshots, Any typing and parser budgets remain open.
+
+The performance batch landed through [PR #3](https://github.com/commonplace-systems/yelixer/pull/3)
+at main **f36877c818977add3de8e9ad76d780bb4139d6cf**, with one independent
+read-only review and [GitHub-hosted CI](https://github.com/commonplace-systems/yelixer/actions/runs/34163739261)
+on **c4114f3875f71865f7f81b257d58009402b4ad2e**. The full suite passed
+1 doctest + 33 properties + 495 tests, zero failures, four exclusions. Stable
+and preview each passed 11/0; boundary 25/0; separate full-state 1/0; expected
+content divergence remained 12 tests / four failures. Other CI gates passed.
+
+## Any-value repair batch
+
+The [typed-value repair](any-values/README.md) closes finding 5 for buffers,
+undefined and signed 64-bit bigints. Corrected regressions went from 10 tests /
+nine failures to 10 / zero, including actual Yjs map/array reloads. Its new
+return types are documented explicitly for callers. The separately labelled
+first adapter attempt did not exercise seven foreign comparison arms and is
+not counted as conformance evidence. Snapshot derivation/overlay, Text positional
+work, uncached lookup fallbacks, general pending retries and parser budgets
+remain open; broader numeric compatibility is not claimed by these three types.
