@@ -36,6 +36,29 @@ resolved nested values are read projections, not a promise that generic primitiv
 insertion recreates nested CRDT identity. JSON encoding of typed buffer values
 still requires a caller-selected projection.
 
-No runtime has run for this second-round packet yet. Local verification will be
-focused and separately granted; the full suite belongs to hosted CI. Each landed
-PR receives one review and records its exact baseline, candidate and evidence.
+## Measured content-reader repair
+
+Baseline `3ed0939` (production `c8a48ae`): eight frozen cases, **seven failures**,
+one ordinary-value control passing. The failures were map/array reader exceptions
+on foreign binary/nested values and formatted length **7 versus Yjs 5**.
+The candidate changes production `lib/`: all eight pass. The seven original
+Yjs update payloads are identical across baseline/candidate, recorded in
+[same-inputs.json](same-inputs.json) and both oracle transcripts. Candidate output
+or reauthoring bytes are not claimed identical to baseline output.
+
+Map/array readers now share their variant-aware projections. Native ContentBinary
+items remain unchanged in the store and wire codec; readers return Any.buffer so
+subsequent authoring preserves byte-buffer intent. Missing keys/ordinary values
+retain their meanings. Text.length excludes format markers without claiming a
+repair of local rich-text authoring positions or attributes.
+
+Affected gates: **48 tests, zero failures**. The original content instrument:
+**12 tests, two remaining failures**, both unwrapped-binary authoring expectations.
+The repaired formatted-length/nested-array cases no longer carry the exclusion
+tag. CI explicitly expects two remaining failures, so neither retirement nor a
+new failure can disappear into a stale count. See [baseline](baseline.txt),
+[candidate](green.txt), [affected checks](affected.txt), and
+[content classification](content-classification.txt).
+
+Full regression and one external review remain required before landing; no
+consumer dependency or deployment is changed by this library round.

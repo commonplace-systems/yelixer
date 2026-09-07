@@ -160,17 +160,19 @@ defmodule Yelixer.Types.Array do
   end
 
   @doc """
-  Returns live elements as a flat Elixir list.
+  Returns live elements as an Elixir list using the same variant-aware
+  projection as `to_json/2`. Nested types resolve recursively and remain
+  nested values; ContentBinary items become `Yelixer.Any.buffer/1` wrappers.
+  Tombstones are excluded by `BlockStore.get_sequence/2`.
 
-  Only `:any`-content blocks contribute; tombstones are excluded by
-  `BlockStore.get_sequence/2`. Other content variants (`:type`,
-  `:embed`, `:string`, `:json`) are silently dropped — use `to_json/2`
-  for variant-aware output.
+  This is a value projection, not a nested CRDT insertion API. JSON encoding
+  of explicit buffer/undefined/bigint wrappers requires a caller-selected
+  representation.
   """
   def to_list(%Doc{} = doc, type_name) do
     doc.store
     |> BlockStore.get_sequence(type_name)
-    |> Enum.flat_map(fn %Item{content: {:any, values}} -> values end)
+    |> Enum.flat_map(&item_to_json_values(doc, &1))
   end
 
   @doc """
@@ -182,6 +184,7 @@ defmodule Yelixer.Types.Array do
     - `:any` — each value through `Yelixer.Types.resolve_content_value/2`.
     - `:type` — sub-type resolved via `Yelixer.Types.sub_type_to_json/2`.
     - `:string` — string through `resolve_content_value/2`.
+    - `:binary` — an explicit `Yelixer.Any.buffer/1` wrapper.
     - `:embed` — returned as-is.
     - `:json` — value list flattened in.
     - Anything else — dropped (tombstones never reach here;
@@ -204,6 +207,9 @@ defmodule Yelixer.Types.Array do
   defp item_to_json_values(doc, %Item{content: {:string, s}}) do
     [Yelixer.Types.resolve_content_value(doc, s)]
   end
+
+  defp item_to_json_values(_doc, %Item{content: {:binary, bytes}}),
+    do: [Yelixer.Any.buffer(bytes)]
 
   defp item_to_json_values(_doc, %Item{content: {:embed, v}}), do: [v]
   defp item_to_json_values(_doc, %Item{content: {:json, values}}), do: values

@@ -1,0 +1,32 @@
+yelixer rm-rf guard active: Yelixer.Test.FileRmRfGuard
+Running ExUnit with seed: 0, max_cases: 1
+Including tags: [:divergence]
+
+
+
+  1) test content: BINARY VALUES via YMap.set (Encoding.encode_any/1, lib/yelixer/encoding.ex ~774) Mode 1 LOUD: a non-UTF-8 blob must apply cleanly to real yjs, not get the WHOLE update rejected (Yelixer.DivergenceContentTest)
+     test/yelixer/divergence_content_test.exs:205
+     match (=) failed
+     code:  assert %{"ok" => true} = result
+     left:  %{"ok" => true}
+     right: %{
+              "error" => "The encoded data was not valid for encoding utf-8",
+              "ok" => false
+            }
+     stacktrace:
+       test/yelixer/divergence_content_test.exs:224: (test)
+
+
+
+  2) test content: BINARY VALUES via YMap.set (Encoding.encode_any/1, lib/yelixer/encoding.ex ~774) Mode 2 SILENT: a valid-UTF-8 blob must arrive typed as Uint8Array, not silently coerced to String (Yelixer.DivergenceContentTest)
+     test/yelixer/divergence_content_test.exs:233
+     Assertion with == failed
+     code:  assert ctor == "Uint8Array"
+     left:  "String"
+     right: "Uint8Array"
+     stacktrace:
+       test/yelixer/divergence_content_test.exs:258: (test)
+
+..........
+Finished in 1.9 seconds (0.00s async, 1.9s sync)
+12 tests, 2 failures

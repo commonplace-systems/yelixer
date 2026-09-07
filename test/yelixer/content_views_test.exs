@@ -17,8 +17,14 @@ defmodule Yelixer.ContentViewsTest do
   for {label, bytes} <- [{"UTF-8", <<0, 0, 1, 44>>}, {"non-UTF-8", <<0, 255, 254, 1>>}] do
     test "foreign #{label} map buffer survives every read and reauthoring", %{port: port} do
       bytes = unquote(bytes)
-      O.rpc(port, %{cmd: "set_map_binary", root: "root", key: "k",
-        hex: Base.encode16(bytes, case: :lower)})
+
+      O.rpc(port, %{
+        cmd: "set_map_binary",
+        root: "root",
+        key: "k",
+        hex: Base.encode16(bytes, case: :lower)
+      })
+
       doc = O.load(O.update(port))
       assert YMap.get(doc, "root", "k") == Any.buffer(bytes)
       assert YMap.to_map(doc, "root") == %{"k" => Any.buffer(bytes)}
@@ -33,8 +39,13 @@ defmodule Yelixer.ContentViewsTest do
 
     test "foreign #{label} array buffer remains a typed value", %{port: port} do
       bytes = unquote(bytes)
-      O.rpc(port, %{cmd: "array_push_binary", root: "items",
-        hex: Base.encode16(bytes, case: :lower)})
+
+      O.rpc(port, %{
+        cmd: "array_push_binary",
+        root: "items",
+        hex: Base.encode16(bytes, case: :lower)
+      })
+
       doc = O.load(O.update(port))
       assert Array.to_list(doc, "items") == [Any.buffer(bytes)]
       assert Array.to_json(doc, "items") == [Any.buffer(bytes)]
@@ -72,16 +83,20 @@ defmodule Yelixer.ContentViewsTest do
   end
 
   test "ordinary values and missing keys retain their existing meanings", %{port: port} do
-    doc = Doc.new(client_id: 7304)
+    doc =
+      Doc.new(client_id: 7304)
       |> YMap.set("root", "s", "hello")
       |> YMap.set("root", "nil", nil)
       |> Array.insert("items", 0, [1, "two", false, nil])
+
     assert YMap.get(doc, "root", "absent") == nil
     assert YMap.get(doc, "root", "s") == "hello"
     assert YMap.to_map(doc, "root") == %{"s" => "hello", "nil" => nil}
     assert Array.to_list(doc, "items") == [1, "two", false, nil]
     O.apply(port, Encoding.encode_update(doc))
     assert O.rpc(port, %{cmd: "map_content", name: "root"})["map"] == YMap.to_map(doc, "root")
-    assert O.rpc(port, %{cmd: "array_content", name: "items"})["array"] == Array.to_list(doc, "items")
+
+    assert O.rpc(port, %{cmd: "array_content", name: "items"})["array"] ==
+             Array.to_list(doc, "items")
   end
 end

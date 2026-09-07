@@ -44,7 +44,7 @@ These pins define tested behavior; they are not a guarantee for every type/API.
 | Raw sync frames | y-protocols 1.0.7 length-delimited tags 0, 1 and 2; caller supplies transport/room envelopes |
 | Plain Text / XMLText | Local UTF-16 positions and scalar-boundary normalization; rich-text formatting positions have known differences |
 | General values | Primitive values and explicit Any buffer/undefined/signed-64-bit-bigint wrappers; ordinary binaries encode as strings |
-| Nested types | Variant-aware `to_json` helpers exist; do not assume `Array.to_list` or `YMap.get/to_map` resolve every wire variant |
+| Content reads | `Array.to_list` and `YMap.get/to_map` resolve supported nested values; ContentBinary projects to `Any.buffer`; these are value projections, not nested CRDT insertion |
 | Awareness / transport | Not supplied by this library |
 | V2 / subdocuments | Not advertised as supported |
 | Persistence | Caller responsibility; DocServer state is in memory |
@@ -70,8 +70,11 @@ JSON projections need an explicit application representation for these types.
 See the [ranked project audit](docs/audit-2026-09-07/README.md),
 [Unicode policy](docs/unicode-compatibility.md), and
 [incoming Unicode evidence](docs/unicode-inbound-repair.md) for measured limits.
-The test suite keeps four known content divergences separately counted; a green
-default suite does not mean those divergences disappeared.
+The test suite keeps two unwrapped-binary authoring expectations separately
+counted: ordinary binaries remain strings, while `Any.buffer/1` requests a byte
+buffer. Formatted text length excludes format markers; local rich-text editing
+positions and attribute behavior remain outside the plain-text authoring contract.
+See the [second repair round](docs/audit-round-2-2026-09-07/README.md) for evidence.
 
 ## Development
 

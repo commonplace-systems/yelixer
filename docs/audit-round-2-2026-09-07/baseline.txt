@@ -1,0 +1,99 @@
+yelixer rm-rf guard active: Yelixer.Test.FileRmRfGuard
+Running ExUnit with seed: 0, max_cases: 1
+Excluding tags: [:divergence]
+
+
+
+  1) test foreign UTF-8 map buffer survives every read and reauthoring (Yelixer.ContentViewsTest)
+     test/yelixer/content_views_test.exs:18
+     ** (CaseClauseError) no case clause matching: %Yelixer.Item{id: %Yelixer.ID{client: 7301, clock: 0}, origin: nil, right_origin: nil, content: {:binary, <<0, 0, 1, 44>>}, parent: {:named, "root"}, parent_sub: "k", deleted: false, length: 1}
+     code: assert YMap.get(doc, "root", "k") == Any.buffer(bytes)
+     stacktrace:
+       (yelixer 0.1.0) lib/yelixer/types/y_map.ex:128: Yelixer.Types.YMap.get/3
+       test/yelixer/content_views_test.exs:23: (test)
+
+
+
+  2) test foreign UTF-8 array buffer remains a typed value (Yelixer.ContentViewsTest)
+     test/yelixer/content_views_test.exs:34
+     ** (FunctionClauseError) no function clause matching in anonymous fn/1 in Yelixer.Types.Array.to_list/2
+
+     The following arguments were given to anonymous fn/1 in Yelixer.Types.Array.to_list/2:
+
+         # 1
+         %Yelixer.Item{id: %Yelixer.ID{client: 7301, clock: 0}, origin: nil, right_origin: nil, content: {:binary, <<0, 0, 1, 44>>}, parent: {:named, "items"}, parent_sub: nil, deleted: false, length: 1}
+
+     code: assert Array.to_list(doc, "items") == [Any.buffer(bytes)]
+     stacktrace:
+       (yelixer 0.1.0) lib/yelixer/types/array.ex:173: anonymous fn/1 in Yelixer.Types.Array.to_list/2
+       (elixir 1.18.4) lib/enum.ex:4442: Enum.flat_map_list/2
+       test/yelixer/content_views_test.exs:39: (test)
+
+
+
+  3) test foreign non-UTF-8 map buffer survives every read and reauthoring (Yelixer.ContentViewsTest)
+     test/yelixer/content_views_test.exs:18
+     ** (CaseClauseError) no case clause matching: %Yelixer.Item{id: %Yelixer.ID{client: 7301, clock: 0}, origin: nil, right_origin: nil, content: {:binary, <<0, 255, 254, 1>>}, parent: {:named, "root"}, parent_sub: "k", deleted: false, length: 1}
+     code: assert YMap.get(doc, "root", "k") == Any.buffer(bytes)
+     stacktrace:
+       (yelixer 0.1.0) lib/yelixer/types/y_map.ex:128: Yelixer.Types.YMap.get/3
+       test/yelixer/content_views_test.exs:23: (test)
+
+
+
+  4) test foreign non-UTF-8 array buffer remains a typed value (Yelixer.ContentViewsTest)
+     test/yelixer/content_views_test.exs:34
+     ** (FunctionClauseError) no function clause matching in anonymous fn/1 in Yelixer.Types.Array.to_list/2
+
+     The following arguments were given to anonymous fn/1 in Yelixer.Types.Array.to_list/2:
+
+         # 1
+         %Yelixer.Item{id: %Yelixer.ID{client: 7301, clock: 0}, origin: nil, right_origin: nil, content: {:binary, <<0, 255, 254, 1>>}, parent: {:named, "items"}, parent_sub: nil, deleted: false, length: 1}
+
+     code: assert Array.to_list(doc, "items") == [Any.buffer(bytes)]
+     stacktrace:
+       (yelixer 0.1.0) lib/yelixer/types/array.ex:173: anonymous fn/1 in Yelixer.Types.Array.to_list/2
+       (elixir 1.18.4) lib/enum.ex:4442: Enum.flat_map_list/2
+       test/yelixer/content_views_test.exs:39: (test)
+
+
+
+  5) test foreign nested map value resolves in all map readers (Yelixer.ContentViewsTest)
+     test/yelixer/content_views_test.exs:45
+     ** (CaseClauseError) no case clause matching: %Yelixer.Item{id: %Yelixer.ID{client: 7301, clock: 0}, origin: nil, right_origin: nil, content: {:type, :array}, parent: {:named, "root"}, parent_sub: "k", deleted: false, length: 1}
+     code: assert YMap.get(doc, "root", "k") == expected["k"]
+     stacktrace:
+       (yelixer 0.1.0) lib/yelixer/types/y_map.ex:128: Yelixer.Types.YMap.get/3
+       test/yelixer/content_views_test.exs:49: (test)
+
+
+
+  6) test foreign nested array resolves through to_list (Yelixer.ContentViewsTest)
+     test/yelixer/content_views_test.exs:54
+     ** (FunctionClauseError) no function clause matching in anonymous fn/1 in Yelixer.Types.Array.to_list/2
+
+     The following arguments were given to anonymous fn/1 in Yelixer.Types.Array.to_list/2:
+
+         # 1
+         %Yelixer.Item{id: %Yelixer.ID{client: 7301, clock: 0}, origin: nil, right_origin: nil, content: {:type, :array}, parent: {:named, "items"}, parent_sub: nil, deleted: false, length: 1}
+
+     code: assert Array.to_list(doc, "items") == expected
+     stacktrace:
+       (yelixer 0.1.0) lib/yelixer/types/array.ex:173: anonymous fn/1 in Yelixer.Types.Array.to_list/2
+       (elixir 1.18.4) lib/enum.ex:4442: Enum.flat_map_list/2
+       test/yelixer/content_views_test.exs:58: (test)
+
+
+
+  7) test formatted text length counts UTF-16 and embeds but not format clocks (Yelixer.ContentViewsTest)
+     test/yelixer/content_views_test.exs:63
+     Assertion with == failed
+     code:  assert Text.length(doc, "content") == expected
+     left:  7
+     right: 5
+     stacktrace:
+       test/yelixer/content_views_test.exs:70: (test)
+
+.
+Finished in 2.3 seconds (0.00s async, 2.3s sync)
+8 tests, 7 failures
