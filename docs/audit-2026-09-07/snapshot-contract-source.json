@@ -1,0 +1,8 @@
+{
+  "base": "f36877c818977add3de8e9ad76d780bb4139d6cf",
+  "path": "lib/yelixer/doc.ex",
+  "before_sha256": "293c3f75048901696c9a13fb00d8d60fbf173ae7f0cac8e04a02015008703d1c",
+  "after_sha256": "adce1dd523a51c1e2feb2cc9af9c8a37dbde2bdb2b6651f8691ff264765e225d",
+  "method": "Remove @doc triple-quoted strings, full-line comments and blank lines; compare remaining source exactly",
+  "remaining_source_equal": true
+}

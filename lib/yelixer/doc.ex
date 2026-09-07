@@ -433,11 +433,10 @@ defmodule Yelixer.Doc do
   #
   # The compaction approach: rebuild the doc's *observable* content
   # into a fresh replica under a single stable `client_id`. The
-  # rebuilt doc produces the same rendered output, but with a
-  # state-vector of size 1 and a single block-store bucket. Applying
-  # the resulting update over a receiver that already has the source
-  # doc is idempotent in Yjs, so peers that have not yet migrated
-  # still converge correctly.
+  # rebuilt doc consolidates supported observable content under a
+  # single client. It is a replacement representation, NOT an update
+  # that can be merged into the source history. New identities can
+  # duplicate content on overlay; reused identities can collide.
   #
   # The replay machinery walks each registered named-type root in the
   # source doc and rewrites its content into the fresh doc via the
@@ -445,54 +444,48 @@ defmodule Yelixer.Doc do
   # helper; XML's recursive structure is handled by the deepest ones.
 
   @doc """
-  Builds a self-contained Yjs V1 binary update encoding the source
-  doc's current observable state under a single `client_id`.
+  Reauthors supported observable content as a replacement Yjs V1 snapshot
+  under a single `client_id`. Returns `{bytes, legacy_positional_map}`.
 
   Used by the compaction primitive (CX-u7p). When a long-lived doc has
   accumulated thousands of distinct `client_id`s (e.g. a presence doc
   that mints a fresh id each heartbeat), the encoded update grows
   O(clients) in size and apply time. This function replays the
-  observable content into a fresh replica so the returned binary
-  produces equivalent output with a state vector of size 1.
+  observable content into a fresh replica with at most one client entry.
 
   Walks the source doc's registered named-type roots and replays each
   into a new doc via the public type APIs (`YMap`, `Text`, `Array`,
-  XML). Returns `{bytes, derivation_map}`. Applying the returned bytes
-  on top of a receiver that already has the source doc is idempotent,
-  so the snapshot can be committed and replicated to peers safely even
-  before all readers learn to short-circuit on snapshot commits.
+  XML). Load the result only into a fresh document isolated from the source
+  history. A caller adopting a replacement must keep old-history writers and
+  updates out of that new document. This function does not enforce that boundary.
 
-  ## The derivation map
+  Do not apply the returned bytes on top of the source or treat them as an
+  ordinary mergeable update. For example, reauthoring live `"b"` under a new
+  client and applying it over the source yields `"bb"`. Reusing a source client
+  can instead collide with old clock identities. For ordinary replica sync,
+  use `Yelixer.Encoding.encode_update/1`, which preserves the original identities.
 
-  Compaction renames every item: the rebuilt doc uses fresh
-  `(client_id, clock)` ids from the new replica's clock space, not the
-  source's. That breaks external references — late edits from peers who
-  haven't seen the snapshot yet, archival commits that quoted a
-  pre-compaction id, etc.
+  ## Legacy positional map: not reliable provenance
 
-  The derivation map is `%{new_id => source_id}`: for every item in the
-  rebuilt doc, the id of the source item it was rebuilt from.
-  Late-edit translation uses it to rewrite incoming anchors from the
-  source address space into the post-compaction one, so pre-snapshot
-  edits integrate correctly without their anchors pointing into
-  emptiness.
+  The second return value retains the legacy `%{new_id => source_id}` shape,
+  but currently pairs items by position. It includes deleted source items and
+  cannot account for replay merging multiple source runs. It therefore does
+  not reliably identify which source content produced a new item.
 
-  Computed atomically with the bytes (CX-umz) so both commit to the
-  same `(source, client_id, iteration order)` triple. See
-  `Commonplace.Store.Snapshotter` for the calling convention that
-  determinizes `source.client_id` before invoking this.
+  For source `"ab"` with `"a"` deleted, it can map the rebuilt live `"b"` to
+  the deleted `"a"` identity. Do not use this map to translate late-edit anchors
+  or establish content provenance. Deterministic iteration and computing it
+  alongside the bytes do not make the mapping correct. The API is retained
+  here for compatibility; repairing its provenance requires recording source
+  intervals during replay. See the project audit's snapshot finding.
 
-  ## Refusing lossy compaction (CX-oh9z)
+  ## Nested subtype refusal
 
   If `source` carries any `__sub:CLIENT:CLOCK` nested sub-type (see
   `nested_subtype_names/1`), this function returns `{:error,
   {:lossy_nested_subtypes, names}}` instead of silently dropping that
-  sub-type's CRDT state. This makes the guard load-bearing at the
-  library boundary itself, rather than relying on every caller to
-  remember to pre-check `nested_subtype_names/1` (exactly one caller,
-  `Commonplace.Store.Snapshotter.build_payload/2`, did before this
-  guard existed here — the refusal below is now redundant for that
-  caller but protects every other/future one).
+  sub-type's CRDT state. This guard runs at the library boundary;
+  it does not establish lossless replay for every other content variant.
 
   Pass `force: true` to bypass the refusal and get the old
   (lossy-if-nested) behavior — `{bytes, derivation_map}` unconditionally.
@@ -519,11 +512,9 @@ defmodule Yelixer.Doc do
 
   Sub-types nested inside maps and arrays are not yet replayed
   structurally — `replay_named_type/3` short-circuits on the `__sub:`
-  prefix. Current callers (presence docs, schema docs) store only
-  primitive values at top-level registered types, so the gap is
-  harmless. XML sub-types *are* replayed structurally via the
-  `replay_xml_*` helpers, because XML's tree shape is the whole point
-  of the type.
+  prefix. The refusal above protects these registered sub-types unless
+  `force: true` is used. XML child names handled by the `replay_xml_*`
+  helpers have a separate recursive replay path.
   """
   @spec snapshot_update(t(), force: boolean()) ::
           {binary(), %{optional(tuple()) => tuple()}}
@@ -540,20 +531,14 @@ defmodule Yelixer.Doc do
   defp do_snapshot_update(source) do
     fresh = new(client_id: source.client_id)
 
-    # CX-hzdc: replay in source-clock order, not `source.types` map
-    # iteration order. The downstream derivation map pairs source and
-    # new items by position, so source ordering must be preserved in
-    # the rebuilt doc. Without this, envelope-structure docs (root YMap
-    # + named "content") get a DM that pairs `_type` with "content" and
-    # causes spurious `:case_b` in late-edit translation.
+    # Keep the established deterministic root order. This reduces ordering
+    # drift but does not repair the positional map's provenance defects.
     types_in_source_order = sort_types_by_earliest_item(source)
     rebuilt = Enum.reduce(types_in_source_order, fresh, &replay_named_type(&1, &2, source))
     bytes = Yelixer.Encoding.encode_update(rebuilt)
 
-    # CX-umz: the derivation map is computed atomically with the
-    # snapshot bytes so both commit to the same (source, client_id,
-    # iteration order) pair. See also `Commonplace.Store.Snapshotter`
-    # which determinizes source.client_id before calling this.
+    # Preserve the legacy return shape. Atomic construction only ties these
+    # outputs to one source; it does not establish a correct source mapping.
     {bytes, build_derivation_map(source, rebuilt)}
   end
 
