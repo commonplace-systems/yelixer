@@ -178,21 +178,28 @@ defmodule Yelixer.Types.Text do
 
   Each string block's `length` field is set to its UTF-16 length at
   construction by `Yelixer.Item.new/6`. Summing live blocks gives the
-  total.
+  total for plain text.
 
-  Counts all live *plain-sequence* blocks, not just `:string` ones —
+  Counts live *plain-sequence* content, not just `:string` blocks —
   embeds and sub-types contribute length but no characters. Y.Map
   keyed items sharing this name (`parent_sub != nil`) are excluded:
   they live in the map's key-space, not the text's positional
   sequence, so they must not contribute to offsets (see
   `plain_sequence/2`). In a pure-text sequence this equals
-  the UTF-16 length of `to_string(doc, name)`. Formatting markers currently
-  contribute clocks here too; formatted text does not have Y.Text position parity.
+  the UTF-16 length of `to_string(doc, name)`. Formatting markers consume
+  identity clocks but contribute zero to this visible length, matching Y.Text.
+
+  This read-only count does not establish rich-text authoring support:
+  local `insert/4` and `delete/4` still target plain text and do not provide
+  formatting-attribute or formatted-position parity.
   """
   def length(%Doc{} = doc, type_name) do
     doc.store
     |> plain_sequence(type_name)
-    |> Enum.reduce(0, fn %Item{length: len}, acc -> acc + len end)
+    |> Enum.reduce(0, fn
+      %Item{content: {:format, _}}, acc -> acc
+      %Item{length: len}, acc -> acc + len
+    end)
   end
 
   # ---- Offset → anchor / range translation ----

@@ -55,7 +55,7 @@ jobs:
       # pins, +1 doctest term the old arithmetic dropped, +10 parity CONTROLS
       # that now run here rather than hiding in the excluded population (see
       # below), +7 more controls from the content instrument, +2 :parity_exception
-      # arms. Only the 4 expected-red :divergence arms are excluded here; they
+      # arms. Only the 2 expected-red :divergence arms are excluded here; they
       # are counted in their own jobs.
       #
       # The guard compares this floor against EXECUTED tests, not DEFINED ones:
@@ -129,9 +129,9 @@ jobs:
       # kept as its own job so a change in one instrument cannot be absorbed
       # by the other's count.
       #
-      # Four remaining defects: formatting affects public text positions,
-      # untyped map binary authoring is not Uint8Array authoring (loud and quiet
-      # cases), and Array.to_list cannot resolve nested types. Binary ITEM clocks
+      # Two remaining authoring expectations: untyped map binaries are strings,
+      # not Uint8Array (loud and quiet cases); explicit Any.buffer expresses byte
+      # intent. Formatted-length and nested-array reads now pass. Binary ITEM clocks
       # are now one unit. Equivalent independently authored arrays may pack
       # structs differently, so that old byte-equality assertion is semantic now.
       - name: Content divergence pins vs Yjs stable (RED BY DESIGN, counted)
@@ -139,4 +139,4 @@ jobs:
           YJS_ORACLE: stable
           YELIXER_REQUIRE_YJS_ORACLE: "1"
         # Independent equivalent arrays need not use identical struct packing.
-        run: bin/yx-test-guard --exact 12 --expect-failures 4 -- mix test test/yelixer/divergence_content_test.exs --include divergence
+        run: bin/yx-test-guard --exact 12 --expect-failures 2 -- mix test test/yelixer/divergence_content_test.exs --include divergence

@@ -49,8 +49,9 @@ defmodule Yelixer.Types.YMap do
   `Yelixer.Types.Array`'s convention. A nested CRDT (a `YArray` or another
   `YMap` embedded as a value) is stored as `{:type, type_ref}`; its own
   Items live elsewhere in the store and point back to the parent block's ID
-  via `parent: {:id, this_block_id}`. `to_json/2` resolves these recursively
-  via `Yelixer.Types.sub_type_to_json/2`.
+  via `parent: {:id, this_block_id}`. The read APIs resolve these recursively
+  via `Yelixer.Types.sub_type_to_json/2`. These are value projections; inserting
+  the projected list/map again does not recreate nested CRDT identity.
 
   ## Tombstones and deletion
 
@@ -120,14 +121,15 @@ defmodule Yelixer.Types.YMap do
   Returns the live value for `key`, or `nil` if absent.
 
   Finds the rightmost non-tombstoned Item in the YATA sequence with
-  `parent_sub == key`. Returns `nil` for missing or deleted keys, and also
-  for Items whose content variant is not `:any` (sub-types, embeds, etc.) —
-  use `to_json/2` for a variant-aware read.
+  `parent_sub == key`. Uses the same variant-aware projection as `to_json/2`:
+  nested types resolve recursively, and ContentBinary values become explicit
+  `Yelixer.Any.buffer/1` wrappers. Missing/deleted keys and unsupported content
+  variants return `nil`. Ordinary Any values retain their existing meanings.
   """
   def get(%Doc{} = doc, type_name, key) do
     case find_current_item(doc.store, type_name, key) do
       nil -> nil
-      %Item{content: {:any, [value]}} -> value
+      %Item{} = item -> item_value_to_json(doc, item)
     end
   end
 
@@ -151,16 +153,17 @@ defmodule Yelixer.Types.YMap do
   Folds the YATA sequence with `Map.put/3`; later Items overwrite earlier
   ones, so the rightmost entry per key (LWW winner) is the final value.
   Items with no `parent_sub` are skipped (unexpected in a well-formed YMap,
-  but harmless). Only `:any`-content values surface; use `to_json/2` for
-  variant-aware output that resolves sub-types.
+  but harmless). Values use the same projection as `get/3` and `to_json/2`,
+  including nested types and explicit buffer wrappers. JSON serialization of
+  wrappers requires a caller-selected representation.
   """
   def to_map(%Doc{} = doc, type_name) do
     # YATA sequence order is deterministic across replicas.
     # Later (rightmost) Items overwrite earlier ones, giving LWW per key.
     BlockStore.get_sequence(doc.store, type_name)
     |> Enum.filter(fn %Item{parent_sub: sub} -> sub != nil end)
-    |> Enum.reduce(%{}, fn %Item{parent_sub: key, content: {:any, [value]}}, acc ->
-      Map.put(acc, key, value)
+    |> Enum.reduce(%{}, fn %Item{parent_sub: key} = item, acc ->
+      Map.put(acc, key, item_value_to_json(doc, item))
     end)
   end
 
@@ -171,6 +174,7 @@ defmodule Yelixer.Types.YMap do
   Content-variant handling mirrors `Yelixer.Types.Array.to_json/2`:
   `:any` → `Yelixer.Types.resolve_content_value/2`;
   `:type` (a nested sub-type) → `sub_type_to_json/2`;
+  `:binary` → `Yelixer.Any.buffer/1` (preserves byte-buffer intent);
   `:string` and `:embed` pass through;
   all other variants produce `nil`.
 
@@ -198,6 +202,9 @@ defmodule Yelixer.Types.YMap do
   defp item_value_to_json(doc, %Item{content: {:type, _ref}, id: id}) do
     Yelixer.Types.sub_type_to_json(doc, id)
   end
+
+  defp item_value_to_json(_doc, %Item{content: {:binary, bytes}}),
+    do: Yelixer.Any.buffer(bytes)
 
   defp item_value_to_json(_doc, %Item{content: {:string, s}}), do: s
   defp item_value_to_json(_doc, %Item{content: {:embed, v}}), do: v

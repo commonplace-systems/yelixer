@@ -20,7 +20,15 @@ defmodule Yelixer.DivergenceContentTest do
   the green conformance job's count (`test/yelixer/diff_yjs_test.exs`,
   `--exact 11`).
 
-  ## The four content divergences pinned here
+  ## Current status (2026-09-07)
+
+  The formatted-length and nested-array reader arms are now ordinary passing
+  regressions. Two unwrapped-binary authoring expectations remain separately
+  counted: ordinary Elixir binaries encode as strings; use `Yelixer.Any.buffer/1`
+  to request Uint8Array. The original measurements below remain historical
+  evidence, not a claim that the retired readers still fail.
+
+  ## The four originally measured content divergences
 
   1. **BINARY VALUES, two modes, one root cause** — `Yelixer.Encoding.encode_any/1`
      (`lib/yelixer/encoding.ex` ~line 774) wraps every `is_binary/1` value as
@@ -307,7 +315,7 @@ defmodule Yelixer.DivergenceContentTest do
   # ===========================================================================
 
   describe "content: Types.Text.length/2 — three disagreeing index spaces" do
-    @tag :divergence
+    # Retired 2026-09-07: visible length excludes format clocks.
     test "string run + embed + format-mark pair: yelixer's Text.length must equal yjs's",
          %{port: port} do
       assert %{"ok" => true} = rpc(port, %{cmd: "reset", client_id: 820_201})
@@ -385,7 +393,7 @@ defmodule Yelixer.DivergenceContentTest do
   # ===========================================================================
 
   describe "content: Types.Array.to_list/2 (lib/yelixer/types/array.ex:173, no {:type, _} clause)" do
-    @tag :divergence
+    # Retired 2026-09-07: to_list uses the variant-aware read projection.
     test "a nested sub-type element must resolve via to_list/2, not raise FunctionClauseError",
          %{port: port} do
       assert %{"ok" => true} = rpc(port, %{cmd: "reset", client_id: 820_301})

@@ -13,8 +13,9 @@ defmodule Yelixer.Any do
   must choose an explicit application representation for them: JSON cannot
   preserve these distinctions on its own.
 
-  This concerns Any content. An Item with `{:binary, bytes}` is the separate
-  Yjs ContentBinary struct and retains its existing representation.
+  An Item with `{:binary, bytes}` remains the separate Yjs ContentBinary
+  struct in the block store. Map/array value readers project it to the same
+  buffer wrapper so reading and then reauthoring preserves byte-buffer intent.
   """
 
   @enforce_keys [:type]
