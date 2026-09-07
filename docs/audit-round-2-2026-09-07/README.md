@@ -62,3 +62,10 @@ new failure can disappear into a stale count. See [baseline](baseline.txt),
 
 Full regression and one external review remain required before landing; no
 consumer dependency or deployment is changed by this library round.
+
+Hosted CI run `34167876346` found two additional historical doc-spec tests that
+intentionally asserted the old YMap binary-reader crash. Their original embedded
+Yjs fixture is retained; the assertions now require the typed buffer and verify
+read-then-reauthor type preservation. That failed run is retained as the signal
+that these defect-pinning tests also needed retirement, not a reason to restore
+the crash. No additional production change was required.
