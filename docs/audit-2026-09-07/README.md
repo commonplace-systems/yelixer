@@ -1,10 +1,16 @@
 # Yelixer project audit — 2026-09-07
 
-Yelixer's pinned upstream versions are current, but its public compatibility
-claim is broader than the implementation. The most urgent defects are sync
-framing, a malformed-input process crash, and XMLText content changing on reload.
-Snapshot compaction and Any-value type preservation also have concrete unsafe
-cases. Sequential one-character construction still exhibits quadratic work.
+The audit found that Yelixer's public compatibility claim was broader than its
+implementation. The highest-impact repairs have now landed: sync framing,
+malformed-update state retention, XMLText boundaries, Any wire types, duplicate
+pending retention, GC cache reuse, and subscription cleanup. Diff encoding also
+seeks past known cached history. The exact baseline findings remain below.
+
+**Highest remaining issue: snapshot overlay and provenance are unsafe.** The
+public contract is corrected to disclose this; its runtime is not repaired.
+Text positional authoring still scans visible history, uncached lookups and
+general pending retries still have growth costs, and parser budgets remain
+incomplete. The four existing content divergences are still separately counted.
 
 This is a baseline audit of **20f55acda3547599ea7ba95509d54c005499d929**,
 production tree **2d9db6bdd2581f87aace1af36d15eb536fb5ff10**, identical to codec
@@ -304,3 +310,35 @@ first adapter attempt did not exercise seven foreign comparison arms and is
 not counted as conformance evidence. Snapshot derivation/overlay, Text positional
 work, uncached lookup fallbacks, general pending retries and parser budgets
 remain open; broader numeric compatibility is not claimed by these three types.
+
+The Any batch landed through [PR #4](https://github.com/commonplace-systems/yelixer/pull/4)
+at main **5c842fab5860bc310c3b222e59c5dc8726dd8e1c** after one independent
+read-only review and [GitHub-hosted CI](https://github.com/commonplace-systems/yelixer/actions/runs/34164551169)
+on **fbad7e205dc8829b973807df7ecf99bde08c7e3d**, which includes the performance
+landing. Full CI passed 1 doctest + 33 properties + 508 tests, zero failures,
+four exclusions; stable and preview 11/0 each, boundary 25/0, separate
+full-state 1/0, and expected content divergence 12 tests / four failures.
+Compilation, formatting and repository boundary gates also passed.
+
+## Snapshot contract correction and remaining recommendation
+
+`Doc.snapshot_update/2` documentation now states that its reauthored bytes
+require a fresh isolated replacement document and cannot safely merge into the
+source history. Its positional map is explicitly unsuitable for late-edit
+anchor translation or provenance. Ordinary replica synchronization should use
+`Encoding.encode_update/1`, retaining original identities.
+
+Only documentation/comments changed in this correction. The
+[source comparison](snapshot-contract-source.json) confirms identical remaining
+source after stripping docstrings, full-line comments and blank lines.
+The measured `b → bb` overlay and wrong deleted-`a` provenance remain real;
+this does not repair them or clear replacement adoption. No live stores,
+consumer dependencies, migration machinery or deployment changed.
+
+A bounded runtime repair should record source intervals as each new block is
+authored during replay, preserve enough run boundaries to represent that mapping,
+and make the replacement-document boundary explicit. Merely skipping tombstones
+in the positional zip would fix the smallest example while remaining wrong when
+replay combines multiple source runs or reorders roots. Any proposed repair needs
+deleted-prefix, multi-client, multiple-root and merged-run controls before it can
+claim reliable provenance; fresh-reader output equality alone is insufficient.
