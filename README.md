@@ -43,7 +43,7 @@ These pins define tested behavior; they are not a guarantee for every type/API.
 | Document encoding | V1 updates/state vectors, incremental apply/diff, delete sets and pending dependencies |
 | Raw sync frames | y-protocols 1.0.7 length-delimited tags 0, 1 and 2; caller supplies transport/room envelopes |
 | Plain Text / XMLText | Local UTF-16 positions and scalar-boundary normalization; rich-text formatting positions have known differences |
-| General values | Primitive values supported; binary authoring and Any buffer/undefined/bigint preservation have known gaps |
+| General values | Primitive values and explicit Any buffer/undefined/signed-64-bit-bigint wrappers; ordinary binaries encode as strings |
 | Nested types | Variant-aware `to_json` helpers exist; do not assume `Array.to_list` or `YMap.get/to_map` resolve every wire variant |
 | Awareness / transport | Not supplied by this library |
 | V2 / subdocuments | Not advertised as supported |
@@ -58,6 +58,14 @@ deciding whether an application-level operation is complete.
 
 Older Yelixer sync frames omitted the payload length. They are incompatible with
 upstream framing and must not be mixed with the corrected protocol.
+
+Use `Yelixer.Any.buffer(bytes)`, `Yelixer.Any.undefined()` and
+`Yelixer.Any.bigint(integer)` when authoring these JavaScript value types.
+Decoding their Any wire tags now returns these wrappers, including in nested
+maps and lists. Ordinary binaries, `nil` and integers retain their string, null
+and number meanings. Callers that previously treated decoded buffers as strings,
+undefined as `nil`, or bigints as ordinary integers must handle the wrappers.
+JSON projections need an explicit application representation for these types.
 
 See the [ranked project audit](docs/audit-2026-09-07/README.md),
 [Unicode policy](docs/unicode-compatibility.md), and

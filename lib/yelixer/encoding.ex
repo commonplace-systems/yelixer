@@ -99,7 +99,7 @@ defmodule Yelixer.Encoding do
     GC-block remapping live there, not here.
   """
 
-  alias Yelixer.{StateVector, DeleteSet, ID, Item, BlockStore, Doc, Integrate}
+  alias Yelixer.{StateVector, DeleteSet, ID, Item, BlockStore, Doc, Integrate, Any}
 
   # Content type refs (matching Yjs V1 format)
   @content_ref_gc 0
@@ -758,6 +758,20 @@ defmodule Yelixer.Encoding do
   # the originating language. Elixir doesn't distinguish float32 from
   # float64, so encode always emits float64 (tag 123); decode accepts
   # float32 (tag 124) and folds it into an Elixir float.
+  defp encode_any(%Any{type: :buffer, value: bytes}) when is_binary(bytes),
+    do: <<116, encode_uint(byte_size(bytes))::binary, bytes::binary>>
+
+  defp encode_any(%Any{type: :undefined, value: nil}), do: <<127>>
+
+  defp encode_any(%Any{type: :bigint, value: value}) do
+    # Validate literal structs as well as values built by the constructor;
+    # a bitstring segment alone would silently truncate an oversized integer.
+    Any.bigint(value)
+    <<122, value::signed-64>>
+  end
+
+  defp encode_any(%Any{}), do: raise(ArgumentError, "invalid typed Any value")
+
   defp encode_any(nil), do: <<126>>
   defp encode_any(true), do: <<120>>
   defp encode_any(false), do: <<121>>
@@ -788,13 +802,17 @@ defmodule Yelixer.Encoding do
     <<118, encode_uint(map_size(map))::binary, body::binary>>
   end
 
-  @doc "Encodes a value using lib0 Any encoding. Returns a binary."
+  @doc "Encodes a lib0 Any value, including `Yelixer.Any` wrappers. Returns a binary."
   def encode_any_value(value), do: encode_any(value)
 
-  @doc "Decodes a lib0 Any value from `binary`. Returns `{value, rest}`."
+  @doc """
+  Decodes a lib0 Any value from `binary`, returning `{value, rest}`.
+  Buffer, undefined and bigint tags return `Yelixer.Any` wrappers so their
+  JavaScript types survive re-encoding, including inside lists and maps.
+  """
   def decode_any_value(binary), do: decode_any(binary)
 
-  defp decode_any(<<127, rest::binary>>), do: {nil, rest}
+  defp decode_any(<<127, rest::binary>>), do: {Any.undefined(), rest}
   defp decode_any(<<126, rest::binary>>), do: {nil, rest}
   defp decode_any(<<120, rest::binary>>), do: {true, rest}
   defp decode_any(<<121, rest::binary>>), do: {false, rest}
@@ -806,7 +824,7 @@ defmodule Yelixer.Encoding do
     decode_var_int(rest)
   end
 
-  defp decode_any(<<122, n::signed-64, rest::binary>>), do: {n, rest}
+  defp decode_any(<<122, n::signed-64, rest::binary>>), do: {Any.bigint(n), rest}
 
   defp decode_any(<<119, rest::binary>>) do
     decode_string(rest)
@@ -825,7 +843,7 @@ defmodule Yelixer.Encoding do
   defp decode_any(<<116, rest::binary>>) do
     {len, rest} = decode_uint(rest)
     <<buf::binary-size(len), rest2::binary>> = rest
-    {buf, rest2}
+    {Any.buffer(buf), rest2}
   end
 
   defp decode_any_list(rest, 0, acc), do: {Enum.reverse(acc), rest}
