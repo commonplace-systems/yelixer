@@ -1,0 +1,9 @@
+{
+  "argv": [
+    "mix",
+    "compile",
+    "--force",
+    "--warnings-as-errors"
+  ],
+  "rc": 0
+}

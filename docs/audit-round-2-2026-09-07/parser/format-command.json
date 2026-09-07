@@ -1,0 +1,10 @@
+{
+  "argv": [
+    "mix",
+    "format",
+    "lib/yelixer/encoding.ex",
+    "test/yelixer/parser_budget_test.exs"
+  ],
+  "rc": 0,
+  "seconds": 1.1101932134479284
+}

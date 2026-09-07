@@ -1,0 +1,9 @@
+{
+  "argv": [
+    "mix",
+    "format",
+    "--check-formatted"
+  ],
+  "rc": 0,
+  "seconds": 1.6257736440747976
+}

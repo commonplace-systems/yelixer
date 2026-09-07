@@ -35,6 +35,7 @@ defmodule Yelixer.ParserBudgetTest do
 
   test "state vector rejects unsafe client and clock integers" do
     unsafe = Encoding.encode_uint(9_007_199_254_740_992)
+
     for bytes <- [<<1>> <> unsafe <> <<0>>, <<1, 1>> <> unsafe] do
       assert {:error, {:malformed_state_vector, _}} = Encoding.decode_state_vector(bytes)
     end

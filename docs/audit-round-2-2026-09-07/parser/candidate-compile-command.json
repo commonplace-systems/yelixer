@@ -1,0 +1,10 @@
+{
+  "argv": [
+    "mix",
+    "compile",
+    "--force",
+    "--warnings-as-errors"
+  ],
+  "rc": 0,
+  "seconds": 5.008680192753673
+}
