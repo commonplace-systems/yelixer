@@ -1,0 +1,8 @@
+Unchecked dependencies for environment test:
+* stream_data (Hex package)
+  the dependency is not locked. To generate the "mix.lock" file run "mix deps.get"
+* telemetry (Hex package)
+  the dependency is not locked. To generate the "mix.lock" file run "mix deps.get"
+* jason (Hex package)
+  the dependency is not locked. To generate the "mix.lock" file run "mix deps.get"
+** (Mix) Can't continue due to errors on dependencies

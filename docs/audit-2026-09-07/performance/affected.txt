@@ -1,0 +1,283 @@
+yelixer rm-rf guard active: Yelixer.Test.FileRmRfGuard
+Running ExUnit with seed: 0, max_cases: 1
+Excluding tags: [:divergence]
+
+.......................................    warning: comparison between distinct types found:
+
+        layout == :mixed
+
+    given types:
+
+        :invalidated == :mixed
+
+    where "layout" was given the type:
+
+        # type: :invalidated
+        # from: test/yelixer/clock_range_view_test.exs:8:14
+        layout = :invalidated
+
+    While Elixir can compare across all types, you are comparing across types which are always disjoint, and the result is either always true or always false
+
+    typing violation found at:
+    │
+ 13 │       store = if layout == :mixed, do: BlockStore.materialize_all(store), else: store
+    │                         ~
+    │
+    └─ test/yelixer/clock_range_view_test.exs:13:25: Yelixer.ClockRangeViewTest."test diff preserves a partial run and deferred deletion in invalidated storage"/1
+
+    warning: comparison between distinct types found:
+
+        layout == :mixed
+
+    given types:
+
+        :materialized == :mixed
+
+    where "layout" was given the type:
+
+        # type: :materialized
+        # from: test/yelixer/clock_range_view_test.exs:8:14
+        layout = :materialized
+
+    While Elixir can compare across all types, you are comparing across types which are always disjoint, and the result is either always true or always false
+
+    typing violation found at:
+    │
+ 13 │       store = if layout == :mixed, do: BlockStore.materialize_all(store), else: store
+    │                         ~
+    │
+    └─ test/yelixer/clock_range_view_test.exs:13:25: Yelixer.ClockRangeViewTest."test diff preserves a partial run and deferred deletion in materialized storage"/1
+
+    warning: comparison between distinct types found:
+
+        layout == :mixed
+
+    given types:
+
+        :pending == :mixed
+
+    where "layout" was given the type:
+
+        # type: :pending
+        # from: test/yelixer/clock_range_view_test.exs:8:14
+        layout = :pending
+
+    While Elixir can compare across all types, you are comparing across types which are always disjoint, and the result is either always true or always false
+
+    typing violation found at:
+    │
+ 13 │       store = if layout == :mixed, do: BlockStore.materialize_all(store), else: store
+    │                         ~
+    │
+    └─ test/yelixer/clock_range_view_test.exs:13:25: Yelixer.ClockRangeViewTest."test diff preserves a partial run and deferred deletion in pending storage"/1
+
+    warning: comparison between distinct types found:
+
+        layout === :materialized
+
+    given types:
+
+        :invalidated === :materialized
+
+    where "layout" was given the type:
+
+        # type: :invalidated
+        # from: test/yelixer/clock_range_view_test.exs:8:14
+        layout = :invalidated
+
+    While Elixir can compare across all types, you are comparing across types which are always disjoint, and the result is either always true or always false
+
+    typing violation found at:
+    │
+ 15 │       store = if layout in [:materialized, :invalidated], do: BlockStore.materialize_all(store), else: store
+    │       ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    │
+    └─ test/yelixer/clock_range_view_test.exs:15: Yelixer.ClockRangeViewTest."test diff preserves a partial run and deferred deletion in invalidated storage"/1
+
+    warning: comparison between distinct types found:
+
+        layout === :invalidated
+
+    given types:
+
+        :materialized === :invalidated
+
+    where "layout" was given the type:
+
+        # type: :materialized
+        # from: test/yelixer/clock_range_view_test.exs:8:14
+        layout = :materialized
+
+    While Elixir can compare across all types, you are comparing across types which are always disjoint, and the result is either always true or always false
+
+    typing violation found at:
+    │
+ 15 │       store = if layout in [:materialized, :invalidated], do: BlockStore.materialize_all(store), else: store
+    │       ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    │
+    └─ test/yelixer/clock_range_view_test.exs:15: Yelixer.ClockRangeViewTest."test diff preserves a partial run and deferred deletion in materialized storage"/1
+
+    warning: comparison between distinct types found:
+
+        layout === :invalidated
+
+    given types:
+
+        :mixed === :invalidated
+
+    where "layout" was given the type:
+
+        # type: :mixed
+        # from: test/yelixer/clock_range_view_test.exs:8:14
+        layout = :mixed
+
+    While Elixir can compare across all types, you are comparing across types which are always disjoint, and the result is either always true or always false
+
+    typing violation found at:
+    │
+ 15 │       store = if layout in [:materialized, :invalidated], do: BlockStore.materialize_all(store), else: store
+    │       ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    │
+    └─ test/yelixer/clock_range_view_test.exs:15: Yelixer.ClockRangeViewTest."test diff preserves a partial run and deferred deletion in mixed storage"/1
+
+    warning: comparison between distinct types found:
+
+        layout === :materialized
+
+    given types:
+
+        :mixed === :materialized
+
+    where "layout" was given the type:
+
+        # type: :mixed
+        # from: test/yelixer/clock_range_view_test.exs:8:14
+        layout = :mixed
+
+    While Elixir can compare across all types, you are comparing across types which are always disjoint, and the result is either always true or always false
+
+    typing violation found at:
+    │
+ 15 │       store = if layout in [:materialized, :invalidated], do: BlockStore.materialize_all(store), else: store
+    │       ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    │
+    └─ test/yelixer/clock_range_view_test.exs:15: Yelixer.ClockRangeViewTest."test diff preserves a partial run and deferred deletion in mixed storage"/1
+
+    warning: comparison between distinct types found:
+
+        layout === :invalidated
+
+    given types:
+
+        :pending === :invalidated
+
+    where "layout" was given the type:
+
+        # type: :pending
+        # from: test/yelixer/clock_range_view_test.exs:8:14
+        layout = :pending
+
+    While Elixir can compare across all types, you are comparing across types which are always disjoint, and the result is either always true or always false
+
+    typing violation found at:
+    │
+ 15 │       store = if layout in [:materialized, :invalidated], do: BlockStore.materialize_all(store), else: store
+    │       ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    │
+    └─ test/yelixer/clock_range_view_test.exs:15: Yelixer.ClockRangeViewTest."test diff preserves a partial run and deferred deletion in pending storage"/1
+
+    warning: comparison between distinct types found:
+
+        layout === :materialized
+
+    given types:
+
+        :pending === :materialized
+
+    where "layout" was given the type:
+
+        # type: :pending
+        # from: test/yelixer/clock_range_view_test.exs:8:14
+        layout = :pending
+
+    While Elixir can compare across all types, you are comparing across types which are always disjoint, and the result is either always true or always false
+
+    typing violation found at:
+    │
+ 15 │       store = if layout in [:materialized, :invalidated], do: BlockStore.materialize_all(store), else: store
+    │       ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    │
+    └─ test/yelixer/clock_range_view_test.exs:15: Yelixer.ClockRangeViewTest."test diff preserves a partial run and deferred deletion in pending storage"/1
+
+    warning: comparison between distinct types found:
+
+        layout == :invalidated
+
+    given types:
+
+        :materialized == :invalidated
+
+    where "layout" was given the type:
+
+        # type: :materialized
+        # from: test/yelixer/clock_range_view_test.exs:8:14
+        layout = :materialized
+
+    While Elixir can compare across all types, you are comparing across types which are always disjoint, and the result is either always true or always false
+
+    typing violation found at:
+    │
+ 16 │       store = if layout == :invalidated, do: BlockStore.invalidate_tuple_cache(store, 7), else: store
+    │                         ~
+    │
+    └─ test/yelixer/clock_range_view_test.exs:16:25: Yelixer.ClockRangeViewTest."test diff preserves a partial run and deferred deletion in materialized storage"/1
+
+    warning: comparison between distinct types found:
+
+        layout == :invalidated
+
+    given types:
+
+        :mixed == :invalidated
+
+    where "layout" was given the type:
+
+        # type: :mixed
+        # from: test/yelixer/clock_range_view_test.exs:8:14
+        layout = :mixed
+
+    While Elixir can compare across all types, you are comparing across types which are always disjoint, and the result is either always true or always false
+
+    typing violation found at:
+    │
+ 16 │       store = if layout == :invalidated, do: BlockStore.invalidate_tuple_cache(store, 7), else: store
+    │                         ~
+    │
+    └─ test/yelixer/clock_range_view_test.exs:16:25: Yelixer.ClockRangeViewTest."test diff preserves a partial run and deferred deletion in mixed storage"/1
+
+    warning: comparison between distinct types found:
+
+        layout == :invalidated
+
+    given types:
+
+        :pending == :invalidated
+
+    where "layout" was given the type:
+
+        # type: :pending
+        # from: test/yelixer/clock_range_view_test.exs:8:14
+        layout = :pending
+
+    While Elixir can compare across all types, you are comparing across types which are always disjoint, and the result is either always true or always false
+
+    typing violation found at:
+    │
+ 16 │       store = if layout == :invalidated, do: BlockStore.invalidate_tuple_cache(store, 7), else: store
+    │                         ~
+    │
+    └─ test/yelixer/clock_range_view_test.exs:16:25: Yelixer.ClockRangeViewTest."test diff preserves a partial run and deferred deletion in pending storage"/1
+
+..............
+Finished in 3.1 seconds (0.9s async, 2.1s sync)
+53 tests, 0 failures

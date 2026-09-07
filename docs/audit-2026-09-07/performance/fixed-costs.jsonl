@@ -1,0 +1,6 @@
+{"reductions":285,"blocks":512,"bytes":12,"hex":"010107ff038407fe03016100","layout":"pending"}
+{"reductions":294,"blocks":1024,"bytes":12,"hex":"010107ff078407fe07016100","layout":"pending"}
+{"reductions":241,"blocks":512,"bytes":12,"hex":"010107ff038407fe03016100","layout":"materialized"}
+{"reductions":243,"blocks":1024,"bytes":12,"hex":"010107ff078407fe07016100","layout":"materialized"}
+{"reductions":285,"blocks":512,"bytes":12,"hex":"010107ff038407fe03016100","layout":"mixed"}
+{"reductions":292,"blocks":1024,"bytes":12,"hex":"010107ff078407fe07016100","layout":"mixed"}
