@@ -1,0 +1,59 @@
+yelixer rm-rf guard active: Yelixer.Test.FileRmRfGuard
+Running ExUnit with seed: 0, max_cases: 1
+Excluding tags: [:divergence]
+
+
+
+  1) test one-item diff seeks past known pending history (Yelixer.HistoryCostTest)
+     test/yelixer/history_cost_test.exs:35
+     one-item pending diff grew with known history: 3481 -> 6420 reductions
+     code: assert large < small * 1.5,
+     stacktrace:
+       test/yelixer/history_cost_test.exs:52: (test)
+
+.
+
+  2) test one-item diff seeks past known materialized history (Yelixer.HistoryCostTest)
+     test/yelixer/history_cost_test.exs:35
+     one-item materialized diff grew with known history: 2024 -> 4315 reductions
+     code: assert large < small * 1.5,
+     stacktrace:
+       test/yelixer/history_cost_test.exs:52: (test)
+
+.
+
+  3) test one-item diff seeks past known mixed history (Yelixer.HistoryCostTest)
+     test/yelixer/history_cost_test.exs:35
+     one-item mixed diff grew with known history: 2556 -> 4872 reductions
+     code: assert large < small * 1.5,
+     stacktrace:
+       test/yelixer/history_cost_test.exs:52: (test)
+
+.
+
+  4) test repeated missing-dependency delivery occupies one pending slot then converges (Yelixer.HistoryCostTest)
+     test/yelixer/history_cost_test.exs:69
+     Assertion with == failed
+     code:  assert Doc.pending_info(receiver) == %{count: 1, bytes: byte_size(delta)}
+     left:  %{count: 16, bytes: 160}
+     right: %{count: 1, bytes: 10}
+     stacktrace:
+       test/yelixer/history_cost_test.exs:83: (test)
+
+
+
+  5) test GC retains reusable clock lookup tuples containing the collected payloads (Yelixer.HistoryCostTest)
+     test/yelixer/history_cost_test.exs:91
+     Expected truthy, got false
+     code: assert is_tuple(doc.store.client_tuples[7])
+     arguments:
+
+         # 1
+         nil
+
+     stacktrace:
+       test/yelixer/history_cost_test.exs:95: (test)
+
+
+Finished in 0.2 seconds (0.00s async, 0.2s sync)
+8 tests, 5 failures

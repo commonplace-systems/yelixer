@@ -541,15 +541,9 @@ defmodule Yelixer.Encoding do
     structs_bin =
       Enum.reduce(diff_clients, <<>>, fn {client, _local_clock}, acc ->
         remote_clock = StateVector.get(remote_sv, client)
-        # CX-w1fw: materialized *view* — recent pushes may still be
-        # sitting in client_pending, not yet folded into store.clients.
-        all_items = BlockStore.client_blocks(store, client)
-
-        # Filter to items at or after the remote clock
-        items =
-          Enum.filter(all_items, fn item ->
-            item.id.clock + item.length > remote_clock
-          end)
+        # Seek past known clocks in both canonical and deferred storage.
+        # Include a straddling first block for the exact-clock split below.
+        items = BlockStore.client_blocks_since(store, client, remote_clock)
 
         if items == [] do
           acc
@@ -968,7 +962,10 @@ defmodule Yelixer.Encoding do
       {:ok, {items, ds, _rest}} ->
         {new_doc, still_pending} = integrate_batch(doc, items, ds)
 
-        if still_pending == [] do
+        if still_pending == [] or binary in new_doc.pending do
+          # Retrying identical wire bytes is idempotent even before their
+          # dependencies arrive. Keep progress/delete riders from integration,
+          # but do not charge another slot or reject a duplicate at the cap.
           {:ok, retry_all_pending(new_doc)}
         else
           max_pending_bytes =

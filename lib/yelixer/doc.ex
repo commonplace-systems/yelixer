@@ -399,8 +399,8 @@ defmodule Yelixer.Doc do
   block). Anchors pointing *through* a GC'd block are remapped to the
   nearest live neighbour by `Yelixer.Encoding.encode_item/2` at encode
   time — `gc/1` itself doesn't touch anchors. The block-tuple cache
-  (`client_tuples`) is cleared wholesale so it rebuilds on the next
-  read.
+  (`client_tuples`) is rebuilt once from the collected payloads. Immutable
+  lookups can then reuse it instead of rebuilding and discarding it per read.
   """
   def gc(%__MODULE__{store: store} = doc) do
     # CX-w1fw: gc/1 already touches every item in the store, so a full
@@ -414,7 +414,8 @@ defmodule Yelixer.Doc do
         {client, Enum.map(blocks, &gc_item/1)}
       end)
 
-    %{doc | store: %{store | clients: clients, client_tuples: %{}}}
+    tuples = Map.new(clients, fn {client, blocks} -> {client, List.to_tuple(blocks)} end)
+    %{doc | store: %{store | clients: clients, client_tuples: tuples}}
   end
 
   defp gc_item(%Item{deleted: true, content: {:gc, _}} = item), do: item

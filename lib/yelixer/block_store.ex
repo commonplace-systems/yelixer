@@ -272,6 +272,66 @@ defmodule Yelixer.BlockStore do
   end
 
   @doc """
+  Returns clock-ordered blocks whose end is after `clock`, including a block
+  that straddles the requested clock. The caller may split that first block.
+
+  Seeks into the canonical tuple and visits only the pending suffix. With a
+  valid tuple cache, known history is skipped in O(log n); producing k blocks
+  takes O(k). A directly mutated bucket without a cache needs an O(n) fallback
+  tuple conversion. Deferred deletion overlays are reflected in the result.
+  """
+  def client_blocks_since(%__MODULE__{} = store, client, clock) do
+    canonical =
+      case get_tuple(store, client) do
+        nil ->
+          []
+
+        tuple ->
+          size = tuple_size(tuple)
+          first = first_ending_after(tuple, clock, 0, size)
+          tuple_suffix(tuple, first, size - 1, [])
+      end
+
+    pending =
+      case Map.get(store.client_pending, client) do
+        nil -> []
+        tree -> pending_suffix(:gb_trees.iterator(tree), clock, [])
+      end
+
+    Enum.map(canonical ++ pending, &apply_overlay(store, client, &1))
+  end
+
+  # Half-open binary search by exclusive block end. This also includes a
+  # multi-clock block that starts before the requested clock.
+  defp first_ending_after(_tuple, _clock, low, high) when low == high, do: low
+
+  defp first_ending_after(tuple, clock, low, high) do
+    mid = div(low + high, 2)
+    item = elem(tuple, mid)
+
+    if item.id.clock + item.length > clock,
+      do: first_ending_after(tuple, clock, low, mid),
+      else: first_ending_after(tuple, clock, mid + 1, high)
+  end
+
+  defp tuple_suffix(_tuple, first, last, acc) when last < first, do: acc
+
+  defp tuple_suffix(tuple, first, last, acc),
+    do: tuple_suffix(tuple, first, last - 1, [elem(tuple, last) | acc])
+
+  # Negated keys visit newest blocks first. Prepending restores clock order;
+  # the first fully known block ends the walk because blocks never overlap.
+  defp pending_suffix(iterator, clock, acc) do
+    case :gb_trees.next(iterator) do
+      {_key, item, next} when item.id.clock + item.length > clock ->
+        pending_suffix(next, clock, [item | acc])
+
+      _ ->
+        acc
+    end
+  end
+
+  @doc """
   Returns every client id with at least one block — materialized or
   still pending. `Map.keys(store.clients)` alone would miss clients
   whose only blocks haven't been folded in yet.
@@ -457,7 +517,13 @@ defmodule Yelixer.BlockStore do
   defp last_client_item(store, client) do
     case Map.get(store.client_pending, client) do
       nil ->
-        List.last(Map.get(store.clients, client, []))
+        case Map.get(store.client_tuples, client) do
+          tuple when is_tuple(tuple) and tuple_size(tuple) > 0 ->
+            elem(tuple, tuple_size(tuple) - 1)
+
+          _ ->
+            List.last(Map.get(store.clients, client, []))
+        end
 
       tree ->
         {_key, item} = :gb_trees.smallest(tree)
@@ -697,7 +763,8 @@ defmodule Yelixer.BlockStore do
 
   # --- Internal helpers ---
 
-  # Returns the cached tuple for `client`, building it lazily if absent.
+  # Returns the cached tuple or a read-only fallback conversion. This cannot
+  # persist a missing cache: callers that mutate buckets should refresh it.
   defp get_tuple(%__MODULE__{client_tuples: ct, clients: clients}, client) do
     case Map.get(ct, client) do
       nil ->
@@ -727,8 +794,8 @@ defmodule Yelixer.BlockStore do
   end
 
   # Drops the tuple cache for `client`. Cheaper than
-  # `refresh_tuple_cache/2` when the next read will trigger a lazy
-  # rebuild via `get_tuple/2` anyway.
+  # `refresh_tuple_cache/2` at mutation time, but every subsequent read pays
+  # for a fallback rebuild until a mutator refreshes the cache.
   @doc false
   def invalidate_tuple_cache(%__MODULE__{client_tuples: ct} = store, client) do
     %{store | client_tuples: Map.delete(ct, client)}

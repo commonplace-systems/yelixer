@@ -262,5 +262,26 @@ Production `lib/` is changed by this batch; the baseline hashes above remain
 historical evidence, not descriptions of the repaired source.
 
 Snapshot overlay/derivation, Any typing, whole-history work, pending duplication,
-GC cache allocation, and parser budgets remain open. Main landing and broader
-CI validation are separate from these focused results.
+GC cache allocation, and parser budgets remain open.
+
+The batch landed through [PR #2](https://github.com/commonplace-systems/yelixer/pull/2)
+at main **bf651769f8ee311b762728bb7a8a8c62c9686004** after one independent review
+and [GitHub-hosted CI](https://github.com/commonplace-systems/yelixer/actions/runs/34162354444)
+on **2b35599a45e06595e48554d94e52c9faf9eca303**. CI measured 1 doctest +
+33 properties + 483 tests, zero failures, four named exclusions; stable and
+preview conformance each 11/0; clock/incremental boundary 25/0; separate
+full-state control 1/0. The expected-content-divergence gate remained 12 tests
+with four expected failures. Format, compilation and repository boundary gates
+passed. The independent review reported 36 focused tests passing and no merge
+blocker; parser resource budgets remain an explicit follow-up. No consumer
+dependency pins or deployments changed through this landing.
+
+## History-cost repair batch
+
+The [bounded performance repair](performance/README.md) closes duplicate pending
+retention and repeated GC lookup-tuple rebuilding, and removes known-history
+scans from diff encoding when the canonical cache is present. The same eight
+regressions went from five failures to zero. One-item diff cost grows 1–3%
+when the synthetic history doubles, versus about 90% before; matching output
+bytes are unchanged. Text positional authoring, uncached fallbacks, general
+pending retry work, snapshots, Any typing and parser budgets remain open.
