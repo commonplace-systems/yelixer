@@ -243,3 +243,24 @@ not rerun or relabelled as this audit's validation.
 The first implementation batch targets findings 1–3 and the small subscription
 lifetime repair in finding 9. The other recommendations remain visible until
 individually repaired and validated; a green focused batch cannot clear them.
+
+## First repair batch
+
+Findings 1, 2, 3 and 9 are repaired on the audit branch. The exact three focused
+test files first ran against unchanged production code: **28 tests, 8 failures,
+rc 2**. The same files after the repair ran **28 tests, 0 failures, rc 0**.
+See [red](fix-baseline.txt), [green](fix-green.txt), and
+[compiled fingerprints](fix-beams.sha256). Repository formatting and compilation
+with warnings as errors both returned 0. No full suite or consumer acceptance
+was run locally for this batch.
+
+Sync now uses standard framing and update tag 2 with tagged boundary errors.
+DocServer retains its state on codec errors and releases subscription monitors.
+XMLText shares the plain Text implementation, eliminating the stale copied
+boundary code. The public README now states capabilities and limits explicitly.
+Production `lib/` is changed by this batch; the baseline hashes above remain
+historical evidence, not descriptions of the repaired source.
+
+Snapshot overlay/derivation, Any typing, whole-history work, pending duplication,
+GC cache allocation, and parser budgets remain open. Main landing and broader
+CI validation are separate from these focused results.
