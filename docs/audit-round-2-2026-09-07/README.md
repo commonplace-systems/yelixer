@@ -69,3 +69,14 @@ Yjs fixture is retained; the assertions now require the typed buffer and verify
 read-then-reauthor type preservation. That failed run is retained as the signal
 that these defect-pinning tests also needed retirement, not a reason to restore
 the crash. No additional production change was required.
+
+## Content batch landing
+
+[PR #6](https://github.com/commonplace-systems/yelixer/pull/6) merged as
+`30415798dc2d5c73f14c2b38a35e90c6bc2879c6` after one SHIP review and
+[hosted run 34168069354](https://github.com/commonplace-systems/yelixer/actions/runs/34168069354)
+at candidate `3a350b72eb743fb1ff26c689e2f3f0d0776c3789`. The full suite reported
+516 tests, 33 properties and one doctest, zero failures, two excluded. Stable and
+preview conformance each passed 11 cases; clock/boundary 25 and separate
+full-state control one passed; the content instrument retained exactly its two
+expected failures out of 12 cases. No consumer pin or deployment changed.

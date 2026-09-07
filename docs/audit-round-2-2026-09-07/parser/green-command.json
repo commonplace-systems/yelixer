@@ -1,0 +1,12 @@
+{
+  "argv": [
+    "mix",
+    "test",
+    "test/yelixer/parser_budget_test.exs",
+    "--max-cases",
+    "1",
+    "--no-compile"
+  ],
+  "rc": 0,
+  "seconds": 1.5480436477810144
+}

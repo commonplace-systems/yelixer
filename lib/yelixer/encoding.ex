@@ -9,6 +9,16 @@ defmodule Yelixer.Encoding do
   handshakes. Everything else here (varint codecs, string framing,
   lib0 Any encoding) is plumbing in service of those three.
 
+  ## Decoder resource limits
+
+  Decoders accept varints of at most ten bytes and lib0 Any arrays/objects
+  nested at most 128 levels. State-vector identities and clocks must fit
+  JavaScript's maximum safe integer. These are Yelixer receive limits;
+  upstream may accept padded or deeply nested values outside this policy.
+  Encoder helpers do not all enforce the same limits, so callers must keep
+  authored values within the receive boundary. These limits do not cap total
+  message size, embedded JSON nesting, or overall work independent of input size.
+
   ## Wire-format primitives
 
   All numeric fields use variable-length integer (varint) encoding —
@@ -128,6 +138,8 @@ defmodule Yelixer.Encoding do
   # `apply_delete_range/4` spin over an astronomically large absent
   # range. Reject at decode time instead of letting either happen.
   @max_safe_clock 9_007_199_254_740_991
+  @max_varint_bytes 10
+  @max_any_depth 128
 
   # CX-cdyi (H1): default byte cap on the total size of `doc.pending`
   # (all currently-buffered un-integratable update binaries, summed).
@@ -162,9 +174,14 @@ defmodule Yelixer.Encoding do
 
   @doc """
   Decodes an unsigned LEB128 varint from the head of `binary`.
+  Raises `ArgumentError` if the varint exceeds ten bytes.
   Returns `{value, rest}` where `rest` is the unconsumed tail.
   """
   def decode_uint(binary), do: decode_uint(binary, 0, 0)
+
+  defp decode_uint(_binary, _acc, shift) when shift >= 7 * @max_varint_bytes do
+    raise ArgumentError, "varuint exceeds #{@max_varint_bytes}-byte decoding limit"
+  end
 
   defp decode_uint(<<0::1, value::7, rest::binary>>, acc, shift) do
     {acc + Bitwise.bsl(value, shift), rest}
@@ -241,6 +258,11 @@ defmodule Yelixer.Encoding do
     {if(is_negative, do: -num, else: num), rest}
   end
 
+  defp decode_var_int_rest(_binary, _num, shift)
+       when shift >= 6 + 7 * (@max_varint_bytes - 1) do
+    raise ArgumentError, "signed varint exceeds #{@max_varint_bytes}-byte decoding limit"
+  end
+
   defp decode_var_int_rest(<<byte, rest::binary>>, num, shift) do
     num = num + Bitwise.bsl(Bitwise.band(byte, 127), shift)
 
@@ -309,6 +331,7 @@ defmodule Yelixer.Encoding do
   def decode_state_vector(binary) do
     try do
       {count, rest} = decode_uint(binary)
+      assert_sane_count!(count, rest, "state vector client count")
       {sv, rest} = decode_sv_pairs(rest, count, StateVector.new())
       {:ok, {sv, rest}}
     rescue
@@ -322,6 +345,8 @@ defmodule Yelixer.Encoding do
   defp decode_sv_pairs(binary, remaining, sv) do
     {client, rest} = decode_uint(binary)
     {clock, rest} = decode_uint(rest)
+    assert_clock_bound!(client, "state vector client")
+    assert_clock_bound!(clock, "state vector clock")
     decode_sv_pairs(rest, remaining - 1, StateVector.set(sv, client, clock))
   end
 
@@ -809,56 +834,66 @@ defmodule Yelixer.Encoding do
   Decodes a lib0 Any value from `binary`, returning `{value, rest}`.
   Buffer, undefined and bigint tags return `Yelixer.Any` wrappers so their
   JavaScript types survive re-encoding, including inside lists and maps.
+  Raises `ArgumentError` above 128 nested array/object containers or for a
+  signed/unsigned varint exceeding the ten-byte receive limit.
   """
   def decode_any_value(binary), do: decode_any(binary)
 
-  defp decode_any(<<127, rest::binary>>), do: {Any.undefined(), rest}
-  defp decode_any(<<126, rest::binary>>), do: {nil, rest}
-  defp decode_any(<<120, rest::binary>>), do: {true, rest}
-  defp decode_any(<<121, rest::binary>>), do: {false, rest}
-  defp decode_any(<<123, f::float-64, rest::binary>>), do: {round_if_integer(f), rest}
+  defp decode_any(binary), do: decode_any(binary, @max_any_depth)
 
-  defp decode_any(<<124, f::float-32, rest::binary>>), do: {round_if_integer(f), rest}
-
-  defp decode_any(<<125, rest::binary>>) do
-    decode_var_int(rest)
+  defp decode_any(<<tag, _rest::binary>>, 0) when tag in [117, 118] do
+    raise ArgumentError, "Any container nesting exceeds #{@max_any_depth} levels"
   end
 
-  defp decode_any(<<122, n::signed-64, rest::binary>>), do: {Any.bigint(n), rest}
+  defp decode_any(<<127, rest::binary>>, _depth), do: {Any.undefined(), rest}
+  defp decode_any(<<126, rest::binary>>, _depth), do: {nil, rest}
+  defp decode_any(<<120, rest::binary>>, _depth), do: {true, rest}
+  defp decode_any(<<121, rest::binary>>, _depth), do: {false, rest}
+  defp decode_any(<<123, f::float-64, rest::binary>>, _depth), do: {round_if_integer(f), rest}
+  defp decode_any(<<124, f::float-32, rest::binary>>, _depth), do: {round_if_integer(f), rest}
 
-  defp decode_any(<<119, rest::binary>>) do
-    decode_string(rest)
-  end
+  defp decode_any(<<125, rest::binary>>, _depth), do: decode_var_int(rest)
+  defp decode_any(<<122, n::signed-64, rest::binary>>, _depth), do: {Any.bigint(n), rest}
+  defp decode_any(<<119, rest::binary>>, _depth), do: decode_string(rest)
 
-  defp decode_any(<<117, rest::binary>>) do
+  defp decode_any(<<117, rest::binary>>, depth) do
     {len, rest} = decode_uint(rest)
-    decode_any_list(rest, len, [])
+    assert_sane_count!(len, rest, "Any array count")
+    decode_any_list(rest, len, [], depth - 1)
   end
 
-  defp decode_any(<<118, rest::binary>>) do
+  defp decode_any(<<118, rest::binary>>, depth) do
     {len, rest} = decode_uint(rest)
-    decode_any_map(rest, len, %{})
+    assert_sane_count!(len, rest, "Any object count")
+    decode_any_map(rest, len, %{}, depth - 1)
   end
 
-  defp decode_any(<<116, rest::binary>>) do
+  defp decode_any(<<116, rest::binary>>, _depth) do
     {len, rest} = decode_uint(rest)
     <<buf::binary-size(len), rest2::binary>> = rest
     {Any.buffer(buf), rest2}
   end
 
-  defp decode_any_list(rest, 0, acc), do: {Enum.reverse(acc), rest}
-
+  # ContentAny's item-level list is not itself an Any array. Each value gets
+  # the full nesting budget; nested arrays/objects share the decremented one.
   defp decode_any_list(rest, n, acc) do
-    {val, rest} = decode_any(rest)
-    decode_any_list(rest, n - 1, [val | acc])
+    assert_sane_count!(n, rest, "Any content count")
+    decode_any_list(rest, n, acc, @max_any_depth)
   end
 
-  defp decode_any_map(rest, 0, acc), do: {acc, rest}
+  defp decode_any_list(rest, 0, acc, _depth), do: {Enum.reverse(acc), rest}
 
-  defp decode_any_map(rest, n, acc) do
+  defp decode_any_list(rest, n, acc, depth) do
+    {val, rest} = decode_any(rest, depth)
+    decode_any_list(rest, n - 1, [val | acc], depth)
+  end
+
+  defp decode_any_map(rest, 0, acc, _depth), do: {acc, rest}
+
+  defp decode_any_map(rest, n, acc, depth) do
     {key, rest} = decode_string(rest)
-    {val, rest} = decode_any(rest)
-    decode_any_map(rest, n - 1, Map.put(acc, key, val))
+    {val, rest} = decode_any(rest, depth)
+    decode_any_map(rest, n - 1, Map.put(acc, key, val), depth)
   end
 
   defp round_if_integer(f) do

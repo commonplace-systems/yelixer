@@ -1,0 +1,56 @@
+yelixer rm-rf guard active: Yelixer.Test.FileRmRfGuard
+Running ExUnit with seed: 523270, max_cases: 1
+Excluding tags: [:divergence]
+
+
+
+  1) test unsigned varints reject continuation beyond ten bytes (Yelixer.ParserBudgetTest)
+     test/yelixer/parser_budget_test.exs:6
+     Expected exception ArgumentError but nothing was raised
+     code: assert_raise ArgumentError, fn -> Encoding.decode_uint(padded_zero) end
+     stacktrace:
+       test/yelixer/parser_budget_test.exs:8: (test)
+
+.
+
+  2) test signed Any varints reject excessive zero padding (Yelixer.ParserBudgetTest)
+     test/yelixer/parser_budget_test.exs:18
+     Expected exception ArgumentError but nothing was raised
+     code: assert_raise ArgumentError, fn -> Encoding.decode_any_value(padded_zero) end
+     stacktrace:
+       test/yelixer/parser_budget_test.exs:20: (test)
+
+.
+
+  3) test Any array nesting rejects depth 129 (Yelixer.ParserBudgetTest)
+     test/yelixer/parser_budget_test.exs:24
+     Expected exception ArgumentError but nothing was raised
+     code: assert_raise ArgumentError, fn -> Encoding.decode_any_value(bytes) end
+     stacktrace:
+       test/yelixer/parser_budget_test.exs:26: (test)
+
+
+
+  4) test state vector rejects unsafe client and clock integers (Yelixer.ParserBudgetTest)
+     test/yelixer/parser_budget_test.exs:36
+     match (=) failed
+     code:  assert {:error, {:malformed_state_vector, _}} = Encoding.decode_state_vector(bytes)
+     left:  {:error, {:malformed_state_vector, _}}
+     right: {:ok, {%Yelixer.StateVector{clocks: %{9007199254740992 => 0}}, ""}}
+     stacktrace:
+       test/yelixer/parser_budget_test.exs:39: anonymous fn/1 in Yelixer.ParserBudgetTest."test state vector rejects unsafe client and clock integers"/1
+       (elixir 1.18.4) lib/enum.ex:1714: Enum."-map/2-lists^map/1-1-"/2
+       test/yelixer/parser_budget_test.exs:38: (test)
+
+.
+
+  5) test Any object nesting rejects depth 129 (Yelixer.ParserBudgetTest)
+     test/yelixer/parser_budget_test.exs:24
+     Expected exception ArgumentError but nothing was raised
+     code: assert_raise ArgumentError, fn -> Encoding.decode_any_value(bytes) end
+     stacktrace:
+       test/yelixer/parser_budget_test.exs:26: (test)
+
+..
+Finished in 0.09 seconds (0.09s async, 0.00s sync)
+10 tests, 5 failures

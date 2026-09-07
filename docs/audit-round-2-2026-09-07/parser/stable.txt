@@ -1,0 +1,9 @@
+yelixer rm-rf guard active: Yelixer.Test.FileRmRfGuard
+Running ExUnit with seed: 714570, max_cases: 1
+Excluding tags: [:divergence]
+Including tags: [:diff_yjs]
+
+...........
+Finished in 1.7 seconds (0.00s async, 1.7s sync)
+11 tests, 0 failures
+yx-test-guard: 11 test(s) ran (exact 11), 0 excluded, 0 invalid, command rc=0, box: min avail 12082MB / peak BEAM rss 520MB / peak suites 1, over 2 samples

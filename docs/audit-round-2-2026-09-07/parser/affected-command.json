@@ -1,0 +1,19 @@
+{
+  "argv": [
+    "mix",
+    "test",
+    "test/yelixer/encoding_test.exs",
+    "test/yelixer/encoding_error_test.exs",
+    "test/yelixer/update_encoding_test.exs",
+    "test/yelixer/decode_fuzz_test.exs",
+    "test/yelixer/state_vector_test.exs",
+    "test/yelixer/sync_protocol_test.exs",
+    "test/yelixer/any_test.exs",
+    "test/yelixer/any_type_preservation_test.exs",
+    "--max-cases",
+    "1",
+    "--no-compile"
+  ],
+  "rc": 0,
+  "seconds": 4.529056284576654
+}
