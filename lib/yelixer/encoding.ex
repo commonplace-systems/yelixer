@@ -855,8 +855,9 @@ defmodule Yelixer.Encoding do
   # parent_sub when they have an origin (Yjs convention — see
   # encode_item); parent_sub is recovered during integration by
   # walking the origin chain via resolve_parent/2. Items whose
-  # origin/right_origin hasn't arrived yet are deferred to a pending
-  # list and retried after the rest of the batch is processed.
+  # origin/right_origin hasn't arrived yet, or whose clock is ahead of
+  # the local state for its client, are deferred to a pending list and
+  # retried after the rest of the batch is processed.
   #
   # CX-cdyi (H1): a batch that STILL has un-integratable items after
   # every within-batch retry is exhausted is no longer pushed into the
@@ -894,8 +895,9 @@ defmodule Yelixer.Encoding do
   ## Two-phase integration, then bounded blob buffering (H1)
 
   1. **First pass** — items are integrated in arrival order. Any item
-     whose origin or right_origin hasn't been seen yet is deferred to
-     a pending list rather than failing the entire apply.
+     whose origin or right_origin hasn't been seen yet, or whose clock
+     is ahead of the local state for its client, is deferred to a
+     pending list rather than failing the entire apply.
   2. **Within-batch retry** — pending items are retried to a fixpoint;
      by then their dependencies may have arrived elsewhere in the
      batch.
@@ -1401,8 +1403,16 @@ defmodule Yelixer.Encoding do
             integrate_items(rest, doc, sv, [trimmed | pending], blocked_clients)
         end
 
+      item.id.clock > client_clock ->
+        # Clock gap (yelixer#9): defer until the earlier clocks arrive, as
+        # Yjs does (integrate only when id.clock === getState(client)).
+        # Integrating would let the state vector claim the gap, dropping
+        # the late update and re-clocking re-encoded structs for peers.
+        integrate_items(rest, doc, sv, [item | pending], MapSet.put(blocked_clients, client))
+
       true ->
-        # Completely new — integrate as-is
+        # Completely new and contiguous (item.id.clock == client_clock) —
+        # integrate as-is
         case try_integrate_item(item, doc, sv) do
           {:ok, doc, sv} ->
             integrate_items(rest, doc, sv, pending, blocked_clients)
