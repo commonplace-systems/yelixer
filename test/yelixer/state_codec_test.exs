@@ -24,7 +24,11 @@ defmodule Yelixer.StateCodecTest do
 
   defp forge(term) do
     {:ok, payload} = StateCodec.encode_term(term)
-    header = <<"YXSC", 1::16, byte_size(@key)::32, @key::binary, byte_size(payload)::64>>
+
+    header =
+      <<"YXSC", StateCodec.format_version()::16, byte_size(@key)::32, @key::binary,
+        byte_size(payload)::64>>
+
     header <> :crypto.hash(:sha256, [header, payload]) <> payload
   end
 
@@ -107,8 +111,10 @@ defmodule Yelixer.StateCodecTest do
 
       assert StateCodec.decode("NOPE" <> rest, @key) == {:error, :bad_magic}
 
-      assert StateCodec.decode(<<"YXSC", 2::16, rest::binary>>, @key) ==
-               {:error, {:unsupported_version, 2}}
+      assert StateCodec.format_version() == 2
+
+      assert StateCodec.decode(<<"YXSC", 3::16, rest::binary>>, @key) ==
+               {:error, {:unsupported_version, 3}}
 
       assert StateCodec.decode(bytes, "other key") == {:error, :key_mismatch}
       assert StateCodec.decode(bytes, @key, max_bytes: 1) == {:error, :too_large}
@@ -117,10 +123,37 @@ defmodule Yelixer.StateCodecTest do
       assert StateCodec.decode(:nope, @key) == {:error, {:malformed, :not_a_binary}}
     end
 
+    # Plan #42733 / yelixer#11: version 2 changed the meaning of map_index
+    # (winner, not rightmost-live). A version-1 checkpoint is refused by its
+    # version alone, however well-formed its payload — the caller discards
+    # it and rebuilds from the wire history.
+    test "a version-1 checkpoint is refused with unsupported_version, not decoded" do
+      doc = Doc.new(client_id: 1) |> YMap.set("m", "k", 1) |> Text.insert("t", 0, "ab")
+      {:ok, term} = StateCodec.canonical_state(doc)
+      {:ok, payload} = StateCodec.encode_term(term)
+
+      envelope = fn version ->
+        header =
+          <<"YXSC", version::16, byte_size(@key)::32, @key::binary, byte_size(payload)::64>>
+
+        header <> :crypto.hash(:sha256, [header, payload]) <> payload
+      end
+
+      # Control: the same payload under the current version decodes.
+      assert {:ok, restored} = StateCodec.decode(envelope.(2), @key)
+      assert YMap.get(restored, "m", "k") == 1
+      # A correctly digested version-1 envelope of that payload is refused.
+      assert StateCodec.decode(envelope.(1), @key) == {:error, {:unsupported_version, 1}}
+    end
+
     test "a forged payload with a recomputed digest is still structurally validated" do
       forge = fn term ->
         {:ok, payload} = StateCodec.encode_term(term)
-        header = <<"YXSC", 1::16, byte_size(@key)::32, @key::binary, byte_size(payload)::64>>
+
+        header =
+          <<"YXSC", StateCodec.format_version()::16, byte_size(@key)::32, @key::binary,
+            byte_size(payload)::64>>
+
         header <> :crypto.hash(:sha256, [header, payload]) <> payload
       end
 

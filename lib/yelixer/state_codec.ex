@@ -22,10 +22,10 @@ defmodule Yelixer.StateCodec do
   (see `canonical_state/1`) field by field, and refuses any state it does
   not know how to represent exactly, instead of normalizing it.
 
-  ## Envelope (format version 1)
+  ## Envelope (format version 2)
 
       "YXSC"                     4 bytes magic
-      version                    u16 big-endian (= 1)
+      version                    u16 big-endian (= 2)
       key_size                   u32 big-endian (<= 4096)
       key                        key_size bytes (caller-supplied cache key)
       payload_size               u64 big-endian
@@ -61,6 +61,22 @@ defmodule Yelixer.StateCodec do
   above that changes which bytes are accepted bumps `@version`. Decoders
   refuse every version they do not know.
 
+  History:
+
+    - **1** — CHECKPOINT-SNAP-1 round 1.
+    - **2** — yelixer#11 (Plan #42733). The payload grammar and atom
+      table are unchanged, but `map_index` changed meaning: it caches a
+      map key's WINNER (its rightmost write in YATA order, tombstoned or
+      not), where version 1 cached the rightmost UNDELETED write. Where
+      those differ, a version-1 cache answers reads wrongly and
+      misplaces later writes, and a version-1 store can also hold a live
+      write left of a tombstoned rightmost one. Decode now enforces the
+      winner invariant (every non-empty `map_index` entry is `[id]` of
+      its key's rightmost write), which changes which bytes are
+      accepted, so the version is bumped and every version-1 checkpoint
+      is refused with `{:error, {:unsupported_version, 1}}`: the caller
+      discards it and rebuilds from its wire history.
+
   The digest detects corruption only. It is not authentication: a party
   that can write the checkpoint can forge one. Trust is the caller's
   filesystem trust boundary plus the key.
@@ -93,7 +109,8 @@ defmodule Yelixer.StateCodec do
 
   ## Term grammar (tags)
 
-      0 nil   1 true   2 false   3 atom (index into a fixed v1 table)
+      0 nil   1 true   2 false   3 atom (index into the fixed atom table,
+                                     unchanged since version 1)
       4 non-negative integer (varint byte count + big-endian magnitude)
       5 negative integer (same, magnitude of the absolute value)
       6 float (IEEE-754 binary64)   7 binary (varint size + bytes)
@@ -111,14 +128,14 @@ defmodule Yelixer.StateCodec do
   alias Yelixer.{BlockStore, DeleteSet, Doc, ID, Item}
 
   @magic "YXSC"
-  @version 1
+  @version 2
   @max_key_size 4096
   @default_max_bytes 268_435_456
   @max_depth 256
   @max_safe_int 9_007_199_254_740_992
   @type_atoms [:text, :map, :array, :xml_element, :xml_fragment, :xml_hook, :xml_text, :unknown]
 
-  # v1 atom table. ANY change to this table (adding, removing, reordering)
+  # Atom table (unchanged from version 1). ANY change to this table (adding, removing, reordering)
   # is a format change and bumps @version.
   @atoms [
     :named,
@@ -294,7 +311,7 @@ defmodule Yelixer.StateCodec do
 
   defp open_envelope(<<@magic::binary, rest::binary>>, key, max_bytes) do
     case rest do
-      <<@version::16, rest::binary>> -> open_v1(rest, key, max_bytes)
+      <<@version::16, rest::binary>> -> open_body(rest, key, max_bytes)
       <<other::16, _::binary>> -> {:error, {:unsupported_version, other}}
       _ -> {:error, :truncated}
     end
@@ -306,7 +323,7 @@ defmodule Yelixer.StateCodec do
 
   defp open_envelope(_bytes, _key, _max), do: {:error, :bad_magic}
 
-  defp open_v1(<<key_size::32, rest::binary>>, key, max_bytes) do
+  defp open_body(<<key_size::32, rest::binary>>, key, max_bytes) do
     cond do
       key_size > @max_key_size ->
         {:error, {:malformed, :key_size}}
@@ -325,7 +342,7 @@ defmodule Yelixer.StateCodec do
     end
   end
 
-  defp open_v1(_rest, _key, _max), do: {:error, :truncated}
+  defp open_body(_rest, _key, _max), do: {:error, :truncated}
 
   defp open_payload(<<size::64, digest::binary-size(32), rest::binary>>, key, max_bytes) do
     cond do

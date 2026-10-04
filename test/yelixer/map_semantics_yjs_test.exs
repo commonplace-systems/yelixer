@@ -315,7 +315,11 @@ defmodule Yelixer.MapSemanticsYjsTest do
 
   defp forge(term) do
     {:ok, payload} = StateCodec.encode_term(term)
-    header = <<"YXSC", 1::16, byte_size(@key)::32, @key::binary, byte_size(payload)::64>>
+
+    header =
+      <<"YXSC", StateCodec.format_version()::16, byte_size(@key)::32, @key::binary,
+        byte_size(payload)::64>>
+
     header <> :crypto.hash(:sha256, [header, payload]) <> payload
   end
 
