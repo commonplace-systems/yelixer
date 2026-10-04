@@ -396,9 +396,10 @@ defmodule Yelixer.Doc do
 
   Walks every item: leaves live items alone, rewrites `deleted: true`
   items to `content: {:gc, item.length}` (no-op if already a `:gc`
-  block). Anchors pointing *through* a GC'd block are remapped to the
-  nearest live neighbour by `Yelixer.Encoding.encode_item/2` at encode
-  time — `gc/1` itself doesn't touch anchors. The block-tuple cache
+  block). Anchors pointing into a GC'd block are left alone: the block
+  keeps its origin and parent and `Yelixer.Encoding.encode_diff/2` sends
+  it as a `:deleted` item, as Yjs sends ContentDeleted, so a neighbour's
+  origin still resolves on the receiver (issue #8). The block-tuple cache
   (`client_tuples`) is cleared wholesale so it rebuilds on the next
   read.
   """

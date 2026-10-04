@@ -95,8 +95,9 @@ defmodule Yelixer.Encoding do
   - Not a doc store — `Yelixer.Doc` and `Yelixer.BlockStore` own
     in-memory state. Encoding only reads and writes it.
   - Not the integrator — `apply_update/2` parses items then delegates
-    to `Yelixer.Integrate` for YATA placement. Anchor resolution and
-    GC-block remapping live there, not here.
+    to `Yelixer.Integrate` for YATA placement. Anchors are written and
+    read unchanged; an item anchored on a wire GC struct is stored as a
+    GC struct, as Yjs does (issue #8).
   """
 
   alias Yelixer.{StateVector, DeleteSet, ID, Item, BlockStore, Doc, Integrate}
@@ -483,11 +484,9 @@ defmodule Yelixer.Encoding do
     3. Emits struct runs,
     4. Appends encode_delete_set/1 (determinism — CX-w62).
 
-  The store IS only consulted for GC remapping (`remap_gc_origin/2`
-  and friends). Translated items' origins point at ids from the
-  source namespace — those ids are not in our synthetic store, so
-  the GC-remap lookups miss and return the ref unchanged, which is
-  exactly what we want.
+  The store only orders the items per client; origins are written
+  unchanged (issue #8), so translated items' origins — ids from the
+  source namespace — go out exactly as decoded.
 
   client_id is a local-peer field, not persisted in the wire format;
   we set it deterministically to 0 because `encode_update/1` never
@@ -560,20 +559,30 @@ defmodule Yelixer.Encoding do
           items_bin =
             Enum.reduce(items, <<>>, fn item, iacc ->
               item =
-                if item.deleted or
-                     DeleteSet.deleted_in_cache?(ds_cache, item.id.client, item.id.clock) do
-                  %{item | content: {:deleted, item.length}, deleted: true}
-                else
-                  item
+                cond do
+                  # A wire GC struct (decoded with no parent) stays a GC
+                  # struct, as Yjs re-encodes it; it has no parent to write
+                  # as a `:deleted` item. A block `Doc.gc/1` collected keeps
+                  # its real parent and goes out as `:deleted`, matching
+                  # Yjs's ContentDeleted (Item.js `gc/2`).
+                  match?(%Item{content: {:gc, _}, parent: {:gc_placeholder, _}}, item) ->
+                    item
+
+                  item.deleted or
+                      DeleteSet.deleted_in_cache?(ds_cache, item.id.client, item.id.clock) ->
+                    %{item | content: {:deleted, item.length}, deleted: true}
+
+                  true ->
+                    item
                 end
 
               if item.id.clock < remote_clock do
                 # Partial item — only encode the portion after remote_clock
                 offset = remote_clock - item.id.clock
                 {_left, right} = Item.split_at_clock(item, offset)
-                <<iacc::binary, encode_item(right, store)::binary>>
+                <<iacc::binary, encode_item(right)::binary>>
               else
-                <<iacc::binary, encode_item(item, store)::binary>>
+                <<iacc::binary, encode_item(item)::binary>>
               end
             end)
 
@@ -587,17 +596,22 @@ defmodule Yelixer.Encoding do
     <<encode_uint(num_clients)::binary, structs_bin::binary, ds_bin::binary>>
   end
 
-  defp encode_item(%Item{content: {:gc, n}}, _store) do
+  defp encode_item(%Item{content: {:gc, n}}) do
     # GC blocks: info byte 0 + length
     <<@content_ref_gc, encode_uint(n)::binary>>
   end
 
-  defp encode_item(%Item{} = item, store) do
+  defp encode_item(%Item{} = item) do
     content_ref = content_type_ref(item.content)
 
-    # Remap origin/right_origin past any GC blocks to the nearest non-GC neighbor
-    origin = remap_gc_origin(item.origin, store)
-    right_origin = remap_gc_right_origin(item.right_origin, store)
+    # Origins go on the wire unchanged, as Yjs writes them (Item.js
+    # `write`). A neighbour that `Doc.gc/1` collected is still sent, as a
+    # `:deleted` item with its real origin and parent (see `encode_diff/2`),
+    # so the receiver can resolve the anchor. Issue #8: the old rewrite to
+    # the same client's nearest earlier live block BY CLOCK could name a
+    # block in a different root.
+    origin = item.origin
+    right_origin = item.right_origin
 
     # parent_sub is only written when parent is also written explicitly
     # (no origin, no right_origin). When origin is set, parent_sub is
@@ -653,49 +667,6 @@ defmodule Yelixer.Encoding do
 
     # Write content
     <<bin::binary, encode_content(item.content)::binary>>
-  end
-
-  # Remap origin through GC blocks only — not through deleted-but-live
-  # items (those with `deleted: true` but intact content). Deleted-live
-  # items still sit in the block store with valid position info; their
-  # parent is recoverable through the YATA chain at decode time.
-  # Walking across them during encoding can cross sequence boundaries
-  # (e.g. from a "content" text item into a "root" map entry) and
-  # corrupt the decoded parent assignment. (CX-2sv.)
-  defp remap_gc_origin(nil, _store), do: nil
-
-  defp remap_gc_origin(%ID{} = id, store) do
-    case BlockStore.get(store, id) do
-      %Item{content: {:gc, _}} ->
-        # GC blocks have no content — walk back to the nearest non-GC
-        # predecessor from the same client.
-        blocks = BlockStore.client_blocks(store, id.client)
-
-        blocks
-        |> Enum.filter(fn
-          %Item{content: {:gc, _}} -> false
-          %Item{id: bid, length: len} -> bid.clock + len - 1 < id.clock
-        end)
-        |> List.last()
-        |> case do
-          nil -> nil
-          %Item{id: bid, length: len} -> ID.new(bid.client, bid.clock + len - 1)
-        end
-
-      _ ->
-        id
-    end
-  end
-
-  # Clear right_origin only when it points to a GC block. Deleted-but-
-  # live items are left intact — see the remap_gc_origin/2 comment.
-  defp remap_gc_right_origin(nil, _store), do: nil
-
-  defp remap_gc_right_origin(%ID{} = id, store) do
-    case BlockStore.get(store, id) do
-      %Item{content: {:gc, _}} -> nil
-      _ -> id
-    end
   end
 
   defp encode_id(%ID{client: client, clock: clock}) do
@@ -1455,27 +1426,52 @@ defmodule Yelixer.Encoding do
   defp try_integrate_item(item, doc, sv) do
     # Defer if a cross-client dependency (origin or right_origin) isn't
     # integrated yet — mirrors yrs Update::missing().
-    if has_missing_dep?(item, sv) do
-      :pending_dep
-    else
-      item = resolve_parent(item, doc.store)
-      type_key = parent_type_key(item)
+    cond do
+      has_missing_dep?(item, sv) ->
+        :pending_dep
 
-      case type_key do
-        nil ->
-          # Parent not yet resolvable — defer, but don't block this client
-          :pending_parent
+      # Yjs Item.js getMissing: when the left (origin) or right
+      # (right_origin) neighbour is a GC struct, the item's parent is set
+      # to null, and `integrate` then stores a GC struct in its place
+      # (issue #8 fix C). A wire GC struct is the only block that carries a
+      # `{:gc_placeholder, _}` parent; a block `Doc.gc/1` collected keeps
+      # its real parent and stays a valid anchor, as Yjs's ContentDeleted.
+      anchored_on_gc_struct?(item, doc.store) ->
+        try_integrate_item(
+          Item.new(item.id, nil, nil, {:gc, item.length}, {:gc_placeholder, nil}, nil),
+          doc,
+          sv
+        )
 
-        key ->
-          type_ref = infer_type_ref(item, doc)
-          {doc, _} = Doc.get_or_create_type(doc, key, type_ref)
-          doc = maybe_register_xml_child_type(doc, item, key)
-          {:ok, store} = Integrate.integrate(doc.store, item, key)
-          # Auto-delete map conflict losers (same key, competing items)
-          store = maybe_resolve_map_conflict(store, item, key)
-          sv = StateVector.advance(sv, item.id.client, item.id.clock + item.length)
-          {:ok, %{doc | store: store}, sv}
-      end
+      true ->
+        integrate_resolved(item, doc, sv)
+    end
+  end
+
+  defp anchored_on_gc_struct?(item, store) do
+    Enum.any?([item.origin, item.right_origin], fn
+      nil -> false
+      id -> match?(%Item{parent: {:gc_placeholder, _}}, BlockStore.get(store, id))
+    end)
+  end
+
+  defp integrate_resolved(item, doc, sv) do
+    item = resolve_parent(item, doc.store)
+
+    case parent_type_key(item) do
+      nil ->
+        # Parent not yet resolvable — defer, but don't block this client
+        :pending_parent
+
+      key ->
+        type_ref = infer_type_ref(item, doc)
+        {doc, _} = Doc.get_or_create_type(doc, key, type_ref)
+        doc = maybe_register_xml_child_type(doc, item, key)
+        {:ok, store} = Integrate.integrate(doc.store, item, key)
+        # Auto-delete map conflict losers (same key, competing items)
+        store = maybe_resolve_map_conflict(store, item, key)
+        sv = StateVector.advance(sv, item.id.client, item.id.clock + item.length)
+        {:ok, %{doc | store: store}, sv}
     end
   end
 
@@ -1713,32 +1709,13 @@ defmodule Yelixer.Encoding do
               item
           end
 
-        case ref_item.parent do
-          {:gc_placeholder, _} ->
-            case find_parent_from_siblings(store, ref_id.client) do
-              nil -> item
-              parent -> %{item | parent: parent}
-            end
-
-          parent ->
-            %{item | parent: parent}
-        end
+        # A ref_item with a `{:gc_placeholder, _}` parent never gets here:
+        # `try_integrate_item/3` turns such an item into a GC struct first.
+        %{item | parent: ref_item.parent}
     end
   end
 
   defp resolve_parent(item, _store), do: item
-
-  defp find_parent_from_siblings(store, client) do
-    store
-    |> BlockStore.client_blocks(client)
-    |> Enum.find_value(fn item ->
-      case item.parent do
-        {:named, _} = p -> p
-        {:id, _} = p -> p
-        _ -> nil
-      end
-    end)
-  end
 
   def decode_update(binary) do
     try do

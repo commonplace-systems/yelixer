@@ -238,8 +238,8 @@ defmodule Yelixer do
   Every Item records `origin` (left neighbour at authoring time) and
   `right_origin` (right neighbour at authoring time). When concurrent
   inserts share the same `origin`, `Integrate` breaks the tie with the
-  right anchor plus client-ID. The same anchors drive the encoding's
-  "remap through GC blocks" path on the wire. *Why this matters*:
+  right anchor plus client-ID. Both anchors go on the wire exactly as
+  recorded, even when they point into a GC'd block (issue #8). *Why this matters*:
   with only `origin`, two peers inserting "after item X" concurrently
   have no way to agree on order — they'd diverge. The right anchor
   plus client-ID tiebreak gives every replica a deterministic answer
