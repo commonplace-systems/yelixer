@@ -54,17 +54,32 @@ defmodule Yelixer.GcOriginTest do
       assert Array.to_list(r, "a") == ["x"]
     end
 
-    test "seeds 0..299: full replay never puts a foreign item in array root \"a\"" do
-      bad =
-        Enum.filter(0..299, fn s ->
-          h = H.generate(s)
-          d = H.apply_all(H.registered(1), h.delivery ++ h.withheld)
+    # Every root, not just "a": after full replay, each root's sequence
+    # holds only the content its authors put there. The generator writes
+    # strings to text "t", unkeyed values to array "a", keyed values to map
+    # "m" and to the attributes of XML element "x", and children (types) to
+    # fragment "f". (A wider per-root Yjs comparison over these histories
+    # is not usable as a gate: it also trips over unrelated, pre-existing
+    # render differences.)
+    @root_contents %{
+      "t" => {:string, false},
+      "a" => {:any, false},
+      "m" => {:any, true},
+      "x" => {:any, true},
+      "f" => {:type, false}
+    }
 
-          Enum.any?(
-            BlockStore.get_sequence(d.store, "a"),
-            &(not match?({:any, _}, &1.content))
-          )
-        end)
+    test "seeds 0..299: full replay never puts a foreign item in any root" do
+      bad =
+        for s <- 0..299,
+            h = H.generate(s),
+            d = H.apply_all(H.registered(1), h.delivery ++ h.withheld),
+            {root, {kind, keyed?}} <- @root_contents,
+            Enum.any?(
+              BlockStore.get_sequence(d.store, root),
+              &(elem(&1.content, 0) != kind or &1.parent_sub != nil != keyed?)
+            ),
+            do: {s, root}
 
       assert bad == []
     end
@@ -91,12 +106,20 @@ defmodule Yelixer.GcOriginTest do
   end
 
   describe "fix C: wire GC structs" do
-    # Yjs (gc on): "a" = [nested Y.Array [1, 2], "y"], then the nested
-    # array is deleted. Its children are GC'd under a GC'd parent, so Yjs
-    # replaces them with a GC struct 1:1 (len 2); 1:0 becomes ContentDeleted.
-    defp yjs_gc_struct_update(port) do
+    # Yjs (gc on): "a" = [nested Y.Array [1, 2] | nested Y.Map %{"k" => 1},
+    # "y"], then the nested type is deleted. Its children are GC'd under a
+    # GC'd parent, so Yjs replaces them with a GC struct at 1:1; 1:0 (the
+    # type item) becomes ContentDeleted and "y" is 1:(1 + gc_len).
+    defp yjs_gc_struct_update(port, nested) do
       O.rpc(port, %{cmd: "reset", client_id: 1, gc: true})
-      O.rpc(port, %{cmd: "array_push_nested_array", root: "a", values: [1, 2]})
+
+      {cmd, gc_len} =
+        case nested do
+          :array -> {%{cmd: "array_push_nested_array", root: "a", values: [1, 2]}, 2}
+          :map -> {%{cmd: "array_push_nested_map", root: "a", entries: %{"k" => 1}}, 1}
+        end
+
+      O.rpc(port, cmd)
       O.rpc(port, %{cmd: "push_array", root: "a", items: ["y"]})
       O.rpc(port, %{cmd: "delete_array", root: "a", pos: 0, len: 1})
       bytes = O.update(port)
@@ -109,7 +132,7 @@ defmodule Yelixer.GcOriginTest do
                &match?(
                  %Item{
                    id: %ID{client: 1, clock: 1},
-                   content: {:gc, 2},
+                   content: {:gc, ^gc_len},
                    parent: {:gc_placeholder, _}
                  },
                  &1
@@ -123,7 +146,7 @@ defmodule Yelixer.GcOriginTest do
       port = O.open()
 
       try do
-        yjs_bytes = yjs_gc_struct_update(port)
+        yjs_bytes = yjs_gc_struct_update(port, :array)
         expected = yjs_view(port, yjs_bytes)
         assert expected.array == ["y"]
 
@@ -145,34 +168,107 @@ defmodule Yelixer.GcOriginTest do
       end
     end
 
-    test "an item anchored on a wire GC struct becomes GC, as in Yjs" do
+    # A concurrent peer (client 2) wrote into the nested type before seeing
+    # its delete. The receiver holds the anchor only inside GC struct 1:1.
+    #   origin:       appended 3 after the nested array's last child 1:2
+    #   right_origin: prepended 0 before the nested array's first child 1:1
+    #   map key:      overwrote "k"; a map write's wire origin is the key's
+    #                 previous value (1:1) and its parent_sub is not written
+    for {label, nested, origin, right_origin, value} <- [
+          {"origin", :array, {1, 2}, nil, 3},
+          {"right_origin only", :array, nil, {1, 1}, 0},
+          {"map key overwrite (parent_sub inherited)", :map, {1, 1}, nil, 2}
+        ] do
+      @nested nested
+      @origin origin
+      @right_origin right_origin
+      @value value
+      test "an item anchored on a wire GC struct by #{label} becomes GC, as in Yjs" do
+        port = O.open()
+
+        id = fn
+          nil -> nil
+          {c, k} -> ID.new(c, k)
+        end
+
+        origin = id.(@origin)
+        right_origin = id.(@right_origin)
+
+        try do
+          yjs_bytes = yjs_gc_struct_update(port, @nested)
+
+          late =
+            Encoding.encode_items(
+              [
+                Item.new(
+                  ID.new(2, 0),
+                  origin,
+                  right_origin,
+                  {:any, [@value]},
+                  {:infer, origin || right_origin},
+                  nil
+                )
+              ],
+              DeleteSet.new()
+            )
+
+          O.rpc(port, %{cmd: "reset", client_id: 3})
+          O.apply(port, yjs_bytes)
+          O.apply(port, late)
+          expected = yjs_view(port, O.update(port))
+          assert expected.array == ["y"]
+
+          {:ok, doc} = Encoding.apply_update(O.load(yjs_bytes, 900), late)
+          assert doc.pending == []
+          assert Array.to_list(doc, "a") == ["y"]
+          assert %Item{content: {:gc, 1}} = BlockStore.get(doc.store, ID.new(2, 0))
+
+          assert yjs_view(port, Encoding.encode_update(doc)) == expected
+        after
+          Port.close(port)
+        end
+      end
+    end
+
+    # The other GC kind: a block the RECEIVER collected with Doc.gc/1 keeps
+    # its real parent (Yjs: ContentDeleted, Item.js gc/2), so a remote
+    # insert anchored on it must integrate as a normal item, not as GC.
+    test "an insert anchored on a block the receiver itself GC'd integrates normally (Yjs-equal)" do
       port = O.open()
 
       try do
-        yjs_bytes = yjs_gc_struct_update(port)
+        author = Doc.new(client_id: 100) |> Doc.put_type("t", :text) |> Text.insert("t", 0, "abc")
+        ua = Encoding.encode_update(author)
 
-        # A concurrent peer (client 2) had appended 3 to the nested array
-        # before seeing the delete: origin = 1:2, the nested array's last
-        # child, which the receiver only holds inside GC struct 1:1..2.
-        late =
-          Encoding.encode_items(
-            [Item.new(ID.new(2, 0), ID.new(1, 2), nil, {:any, [3]}, {:infer, ID.new(1, 2)}, nil)],
-            DeleteSet.new()
-          )
+        # Peer 300 (has "abc"): "X" between a and b (origin 100:0, right
+        # origin 100:1), then "Y" at the front (right origin 100:0 only).
+        {:ok, peer} = Encoding.apply_update(reg(300), ua)
+        peer = peer |> Text.insert("t", 1, "X") |> Text.insert("t", 0, "Y")
+        ub = Encoding.encode_diff(peer, Doc.state_vector(author))
 
-        O.rpc(port, %{cmd: "reset", client_id: 3})
-        O.apply(port, yjs_bytes)
-        O.apply(port, late)
-        yjs_bytes2 = O.update(port)
-        expected = yjs_view(port, yjs_bytes2)
-        assert expected.array == ["y"]
+        {:ok, {late, _, _}} = Encoding.decode_update(ub)
 
-        {:ok, doc} = Encoding.apply_update(O.load(yjs_bytes, 900), late)
-        assert doc.pending == []
-        assert Array.to_list(doc, "a") == ["y"]
-        assert %Item{content: {:gc, 1}} = BlockStore.get(doc.store, ID.new(2, 0))
+        assert Enum.map(late, &{&1.content, &1.origin, &1.right_origin}) == [
+                 {{:string, "X"}, ID.new(100, 0), ID.new(100, 1)},
+                 {{:string, "Y"}, nil, ID.new(100, 0)}
+               ]
 
-        assert yjs_view(port, Encoding.encode_update(doc)) == expected
+        # Receiver 200 deletes "ab" and collects it before ub arrives.
+        {:ok, r} = Encoding.apply_update(reg(200), ua)
+        r = r |> Text.delete("t", 0, 2) |> Doc.gc()
+        assert %Item{content: {:gc, 2}} = BlockStore.get(r.store, ID.new(100, 0))
+        {:ok, r} = Encoding.apply_update(r, ub)
+        assert r.pending == []
+
+        O.rpc(port, %{cmd: "reset", client_id: 200, gc: true})
+        O.apply(port, ua)
+        O.rpc(port, %{cmd: "delete_text", name: "t", pos: 0, len: 2})
+        O.apply(port, ub)
+        expected = yjs_view(port, O.update(port))
+        assert expected.text == "YXc"
+
+        assert Text.to_string(r, "t") == "YXc"
+        assert yjs_view(port, Encoding.encode_update(r)) == expected
       after
         Port.close(port)
       end

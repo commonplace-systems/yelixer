@@ -35,6 +35,9 @@
 //     {"cmd":"array_push_nested_array","root":"items","values":[1,2]}
 //       — pushes a nested Y.Array (pre-populated with `values`) as a
 //         single element of the named array.
+//     {"cmd":"array_push_nested_map","root":"items","entries":{"k":1}}
+//       — pushes a nested Y.Map (pre-populated with `entries`) as a
+//         single element of the named array (issue #8 GC-struct cases).
 //
 //   stdout — one result per command, JSON object:
 //     {"ok":true,...}  or  {"ok":false,"error":"..."}
@@ -280,6 +283,16 @@ function handle(msg) {
         doc.transact(() => {
           a.insert(a.length, [nested])
           nested.insert(0, msg.values || [])
+        })
+        return { ok: true, length: a.length }
+      }
+
+      case 'array_push_nested_map': {
+        const a = getArray(msg.root || 'items')
+        const nested = new Y.Map()
+        doc.transact(() => {
+          a.insert(a.length, [nested])
+          for (const [k, v] of Object.entries(msg.entries || {})) nested.set(k, v)
         })
         return { ok: true, length: a.length }
       }

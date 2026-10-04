@@ -95,8 +95,9 @@ defmodule Yelixer.Encoding do
   - Not a doc store — `Yelixer.Doc` and `Yelixer.BlockStore` own
     in-memory state. Encoding only reads and writes it.
   - Not the integrator — `apply_update/2` parses items then delegates
-    to `Yelixer.Integrate` for YATA placement. Anchor resolution and
-    GC-block remapping live there, not here.
+    to `Yelixer.Integrate` for YATA placement. Anchors are written and
+    read unchanged; an item anchored on a wire GC struct is stored as a
+    GC struct, as Yjs does (issue #8).
   """
 
   alias Yelixer.{StateVector, DeleteSet, ID, Item, BlockStore, Doc, Integrate}
