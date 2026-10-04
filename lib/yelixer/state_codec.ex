@@ -49,8 +49,10 @@ defmodule Yelixer.StateCodec do
   that sequence's type; `sequence_len` equals each sequence's length;
   every `map_index` id names a stored block, and every non-empty
   `map_index` entry is exactly `[id]` of its key's rightmost write in
-  its type's sequence (the yelixer#11 map rule; `[]` stays accepted as
-  "unknown", which is what earlier writers stored for a deleted key);
+  its type's sequence (the yelixer#11 map rule). An empty entry `[]`
+  is accepted and read as "unknown" (rebuilt by the next scan); no
+  current writer produces it — the version-1 writers that stored `[]`
+  for a deleted key are refused by version before this check runs;
   type refs are known atoms or
   `{:xml_element, tag}`; embed/format values are JSON-shaped; `{:doc, _}`
   content (which has no wire encoding) is refused.
@@ -95,11 +97,12 @@ defmodule Yelixer.StateCodec do
   key to its full document-order ID list (tombstones included), and
   `map_index` is the per-`{type_key, sub}` winner cache (the key's
   rightmost write, tombstoned or not — `BlockStore.map_winner_ids/3`).
-  A checkpoint written before yelixer#11 cached the rightmost UNDELETED
-  write instead; where that differs from the rightmost write the cache
-  would answer reads wrongly and misplace later writes, so decode
-  refuses it (`{:malformed, :map_index}`) and the caller rebuilds from
-  its wire history, exactly as for any other refused checkpoint.
+  Checkpoints written before yelixer#11 (format version 1) cached the
+  rightmost UNDELETED write instead and are refused by version
+  (`{:error, {:unsupported_version, 1}}`, see "Versioning"); a
+  version-2 payload whose cached id is not the key's rightmost write is
+  refused as `{:malformed, :map_index}`. Either way the caller rebuilds
+  from its wire history.
 
   Deferred-write buffers (`client_pending`, `sequence_pending`,
   `deleted_overlay`) are folded in by `BlockStore.materialize_all/1`

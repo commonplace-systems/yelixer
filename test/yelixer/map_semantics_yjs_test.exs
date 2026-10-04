@@ -344,8 +344,10 @@ defmodule Yelixer.MapSemanticsYjsTest do
 
         assert yjs_read(p, [full, u]) == %{"k" => 3}
         assert YMap.to_json(author, "m") == %{"k" => 3}
-        # A fresh replica splits the cached merged winner while integrating
-        # `u`; its cache must follow the split to the right piece.
+        # A fresh replica integrates `u` anchored at the merged block's LAST
+        # clock, so no split happens here (the split path is pinned by
+        # "splitting a cached multi-clock winner" below); its cache must end
+        # on the new write.
         fresh = yel_read([full, u], "fresh replica")
         assert YMap.to_json(fresh, "m") == %{"k" => 3}
         assert fresh.store.map_index["m"]["k"] == [item.id]
@@ -460,6 +462,26 @@ defmodule Yelixer.MapSemanticsYjsTest do
         want = yjs_read(p, order)
         assert want == %{"sub" => %{"k" => "b"}}, "oracle positive control"
         assert YMap.to_json(yel_read(order, "nested control"), "m") == want
+      end
+
+      assert_index_clean!()
+    end
+
+    # yelixer#15 shape: children delivered BEFORE their parent value. Read
+    # through the synthetic name directly, the nested map plane follows the
+    # winner rule in every child-first order; only the parent's `:unknown`
+    # type registration (read via m["sub"]) is wrong, which is #15.
+    test "child-first: the nested map read by its __sub name matches Yjs", %{port: p} do
+      for deleted? <- [true, false] do
+        {up, rest} = nested_updates(:map, deleted?)
+
+        for order <- permutations(rest) do
+          ups = order ++ [up]
+          want = yjs_read(p, ups)["sub"]
+          assert want == if(deleted?, do: %{}, else: %{"k" => "b"}), "oracle positive control"
+          doc = yel_read(ups, "child-first")
+          assert YMap.to_json(doc, "__sub:3:0") == want
+        end
       end
 
       assert_index_clean!()

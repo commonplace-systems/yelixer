@@ -848,12 +848,12 @@ defmodule Yelixer.BlockStore do
   key absent. Returns `nil` when the entry is unknown — never
   populated, or dropped by `invalidate_map_index/2` after an edge case
   (a split touching a map item). `[]` is also treated as unknown by
-  every reader: it is what the pre-#11 live-id cache stored for a
-  deleted key, and a restored checkpoint may still carry it.
+  every reader (no current writer stores it).
 
   Before yelixer#11 this cached the rightmost *undeleted* id instead,
-  which is not Yjs's rule; `Yelixer.StateCodec` refuses a checkpoint
-  whose cached id is not the key's rightmost write.
+  which is not Yjs's rule; `Yelixer.StateCodec` format version 2
+  refuses every version-1 checkpoint, and refuses a version-2 one whose
+  cached id is not the key's rightmost write.
   """
   def map_winner_ids(%__MODULE__{map_index: mi}, type_key, sub) do
     case Map.get(mi, type_key) do
