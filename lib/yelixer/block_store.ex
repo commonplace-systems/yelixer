@@ -623,6 +623,47 @@ defmodule Yelixer.BlockStore do
     |> Enum.reject(& &1.deleted)
   end
 
+  @doc """
+  Returns every Item for `type_name` in document order, tombstones
+  INCLUDED. The map read rule (`map_winners/2`) needs the deleted
+  writes: a deleted rightmost write still decides its key (as absent).
+  """
+  def get_sequence_with_tombstones(%__MODULE__{} = store, type_name) do
+    sequence_view(store, type_name)
+    |> Enum.map(&get(store, &1))
+    |> Enum.reject(&is_nil/1)
+  end
+
+  @doc """
+  yelixer#11 (M2): the Yjs map read rule. For every key of `type_name`'s
+  map plane, the RIGHTMOST write in YATA order — deleted or not — is the
+  key's winner (Yjs `type._map.get(key)`, the item with `right === null`
+  in the key's chain). A deleted winner means the key is ABSENT; an
+  earlier undeleted write never resurfaces (Yjs `typeMapGet`,
+  `typeMapGetAll`, `typeMapHas`). Returns `%{key => winner_item}`.
+  """
+  def map_winners(%__MODULE__{} = store, type_name) do
+    store
+    |> get_sequence_with_tombstones(type_name)
+    |> Enum.reduce(%{}, fn
+      %Item{parent_sub: sub} = item, acc when is_binary(sub) -> Map.put(acc, sub, item)
+      _, acc -> acc
+    end)
+  end
+
+  @doc """
+  The cold-scan winner (see `map_winners/2`) for one key, or `nil` when
+  the key has never been written.
+  """
+  def map_winner_scan(%__MODULE__{} = store, type_name, key) do
+    store
+    |> get_sequence_with_tombstones(type_name)
+    |> Enum.reduce(nil, fn
+      %Item{parent_sub: ^key} = item, _acc -> item
+      _, acc -> acc
+    end)
+  end
+
   defp sequence_view(%__MODULE__{} = store, type_name) do
     base = Map.get(store.sequences, type_name, [])
     pending = Map.get(store.sequence_pending, type_name, [])
@@ -783,25 +824,27 @@ defmodule Yelixer.BlockStore do
   end
 
   @doc """
-  CX-xes3 (E4): per-`{type_key, parent_sub}` cache of the currently
-  *live* item id(s) for a YMap key. Without this, resolving a map-key
+  CX-xes3 (E4) / yelixer#11: per-`{type_key, parent_sub}` cache of the
+  key's WINNER — the rightmost write for the key in YATA order, deleted
+  or not (see `map_winners/2`). Without this, resolving a map-key
   conflict (`Yelixer.Encoding.maybe_resolve_map_conflict/3`) has to
   walk the whole type's sequence with a `get/2` per element on every
   single map write — O(n) per write, O(k·n) for k writes to a
   map-heavy document (schemas, presence, per-entity status docs).
 
-  Usually holds exactly one id (the current winner). Returns `nil`
-  when the entry is unknown — either never populated, or deliberately
-  dropped by `invalidate_map_index/2` after an edge case (a split
-  touching a map item) that could have made a cached list stale. `nil`
-  is the signal callers use to fall back to a one-time full scan,
-  which repopulates the entry for subsequent writes to the same key.
+  A known entry is `[winner_id]`. A deleted winner stays cached: a
+  delete does not change which write is rightmost, it only makes the
+  key absent. Returns `nil` when the entry is unknown — never
+  populated, or dropped by `invalidate_map_index/2` after an edge case
+  (a split touching a map item). `[]` is also treated as unknown by
+  every reader: it is what the pre-#11 live-id cache stored for a
+  deleted key, and a restored checkpoint may still carry it.
 
-  This is *derived* state: correctness never depends on it being
-  present or fully accurate. A missing/stale entry costs a slow-path
-  scan, not a wrong answer — see `invalidate_map_index/2`.
+  Before yelixer#11 this cached the rightmost *undeleted* id instead,
+  which is not Yjs's rule; `Yelixer.StateCodec` refuses a checkpoint
+  whose cached id is not the key's rightmost write.
   """
-  def map_live_ids(%__MODULE__{map_index: mi}, type_key, sub) do
+  def map_winner_ids(%__MODULE__{map_index: mi}, type_key, sub) do
     case Map.get(mi, type_key) do
       nil -> nil
       subs -> Map.get(subs, sub)
@@ -809,55 +852,27 @@ defmodule Yelixer.BlockStore do
   end
 
   @doc """
-  Records `ids` as the live item id(s) for `{type_key, sub}`. Called
-  after conflict resolution settles on a winner (and tombstones the
-  losers), so the next write to the same key finds a populated entry
-  and skips the full-sequence scan.
+  Records `ids` (`[winner_id]`) as `{type_key, sub}`'s winner. Called
+  after conflict resolution settles on the rightmost write (and
+  tombstones the losers), so the next read or write of the same key
+  finds a populated entry and skips the full-sequence scan.
   """
-  def put_map_live_ids(%__MODULE__{map_index: mi} = store, type_key, sub, ids) do
+  def put_map_winner_ids(%__MODULE__{map_index: mi} = store, type_key, sub, ids) do
     subs = Map.get(mi, type_key, %{})
     %{store | map_index: Map.put(mi, type_key, Map.put(subs, sub, ids))}
   end
 
   @doc """
-  Drops the entire live-id index for `type_key` — every key's cached
-  entry, not just one. Used wherever a map item gets tombstoned or
-  reshaped through a path that doesn't itself maintain the index (the
-  generic delete-set walk in `Yelixer.Encoding.apply_delete_range/4`,
-  a mid-block split of a map item). Conservative: the next map write
+  Drops the entire winner index for `type_key` — every key's cached
+  entry, not just one. Used where a map item is reshaped through a
+  path that doesn't itself maintain the index (a mid-block split of a
+  map item). A tombstone alone never needs this since yelixer#11: a
+  delete does not change which write is rightmost. Conservative: the next map write
   under this `type_key` pays for one full-sequence scan to rebuild
   the entry it needs, but every entry stays correct.
   """
   def invalidate_map_index(%__MODULE__{map_index: mi} = store, type_key) do
     %{store | map_index: Map.delete(mi, type_key)}
-  end
-
-  @doc """
-  Drops just `{type_key, sub}`'s cached live-id list, leaving every
-  other key under `type_key` untouched.
-
-  CX-xes3 (E4): the generic delete-set path (`Yelixer.Encoding`'s
-  `mark_item_deleted/3`, driven by `apply_delete_range/4`) can tombstone
-  a map item outside `maybe_resolve_map_conflict/3`'s own bookkeeping
-  — e.g. `YMap.delete/3`'s standalone deletion. It needs to invalidate
-  *something* defensively for correctness, but `invalidate_map_index/2`
-  (whole `type_key`) is far too broad: a `YMap` with several keys
-  shares one `type_key`, and EVERY write encodes a delete-range for the
-  key's own previous value (see `YMap.set/4`) — so wiping the whole
-  `type_key` on every delete throws away the entry
-  `maybe_resolve_map_conflict/3` just correctly populated for every
-  OTHER key changed in the same batch (items integrate before the
-  delete set applies — see `integrate_batch/3` — so by the time a
-  delete lands, later writes to other keys have already updated their
-  own entries). That reintroduces the full-scan cost on every write to
-  a multi-key map — exactly the O(n) per-write blowup this issue set
-  out to remove.
-  """
-  def invalidate_map_index_key(%__MODULE__{map_index: mi} = store, type_key, sub) do
-    case Map.get(mi, type_key) do
-      nil -> store
-      subs -> %{store | map_index: Map.put(mi, type_key, Map.delete(subs, sub))}
-    end
   end
 
   @doc """

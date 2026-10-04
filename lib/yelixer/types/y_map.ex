@@ -32,15 +32,20 @@ defmodule Yelixer.Types.YMap do
   ## Last-writer-wins by sequence position
 
   Concurrent writes to the same key produce multiple Items with identical
-  `parent_sub`. The winner is the **rightmost** non-tombstoned Item in
-  YATA-canonical order — `find_current_item/3` takes `List.last/1` after
-  filtering. Because `Yelixer.Integrate`'s two-set conflict scan gives every
-  replica the same ordering, all replicas pick the same winner.
+  `parent_sub`. The winner is the **rightmost** Item for the key in
+  YATA-canonical order, **whether or not it is tombstoned** — Yjs's
+  `type._map.get(key)` (yelixer#11, M2). If the winner is tombstoned the
+  key is ABSENT: an earlier undeleted write never resurfaces, and a write
+  that integrates with a same-key write to its right is deleted on
+  arrival, exactly as Yjs `Item.integrate` does. Because
+  `Yelixer.Integrate`'s two-set conflict scan gives every replica the same
+  ordering, all replicas pick the same winner.
 
-  `set/4` eagerly tombstones the prior live binding (`delete_existing/3`)
-  before inserting the new Item. Correctness doesn't require this — the new
-  Item would land rightmost anyway — but it shrinks the live set and ensures
-  the superseded write appears in `doc.delete_set`, so
+  `set/4` uses the winner as the new write's `origin` even when the winner
+  is tombstoned (Yjs `typeMapSet`, AbstractType.js:847; yelixer#11, M1),
+  so the new write lands right of it on every replica. It eagerly
+  tombstones a still-live winner (`delete_existing/3`), so the superseded
+  write appears in `doc.delete_set` and
   `Yelixer.Encoding.encode_update/1` propagates the deletion to peers.
 
   ## Sub-types as values
@@ -58,11 +63,12 @@ defmodule Yelixer.Types.YMap do
   via `Yelixer.Integrate.mark_deleted/2`, then record the
   `(client, clock, length)` interval in `doc.delete_set` via
   `Yelixer.DeleteSet.insert/4`. After deletion, `get/3` returns `nil` and
-  `has_key?/3` returns `false` because no non-deleted Item remains for
-  that key.
+  `has_key?/3` returns `false` because the key's winner is tombstoned.
 
-  Tombstoned Items stay in the sequence; `BlockStore.get_sequence/2` filters
-  them out before returning results to callers.
+  Tombstoned Items stay in the sequence; the read paths use
+  `BlockStore.map_winners/2` (tombstones included, then a deleted winner
+  dropped) rather than `BlockStore.get_sequence/2`, which filters
+  tombstones out before the winner is chosen.
 
   ## Boundaries
 
@@ -81,23 +87,27 @@ defmodule Yelixer.Types.YMap do
 
   Three steps:
 
-    1. Tombstone the existing live Item for this key (if any) — see LWW
-       semantics in the moduledoc.
+    1. Tombstone the key's winner if it is live — see LWW semantics in
+       the moduledoc.
     2. Build a new Item: `content: {:any, [value]}`, `parent_sub: key`,
-       `origin = <the overwritten item's id>` (nil for a first write) —
-       the Yjs map-set convention, so a causally-later overwrite from a
-       SMALLER client id still integrates RIGHT of the value it replaces
-       and wins the rightmost-wins conflict resolution on replay (found
-       via CX-saix: outline reparent flaked on random client-id order).
+       `origin = <the key's winner id, tombstoned or not>` (nil for a
+       first write) — the Yjs map-set convention (`typeMapSet`), so a
+       causally-later overwrite from a SMALLER client id still
+       integrates RIGHT of the value it replaces and wins the
+       rightmost-wins conflict resolution on replay (found via CX-saix:
+       outline reparent flaked on random client-id order). yelixer#11
+       (M1): the origin is the winner EVEN AFTER a delete; a nil origin
+       there let the new write land LEFT of the tombstone on every
+       replica, so Yjs read the key as absent forever.
     3. Pass to `Yelixer.Integrate.integrate/3` for YATA placement.
   """
   def set(%Doc{} = doc, type_name, key, value) do
-    existing = find_current_item(doc.store, type_name, key)
+    winner = find_winner(doc.store, type_name, key)
     doc = delete_existing(doc, type_name, key)
 
     clock = Doc.mint_clock(doc)
     id = ID.new(doc.client_id, clock)
-    origin = existing && existing.id
+    origin = winner && winner.id
     item = Item.new(id, origin, nil, {:any, [value]}, {:named, type_name}, key)
     {:ok, store} = Integrate.integrate(doc.store, item, type_name)
 
@@ -109,18 +119,20 @@ defmodule Yelixer.Types.YMap do
     # opposed to replaying an already-encoded update) never populates
     # the index, so `find_current_item/3`'s fast path above always
     # misses and every `set/3`/`get/3`/`delete/3` call pays the full
-    # `get_sequence/2` scan — quadratic across N sequential edits to
-    # the same key. `item.id` is unambiguously the new (and only) live
-    # writer for this key immediately after integration here.
-    store = BlockStore.put_map_live_ids(store, type_name, key, [id])
+    # sequence scan — quadratic across N sequential edits to the same
+    # key. `item.id` is unambiguously the key's new rightmost write
+    # immediately after integration here (its origin was the previous
+    # rightmost, and nothing of ours lies beyond it).
+    store = BlockStore.put_map_winner_ids(store, type_name, key, [id])
     %{doc | store: store}
   end
 
   @doc """
   Returns the live value for `key`, or `nil` if absent.
 
-  Finds the rightmost non-tombstoned Item in the YATA sequence with
-  `parent_sub == key`. Returns `nil` for missing or deleted keys, and also
+  Finds the rightmost Item in the YATA sequence with `parent_sub == key`
+  (tombstoned or not). Returns `nil` for missing keys and for keys whose
+  rightmost write is tombstoned, and also
   for Items whose content variant is not `:any` (sub-types, embeds, etc.) —
   use `to_json/2` for a variant-aware read.
   """
@@ -139,7 +151,7 @@ defmodule Yelixer.Types.YMap do
   end
 
   @doc """
-  Returns `true` if `key` has a live (non-tombstoned) binding.
+  Returns `true` if `key`'s rightmost write is live (not tombstoned).
   """
   def has_key?(%Doc{} = doc, type_name, key) do
     find_current_item(doc.store, type_name, key) != nil
@@ -155,12 +167,14 @@ defmodule Yelixer.Types.YMap do
   variant-aware output that resolves sub-types.
   """
   def to_map(%Doc{} = doc, type_name) do
-    # YATA sequence order is deterministic across replicas.
-    # Later (rightmost) Items overwrite earlier ones, giving LWW per key.
-    BlockStore.get_sequence(doc.store, type_name)
-    |> Enum.filter(fn %Item{parent_sub: sub} -> sub != nil end)
-    |> Enum.reduce(%{}, fn %Item{parent_sub: key, content: {:any, [value]}}, acc ->
-      Map.put(acc, key, value)
+    # YATA sequence order is deterministic across replicas. The
+    # rightmost write per key wins even when tombstoned (yelixer#11);
+    # a tombstoned winner is an absent key.
+    doc.store
+    |> BlockStore.map_winners(type_name)
+    |> Enum.reduce(%{}, fn
+      {_key, %Item{deleted: true}}, acc -> acc
+      {key, %Item{content: {:any, [value]}}}, acc -> Map.put(acc, key, value)
     end)
   end
 
@@ -180,12 +194,11 @@ defmodule Yelixer.Types.YMap do
   sub-types (see `Yelixer.Doc`'s synthetic-name section).
   """
   def to_json(%Doc{} = doc, type_key) do
-    # YATA sequence order is deterministic; rightmost Item per key wins (LWW).
-    find_all_items_for_type(doc.store, type_key)
-    |> Enum.filter(fn %Item{parent_sub: sub} -> sub != nil end)
-    |> Enum.reduce(%{}, fn %Item{parent_sub: key} = item, acc ->
-      Map.put(acc, key, item_value_to_json(doc, item))
-    end)
+    # YATA sequence order is deterministic; the rightmost Item per key
+    # wins even when tombstoned (yelixer#11), and a tombstoned winner is
+    # an absent key.
+    find_live_winners(doc.store, type_key)
+    |> Map.new(fn %Item{parent_sub: key} = item -> {key, item_value_to_json(doc, item)} end)
   end
 
   defp item_value_to_json(doc, %Item{content: {:any, values}}) do
@@ -203,26 +216,34 @@ defmodule Yelixer.Types.YMap do
   defp item_value_to_json(_doc, %Item{content: {:embed, v}}), do: v
   defp item_value_to_json(_doc, _item), do: nil
 
-  # Collect all Items belonging to `type_key`. Two paths:
+  # The live winners of `type_key`, one Item per present key. Two paths:
   #
-  #   - Fast path: `BlockStore.get_sequence/2` returns the pre-indexed
-  #     sequence for any YMap built locally or integrated via apply_update.
+  #   - Fast path: `BlockStore.map_winners/2` over the pre-indexed
+  #     sequence for any YMap built locally or integrated via
+  #     apply_update — tombstones included, so a tombstoned rightmost
+  #     write hides every earlier write to its key (yelixer#11).
   #   - Slow path: when the sequence is empty — e.g. a sub-type YMap
   #     addressed by its `__sub:CLIENT:CLOCK` synthetic name (see
   #     `Yelixer.Doc`'s sub-type section) — scan every client bucket and
-  #     filter by parent-ID match. Client buckets are sorted for determinism.
-  defp find_all_items_for_type(store, type_key) do
-    seq_items = BlockStore.get_sequence(store, type_key)
+  #     filter by parent-ID match. There is no YATA order to consult
+  #     here, so this keeps the pre-#11 behaviour: live items only,
+  #     client buckets in ascending id order, the last one per key wins.
+  defp find_live_winners(store, type_key) do
+    winners = BlockStore.map_winners(store, type_key)
 
-    if seq_items != [] do
-      seq_items
+    if map_size(winners) > 0 do
+      winners |> Map.values() |> Enum.reject(& &1.deleted)
     else
       parent_match = match_parent(type_key)
 
       # BlockStore.all_items/1 is already sorted by ascending client id.
       store
       |> BlockStore.all_items()
-      |> Enum.filter(fn item -> parent_match.(item.parent) and not item.deleted end)
+      |> Enum.filter(fn item ->
+        parent_match.(item.parent) and not item.deleted and is_binary(item.parent_sub)
+      end)
+      |> Map.new(&{&1.parent_sub, &1})
+      |> Map.values()
     end
   end
 
@@ -239,33 +260,34 @@ defmodule Yelixer.Types.YMap do
     fn parent -> parent == {:named, name} end
   end
 
-  # CX-xes3 (E4): `BlockStore.get_sequence/2` + filter is O(n) in the
-  # *whole type's* sequence length — every key sharing this map pays
-  # for every other key's history on every `set/3`/`get/3`/`delete/3`
-  # call. `BlockStore.map_live_ids/3` (maintained by
-  # `Yelixer.Encoding`'s conflict resolution) already names the current
-  # live id for this exact key in O(log n); use it when available and
-  # unambiguous (exactly one live id), falling back to the full scan
-  # only when the index doesn't have (or isn't confident about) an
-  # answer — which self-heals the next time this key gets scanned.
+  # The key's live winner, or nil when the key is absent (never written,
+  # or its rightmost write is tombstoned — yelixer#11).
   defp find_current_item(store, type_name, key) do
-    case BlockStore.map_live_ids(store, type_name, key) do
-      [%ID{} = id] ->
-        case BlockStore.get(store, id) do
-          %Item{parent_sub: ^key, deleted: false} = item -> item
-          _ -> find_current_item_scan(store, type_name, key)
-        end
-
-      _ ->
-        find_current_item_scan(store, type_name, key)
+    case find_winner(store, type_name, key) do
+      %Item{deleted: false} = item -> item
+      _ -> nil
     end
   end
 
-  defp find_current_item_scan(store, type_name, key) do
-    # YATA sequence order is deterministic; rightmost non-deleted Item wins.
-    BlockStore.get_sequence(store, type_name)
-    |> Enum.filter(fn %Item{parent_sub: sub} -> sub == key end)
-    |> List.last()
+  # CX-xes3 (E4): a full sequence scan is O(n) in the *whole type's*
+  # sequence length — every key sharing this map pays for every other
+  # key's history on every `set/3`/`get/3`/`delete/3` call.
+  # `BlockStore.map_winner_ids/3` (maintained by `Yelixer.Encoding`'s
+  # conflict resolution and by `set/4`) names this exact key's
+  # rightmost write in O(log n); use it when known, falling back to the
+  # full scan only when the index has no entry (or a pre-#11 `[]`).
+  # yelixer#11 (M2): the winner is returned tombstoned or not.
+  defp find_winner(store, type_name, key) do
+    case BlockStore.map_winner_ids(store, type_name, key) do
+      [%ID{} = id] ->
+        case BlockStore.get(store, id) do
+          %Item{parent_sub: ^key} = item -> item
+          _ -> BlockStore.map_winner_scan(store, type_name, key)
+        end
+
+      _ ->
+        BlockStore.map_winner_scan(store, type_name, key)
+    end
   end
 
   defp delete_existing(doc, type_name, key) do
@@ -275,12 +297,11 @@ defmodule Yelixer.Types.YMap do
 
       %Item{id: id} = item ->
         store = Integrate.mark_deleted(doc.store, id)
-        # Keep map_index in sync so `find_current_item/3`'s fast path
-        # doesn't hand back an id we just tombstoned (correct either
-        # way — it re-validates — but this keeps `delete/3` followed by
-        # `has_key?/3`/`get/3` on the same key O(log n) instead of
-        # falling back to the full scan).
-        store = BlockStore.put_map_live_ids(store, type_name, key, [])
+        # The tombstoned item stays the key's winner (yelixer#11): cache
+        # it, so `delete/3` followed by `has_key?/3`/`get/3`/`set/4` on
+        # the same key stays O(log n) instead of falling back to the
+        # full scan.
+        store = BlockStore.put_map_winner_ids(store, type_name, key, [id])
         delete_set = DeleteSet.insert(doc.delete_set, id.client, id.clock, item.length)
         %{doc | store: store, delete_set: delete_set}
     end

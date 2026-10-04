@@ -1329,35 +1329,13 @@ defmodule Yelixer.Encoding do
   # (O(n), unavoidably — see its moduledoc) — `apply_delete_range/4`
   # calls this once per affected item, so a delete-set range spanning
   # many items on one client no longer costs O(n) each.
+  # yelixer#11 (M2): a tombstone never changes a map key's cached
+  # winner (`BlockStore.map_winner_ids/3`) — the winner is the
+  # rightmost write deleted or not, and a deleted winner reads as an
+  # absent key — so, unlike the pre-#11 live-id cache, nothing here
+  # needs invalidating.
   defp mark_item_deleted(store, _client, item) do
-    store = BlockStore.tombstone(store, item.id)
-
-    # CX-xes3 (E4): only invalidate this map key's live-id cache if the
-    # item we just tombstoned was the id `map_index` currently believes
-    # is live for it. `integrate_items/5` runs before delete-set
-    # application (see `integrate_batch/3`), so the overwhelmingly
-    # common case — `YMap.set/4`'s own delete-range for the key's PRIOR
-    # value — lands here *after* `maybe_resolve_map_conflict/3` has
-    # already moved the key's live id on to the NEW item. Unconditional
-    # invalidation (the old behavior) would throw that fresh, correct
-    # entry away on every single write to a multi-key map, forcing a
-    # full-sequence scan on the very next write — reintroducing the
-    # O(n)-per-write cost this issue removed. Only a delete that
-    # actually outruns resolution (e.g. a standalone `YMap.delete/3`)
-    # needs the defensive drop, and only for this one key — not every
-    # other key sharing `type_key`.
-    case parent_type_key(item) do
-      nil ->
-        store
-
-      type_key ->
-        if item.parent_sub not in [nil, :inherit] and
-             item.id in (BlockStore.map_live_ids(store, type_key, item.parent_sub) || []) do
-          BlockStore.invalidate_map_index_key(store, type_key, item.parent_sub)
-        else
-          store
-        end
-    end
+    BlockStore.tombstone(store, item.id)
   end
 
   defp integrate_items(items, doc, sv, pending) do
@@ -1496,76 +1474,75 @@ defmodule Yelixer.Encoding do
     client != item_client and clock >= StateVector.get(sv, client)
   end
 
-  # Map conflict resolution for items with parent_sub (map entries).
-  # The rightmost item in the YATA sequence for a key wins; all other
-  # non-deleted items for the same key are auto-deleted. Matches yrs.
+  # Map conflict resolution for items with parent_sub (map entries),
+  # yelixer#11 (M2), matching Yjs 13.6.32 `Item.integrate`
+  # (Item.js:507-528): the key's WINNER is its rightmost write in YATA
+  # order, deleted or not. If the newly integrated item has a same-key
+  # write to its right, the new item is the loser and is deleted on
+  # arrival (`this.parentSub !== null && this.right !== null`); if it is
+  # the rightmost, the write to its left is deleted. A deleted winner
+  # makes the key absent — an earlier undeleted write never resurfaces.
+  # (Before #11 this picked the rightmost UNDELETED write, so delivering
+  # [b, del b, a] resurrected `a` where Yjs reads the key as absent.)
   #
   # CX-xes3 (E4): the naive version of this walked the ENTIRE type
   # sequence with a `get/2` per element on every single integrated map
   # write — O(n) per write, O(k·n) for k writes to one map-heavy
   # document (schemas, presence, per-entity status docs are exactly
-  # this shape; see `Yelixer.BlockStore.map_live_ids/3` moduledoc for
-  # the measured blowup). `BlockStore.map_index` caches the live id(s)
-  # per `{type_key, sub}` so repeat writes to the same key skip the
-  # scan entirely:
+  # this shape; see `Yelixer.BlockStore.map_winner_ids/3`).
+  # `BlockStore.map_index` caches the winner per `{type_key, sub}` so
+  # repeat writes to the same key skip the scan entirely:
   #
   #   - **Known + append** — the new item landed at the end of the
   #     sequence (the overwhelmingly common case: a client's own
   #     successive writes to a key). It is now the rightmost item for
   #     the key, so it wins outright — no scan, tombstone the cached
-  #     losers directly.
-  #   - **Known + not-append** — a concurrent/mid-history write. Scan
-  #     the sequence once, but only looking for the handful of
-  #     candidate ids (the new item plus the cached live ids), not a
-  #     `get/2` per element.
+  #     previous winner directly.
+  #   - **Known + not-append** — a concurrent/mid-history write. The
+  #     rightmost write is now either the new item or the cached
+  #     winner; scan the sequence once for just those two ids.
   #   - **Unknown** — first time this key is touched (or a
-  #     conservative invalidation dropped the entry). Falls back to
-  #     the full O(n) scan, then populates the index so subsequent
-  #     writes to the same key take the fast path.
+  #     conservative invalidation dropped the entry, or a restored
+  #     pre-#11 `[]`). Falls back to the full O(n) scan, then populates
+  #     the index so subsequent writes to the same key take the fast path.
   defp maybe_resolve_map_conflict(store, %Item{parent_sub: nil}, _type_key), do: store
   defp maybe_resolve_map_conflict(store, %Item{parent_sub: :inherit}, _type_key), do: store
 
   defp maybe_resolve_map_conflict(store, %Item{parent_sub: sub, id: item_id}, type_key) do
-    case BlockStore.map_live_ids(store, type_key, sub) do
-      nil ->
-        resolve_map_conflict_full_scan(store, type_key, sub)
-
-      known_ids ->
+    case BlockStore.map_winner_ids(store, type_key, sub) do
+      [%ID{} = known_id] ->
         if BlockStore.last_sequence_id(store, type_key) == item_id do
-          losers = Enum.reject(known_ids, &(&1 == item_id))
-          store = tombstone_losers(store, losers)
-          BlockStore.put_map_live_ids(store, type_key, sub, [item_id])
+          store = if known_id == item_id, do: store, else: tombstone_losers(store, [known_id])
+          BlockStore.put_map_winner_ids(store, type_key, sub, [item_id])
         else
-          resolve_map_conflict_candidates(store, type_key, sub, Enum.uniq([item_id | known_ids]))
+          resolve_map_conflict_candidates(store, type_key, sub, Enum.uniq([item_id, known_id]))
         end
+
+      _unknown ->
+        resolve_map_conflict_full_scan(store, type_key, sub)
     end
   end
 
   # Full O(n) scan over `type_key`'s sequence — the cold path, taken
   # once per key (its result seeds `map_index` for every later write to
   # that key) and as the safety fallback after a conservative
-  # invalidation.
+  # invalidation. Every same-key write counts, tombstones included.
   defp resolve_map_conflict_full_scan(store, type_key, sub) do
     store = BlockStore.materialize_sequence(store, type_key)
     seq_ids = Map.get(store.sequences, type_key, [])
 
-    same_key_items =
-      seq_ids
-      |> Enum.with_index()
-      |> Enum.filter(fn {seq_id, _idx} ->
-        case BlockStore.get(store, seq_id) do
-          %Item{parent_sub: ^sub, deleted: false} -> true
-          _ -> false
-        end
+    same_key_ids =
+      Enum.filter(seq_ids, fn seq_id ->
+        match?(%Item{parent_sub: ^sub}, BlockStore.get(store, seq_id))
       end)
 
-    settle_map_conflict(store, type_key, sub, same_key_items)
+    settle_map_conflict(store, type_key, sub, same_key_ids)
   end
 
   # Positional resolution restricted to a small candidate set (the new
-  # item plus the ids `map_index` believes are still live). Walks the
-  # sequence once, recording only candidate positions, with an early
-  # exit once every candidate has been located.
+  # item plus the cached winner). Walks the sequence once, recording
+  # only candidate positions, with an early exit once every candidate
+  # has been located.
   defp resolve_map_conflict_candidates(store, type_key, sub, candidate_ids) do
     store = BlockStore.materialize_sequence(store, type_key)
     seq_ids = Map.get(store.sequences, type_key, [])
@@ -1586,46 +1563,34 @@ defmodule Yelixer.Encoding do
         end
       end)
 
-    same_key_items =
+    same_key_ids =
       positions
       |> Enum.reverse()
-      |> Enum.with_index()
-      |> Enum.filter(fn {seq_id, _idx} ->
-        case BlockStore.get(store, seq_id) do
-          %Item{parent_sub: ^sub, deleted: false} -> true
-          _ -> false
-        end
+      |> Enum.filter(fn seq_id ->
+        match?(%Item{parent_sub: ^sub}, BlockStore.get(store, seq_id))
       end)
 
-    case same_key_items do
-      [] ->
-        # A candidate vanished from the sequence entirely (shouldn't
-        # happen — `map_index` only ever names ids from this same
-        # type_key — but fall back to a full scan rather than leave a
-        # stale/empty entry behind).
-        resolve_map_conflict_full_scan(store, type_key, sub)
-
-      items ->
-        settle_map_conflict(store, type_key, sub, items)
+    if length(same_key_ids) == total do
+      settle_map_conflict(store, type_key, sub, same_key_ids)
+    else
+      # A candidate vanished from the sequence or changed key (shouldn't
+      # happen — `map_index` only ever names ids from this same
+      # type_key — but fall back to a full scan rather than settle on a
+      # partial view).
+      resolve_map_conflict_full_scan(store, type_key, sub)
     end
   end
 
-  # Shared settle step: highest-index item wins, everything else in
-  # the candidate set is tombstoned, and the winner alone is cached.
-  defp settle_map_conflict(store, type_key, sub, []) do
-    BlockStore.put_map_live_ids(store, type_key, sub, [])
-  end
+  # Shared settle step over `same_key_ids` in document order: the LAST
+  # (rightmost) id wins whether or not it is deleted; every other
+  # still-live id is tombstoned (Yjs deletes the loser on integration),
+  # and the winner alone is cached.
+  defp settle_map_conflict(store, _type_key, _sub, []), do: store
 
-  defp settle_map_conflict(store, type_key, sub, indexed_items) do
-    {winner_id, winner_idx} = Enum.max_by(indexed_items, fn {_id, idx} -> idx end)
-
-    losers =
-      indexed_items
-      |> Enum.reject(fn {_id, idx} -> idx == winner_idx end)
-      |> Enum.map(fn {id, _idx} -> id end)
-
+  defp settle_map_conflict(store, type_key, sub, same_key_ids) do
+    {losers, [winner_id]} = Enum.split(same_key_ids, -1)
     store = tombstone_losers(store, losers)
-    BlockStore.put_map_live_ids(store, type_key, sub, [winner_id])
+    BlockStore.put_map_winner_ids(store, type_key, sub, [winner_id])
   end
 
   # Tombstones every id in `loser_ids`. `BlockStore.tombstone/2` defers

@@ -47,7 +47,11 @@ defmodule Yelixer.StateCodec do
   non-inverted; `pending_bytes` is the sum of the pending blob sizes;
   every sequence entry is a unique block start whose item's parent is
   that sequence's type; `sequence_len` equals each sequence's length;
-  every `map_index` id names a stored block; type refs are known atoms or
+  every `map_index` id names a stored block, and every non-empty
+  `map_index` entry is exactly `[id]` of its key's rightmost write in
+  its type's sequence (the yelixer#11 map rule; `[]` stays accepted as
+  "unknown", which is what earlier writers stored for a deleted key);
+  type refs are known atoms or
   `{:xml_element, tag}`; embed/format values are JSON-shaped; `{:doc, _}`
   content (which has no wire encoding) is refused.
 
@@ -73,7 +77,13 @@ defmodule Yelixer.StateCodec do
   `{clock, origin, right_origin, parent, parent_sub, deleted, content,
   length}` (IDs as `{client, clock}` tuples), `sequences` maps each type
   key to its full document-order ID list (tombstones included), and
-  `map_index` is the per-`{type_key, sub}` live-id cache.
+  `map_index` is the per-`{type_key, sub}` winner cache (the key's
+  rightmost write, tombstoned or not — `BlockStore.map_winner_ids/3`).
+  A checkpoint written before yelixer#11 cached the rightmost UNDELETED
+  write instead; where that differs from the rightmost write the cache
+  would answer reads wrongly and misplace later writes, so decode
+  refuses it (`{:malformed, :map_index}`) and the caller rebuilds from
+  its wire history, exactly as for any other refused checkpoint.
 
   Deferred-write buffers (`client_pending`, `sequence_pending`,
   `deleted_overlay`) are folded in by `BlockStore.materialize_all/1`
@@ -484,7 +494,8 @@ defmodule Yelixer.StateCodec do
            :ok <- check_sequences(sequences, index),
            :ok <- map_of(sequence_len, &is_binary/1, &id_int?/1, :sequence_len),
            :ok <- check_sequence_len(sequences, sequence_len),
-           :ok <- check_map_index(map_index, index) do
+           :ok <- check_map_index(map_index, index),
+           :ok <- check_map_index_winners(map_index, sequences, index) do
         store = %BlockStore{
           clients: items_by_client,
           sequences: Map.new(sequences, fn {name, ids} -> {name, Enum.map(ids, &to_id/1)} end),
@@ -728,6 +739,33 @@ defmodule Yelixer.StateCodec do
   end
 
   defp check_map_index(_, _), do: {:error, {:malformed, :map_index}}
+
+  # yelixer#11: a cached `[id]` must be its key's rightmost write in the
+  # type's sequence, tombstones included. Runs after `check_map_index/2`
+  # and `check_sequences/2`, so every id here names a stored block.
+  defp check_map_index_winners(mi, sequences, index) do
+    ok =
+      Enum.all?(mi, fn {tk, subs} ->
+        nonempty = Enum.reject(subs, fn {_sub, ids} -> ids == [] end)
+
+        nonempty == [] or
+          (
+            rightmost =
+              sequences
+              |> Map.get(tk, [])
+              |> Enum.reduce(%{}, fn t, acc ->
+                case Map.fetch!(index, t) do
+                  %Item{parent_sub: sub} when is_binary(sub) -> Map.put(acc, sub, t)
+                  _ -> acc
+                end
+              end)
+
+            Enum.all?(nonempty, fn {sub, ids} -> ids == [Map.get(rightmost, sub)] end)
+          )
+      end)
+
+    if ok, do: :ok, else: {:error, {:malformed, :map_index}}
+  end
 
   # Decoded binaries are sub-binaries of the payload; copy the larger ones
   # so a restored doc does not keep the whole checkpoint alive.

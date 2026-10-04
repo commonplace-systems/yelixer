@@ -122,12 +122,14 @@ defmodule Yelixer.Types do
   defp xml_fragment_to_json(doc, type_key) do
     items = Yelixer.BlockStore.get_sequence(doc.store, type_key)
 
+    # Attributes follow the map read rule (yelixer#11): the rightmost
+    # write per key wins even when tombstoned; a tombstoned winner is
+    # an absent attribute.
     attrs =
-      items
-      |> Enum.filter(&(&1.parent_sub != nil))
-      |> Enum.reduce(%{}, fn item, acc ->
-        Map.put(acc, item.parent_sub, item_to_json_value(doc, item))
-      end)
+      doc.store
+      |> Yelixer.BlockStore.map_winners(type_key)
+      |> Enum.reject(fn {_key, item} -> item.deleted end)
+      |> Map.new(fn {key, item} -> {key, item_to_json_value(doc, item)} end)
 
     children =
       items
