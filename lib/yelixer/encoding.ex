@@ -1482,6 +1482,12 @@ defmodule Yelixer.Encoding do
   # arrival (`this.parentSub !== null && this.right !== null`); if it is
   # the rightmost, the write to its left is deleted. A deleted winner
   # makes the key absent — an earlier undeleted write never resurfaces.
+  #
+  # Known byte-level difference from Yjs (pre-existing, not a read
+  # divergence): losers tombstoned here are NOT added to
+  # `doc.delete_set`, so Yelixer's outgoing delete set omits them where
+  # a Yjs peer's includes them. Every receiver re-derives them on
+  # integration by this same rule.
   # (Before #11 this picked the rightmost UNDELETED write, so delivering
   # [b, del b, a] resurrected `a` where Yjs reads the key as absent.)
   #

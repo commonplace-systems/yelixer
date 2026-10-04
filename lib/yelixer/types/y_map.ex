@@ -98,7 +98,9 @@ defmodule Yelixer.Types.YMap do
        outline reparent flaked on random client-id order). yelixer#11
        (M1): the origin is the winner EVEN AFTER a delete; a nil origin
        there let the new write land LEFT of the tombstone on every
-       replica, so Yjs read the key as absent forever.
+       replica, so Yjs read the key as absent forever. It is the
+       winner's LAST clock (`lastId`), not its first, for winners held
+       as a merged multi-clock block.
     3. Pass to `Yelixer.Integrate.integrate/3` for YATA placement.
   """
   def set(%Doc{} = doc, type_name, key, value) do
@@ -107,7 +109,12 @@ defmodule Yelixer.Types.YMap do
 
     clock = Doc.mint_clock(doc)
     id = ID.new(doc.client_id, clock)
-    origin = winner && winner.id
+    # The origin is the winner's LAST clock (Yjs `left.lastId`,
+    # AbstractType.js:878): a Yjs peer may hold the key's writes merged
+    # into one multi-clock block (e.g. set, set, delete from one client,
+    # merged once both are deleted), and anchoring at the block's first
+    # clock would land this write left of the block's later clocks.
+    origin = winner && ID.new(winner.id.client, winner.id.clock + winner.length - 1)
     item = Item.new(id, origin, nil, {:any, [value]}, {:named, type_name}, key)
     {:ok, store} = Integrate.integrate(doc.store, item, type_name)
 

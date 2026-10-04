@@ -604,6 +604,17 @@ defmodule Yelixer.BlockStore do
         # Splicing `right.id` in after `item.id` shifts every later
         # index — the cached reverse index (if any) is now stale.
         store = invalidate_sequence_index(store, type_name)
+
+        # yelixer#11: a map key's cached winner is its rightmost write.
+        # Splitting that block makes the RIGHT piece the rightmost write
+        # (Yjs `splitItem` moves `_map` to the right piece), so the
+        # cache moves with it.
+        store =
+          if is_binary(item.parent_sub) and
+               map_winner_ids(store, type_name, item.parent_sub) == [item.id],
+             do: put_map_winner_ids(store, type_name, item.parent_sub, [right.id]),
+             else: store
+
         {store, right}
     end
   end

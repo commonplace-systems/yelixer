@@ -78,6 +78,12 @@ defmodule Yelixer.Types.XMLElement do
     origin = existing && existing.id
     item = Item.new(id, origin, nil, {:any, [value]}, {:named, type_name}, key)
     {:ok, store} = Integrate.integrate(doc.store, item, type_name)
+    # The new attribute write may now be its key's rightmost write, so
+    # the map winner cache (`BlockStore.map_winner_ids/3`, filled when
+    # remote attribute writes integrate) would be stale: drop it for
+    # this type. (Which attribute write WINS here is still decided by
+    # `find_current_attr/3` — yelixer#14, out of scope for #11.)
+    store = BlockStore.invalidate_map_index(store, type_name)
     %{doc | store: store}
   end
 
