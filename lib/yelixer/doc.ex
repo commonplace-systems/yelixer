@@ -203,7 +203,8 @@ defmodule Yelixer.Doc do
 
   `apply_update/2` never lets an un-integratable update binary poison
   the store: when a batch ends with items that still can't integrate
-  (a missing origin/right_origin dependency), the ORIGINAL update
+  (a missing origin/right_origin dependency, or a clock ahead of the
+  local state for its client), the ORIGINAL update
   binary is buffered in `doc.pending` rather than being pushed into
   the block store without sequence integration. Because `pending` is
   never consulted by `encode_update`/`encode_diff`/the derived state

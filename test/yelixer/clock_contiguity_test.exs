@@ -15,7 +15,7 @@ defmodule Yelixer.ClockContiguityTest do
   use ExUnit.Case, async: true
 
   alias Yelixer.{BlockStore, ClockGapHistory, Doc, Encoding, StateVector}
-  alias Yelixer.Types.{Array, Text, YMap}
+  alias Yelixer.Types.{Array, Text, XMLElement, XMLFragment, YMap}
 
   # Authored by client 5: m1 = text "ab" (clocks 0-1), m3 = map k2 (clock 2),
   # m4 = map k4 (clock 3). Bytes from /home/jes/cn-yelixer-rootmix-1/diag.
@@ -23,6 +23,14 @@ defmodule Yelixer.ClockContiguityTest do
   # Authored by client 100: u1 "ab" (A:0-1), u2 "Q" (A:2), u3 "cd" (A:3-4),
   # u4 array ["x"] (A:5), u5 "e" with origin A:4 (A:6). Author: "cdeabQ", ["x"].
   @text_gap ~w(010164000401017402616200 01016402846401015100 0101640344640002636400 01016405080101610177017800 01016406c464046400016500)
+
+  @scan_roots %{
+    "t" => "text",
+    "m" => "map",
+    "a" => "array",
+    "x" => "xmlelement",
+    "f" => "xmlfragment"
+  }
 
   defp bytes(hexes), do: Enum.map(hexes, &Base.decode16!(&1, case: :lower))
 
@@ -63,13 +71,63 @@ defmodule Yelixer.ClockContiguityTest do
     items
   end
 
-  # Items carried by `updates` that the doc neither stores nor holds pending.
-  defp dropped_items(doc, updates) do
-    pending = doc.pending |> Enum.flat_map(&items/1) |> MapSet.new(& &1.id)
-
+  # Items carried by `updates` that the doc does not hold as the in-order
+  # replay `ref` holds them: missing, or a different deleted state, parent or
+  # map key.
+  defp dropped_items(doc, ref, updates) do
     updates
     |> Enum.flat_map(&items/1)
-    |> Enum.reject(&(BlockStore.get(doc.store, &1.id) != nil or MapSet.member?(pending, &1.id)))
+    |> Enum.reject(fn it ->
+      mine = BlockStore.get(doc.store, it.id)
+      theirs = BlockStore.get(ref.store, it.id)
+
+      mine != nil and theirs != nil and
+        {mine.deleted, mine.parent, mine.parent_sub} ==
+          {theirs.deleted, theirs.parent, theirs.parent_sub}
+    end)
+  end
+
+  # Delivers `updates` to a fresh observer. Returns the doc, the number of
+  # steps after which some client was non-contiguous, and the number of
+  # (update, client) arrivals whose lowest clock for that client was ahead of
+  # the observer's state for it — an out-of-order arrival.
+  defp deliver(updates) do
+    Enum.reduce(updates, {ClockGapHistory.registered(999_001), 0, 0}, fn u, {d, g, ahead} ->
+      state = Doc.state_vector(d)
+
+      ahead =
+        ahead +
+          (items(u)
+           |> Enum.group_by(& &1.id.client, & &1.id.clock)
+           |> Enum.count(fn {client, clocks} ->
+             Enum.min(clocks) > StateVector.get(state, client)
+           end))
+
+      {:ok, d} = Encoding.apply_update(d, u)
+      {d, g + if(gapped_clients(d) == [], do: 0, else: 1), ahead}
+    end)
+  end
+
+  # A renderer that raises is observable behaviour too (Array.to_list raises
+  # on the pre-existing #8 root mix, in-order replay included): both replicas
+  # must raise the same way.
+  defp render(doc) do
+    %{
+      t: safe(fn -> Text.to_string(doc, "t") end),
+      m: safe(fn -> YMap.to_json(doc, "m") end),
+      a: safe(fn -> Array.to_list(doc, "a") end),
+      x: safe(fn -> XMLElement.to_string(doc, "x") end),
+      x_attrs: safe(fn -> XMLElement.get_attributes(doc, "x") end),
+      f: safe(fn -> XMLFragment.to_string(doc, "f") end),
+      sv: Doc.state_vector(doc),
+      delete_set: doc.delete_set
+    }
+  end
+
+  defp safe(fun) do
+    fun.()
+  rescue
+    e -> {:raised, e.__struct__}
   end
 
   describe "fixtures" do
@@ -168,46 +226,104 @@ defmodule Yelixer.ClockContiguityTest do
   end
 
   describe "200 generated histories (CheckpointHistory generator @ 5f59785)" do
-    test "no client is ever non-contiguous and no update is dropped" do
+    test "out-of-order delivery: never non-contiguous, nothing dropped, same content as in-order" do
       rows =
         for seed <- 0..199 do
           h = ClockGapHistory.generate(seed)
           all = h.delivery ++ h.withheld
-
-          {doc, gapped_steps, ahead} =
-            Enum.reduce(all, {ClockGapHistory.registered(999_001), 0, 0}, fn u, {d, g, ahead} ->
-              # An arrival whose first struct for some client is ahead of the
-              # observer's state for that client: the case under test.
-              ahead =
-                ahead +
-                  Enum.count(items(u), fn it ->
-                    it.id.clock > StateVector.get(Doc.state_vector(d), it.id.client)
-                  end)
-
-              {:ok, d} = Encoding.apply_update(d, u)
-              {d, g + if(gapped_clients(d) == [], do: 0, else: 1), ahead}
-            end)
+          {doc, gapped_steps, ahead} = deliver(all)
+          {in_order, 0, 0} = deliver(h.authored)
+          mine = render(doc)
+          ref = render(in_order)
 
           %{
             seed: seed,
             updates: length(all),
+            same_updates: Enum.sort(all) == Enum.sort(h.authored),
             gapped_steps: gapped_steps,
             ahead: ahead,
-            dropped: length(dropped_items(doc, all)),
+            dropped: length(dropped_items(doc, in_order, all)),
             pending: length(doc.pending),
+            content_diff: for(k <- Map.keys(ref), mine[k] !== ref[k], do: k),
             relay_reclocked: relay_ids(Encoding.encode_update(doc)) != stored_ids(doc)
           }
         end
 
-      # The corpus is non-empty and actually exercises out-of-order arrival.
+      # The corpus is non-empty, is a reordering of the in-order replay, and
+      # actually exercises out-of-order arrival (measured: 111 of 200 seeds;
+      # 0 when the same updates arrive in authoring order — see the next test).
       assert Enum.sum(Enum.map(rows, & &1.updates)) > 2_000
-      assert Enum.count(rows, &(&1.ahead > 0)) >= 90
+      assert Enum.all?(rows, & &1.same_updates)
+      assert Enum.count(rows, &(&1.ahead > 0)) >= 100
 
       assert Enum.filter(rows, &(&1.gapped_steps > 0)) == []
       assert Enum.filter(rows, &(&1.dropped > 0)) == []
       assert Enum.filter(rows, &(&1.pending > 0)) == []
+      # Strict per-root equality with the in-order replay (t, m, a, x, f) plus
+      # state vector and delete set. The map root is compared strictly too:
+      # this corpus shows no #11 map-order difference against in-order replay.
+      assert Enum.filter(rows, &(&1.content_diff != [])) == []
       # Re-encoding writes every struct at the clock it is stored under.
       assert Enum.filter(rows, & &1.relay_reclocked) == []
+    end
+
+    test "the out-of-order control reads zero when the same updates arrive in order" do
+      seeds_ahead =
+        Enum.count(0..199, fn seed ->
+          {_doc, _gapped, ahead} = deliver(ClockGapHistory.generate(seed).authored)
+          ahead > 0
+        end)
+
+      assert seeds_ahead == 0
+    end
+
+    test "a sample of out-of-order deliveries renders as Yjs renders it" do
+      for seed <- Enum.take_every(0..199, 10) do
+        h = ClockGapHistory.generate(seed)
+        all = h.delivery ++ h.withheld
+        {doc, _, _} = deliver(all)
+        [yjs] = oracle(@scan_roots, [all])
+
+        # t, m and a, plus state vector and pending. Not compared, because
+        # they differ from Yjs 13.6.32 identically for in-order delivery (so
+        # delivery order is not their cause): x (Yjs names a root XmlElement
+        # "undefined"; Yelixer shows extra attributes on seeds 90, 128, 144,
+        # 160, 193) and f (Yjs shows no children under the Yelixer-authored
+        # fragment).
+        assert Map.take(yjs["roots"], ["t", "m", "a"]) == observe(doc, ["t", "m", "a"])["roots"],
+               "seed #{seed}"
+
+        assert Map.take(yjs, ["sv", "pending"]) == Map.take(observe(doc, []), ["sv", "pending"])
+      end
+    end
+  end
+
+  describe "two sections of one client in one update" do
+    # Hand-crafted: client 7 sections [7:5..6] then [7:3..4], doc state 3.
+    # Pins current behaviour: the whole update is held (the first section
+    # blocks the client, so the contiguous second section waits too) and is
+    # released intact once 7:3..4 arrives separately. Yjs 13.6.32 differs: its
+    # reader keeps only the last section per client, integrating 7:3..4
+    # ("edabc", state 5) and silently discarding 7:5..6.
+    test "is held whole, then released when the earlier clocks arrive" do
+      base = <<1, 1, 7, 0, 4, 1, 1, ?t, 3, ?a, ?b, ?c, 0>>
+
+      two =
+        <<2, 2, 7, 5, struct_c(?f)::binary, struct_c(?g)::binary, 2, 7, 3, struct_c(?d)::binary,
+          struct_c(?e)::binary, 0>>
+
+      d = apply_all(Doc.new(client_id: 9) |> Doc.put_type("t", :text), [base])
+      assert Enum.map(items(two), & &1.id.clock) == [5, 6, 3, 4]
+
+      held = apply_all(d, [two])
+      assert Text.to_string(held, "t") == "abc"
+      assert sv(held, 7) == 3
+      assert length(held.pending) == 1
+
+      released = apply_all(held, [<<1, 2, 7, 3, struct_c(?d)::binary, struct_c(?e)::binary, 0>>])
+      assert Text.to_string(released, "t") == "gfedabc"
+      assert sv(released, 7) == 7
+      assert released.pending == []
     end
   end
 
@@ -220,7 +336,12 @@ defmodule Yelixer.ClockContiguityTest do
       d1 = apply_all(reg(9), [m1, m4])
       d2 = apply_all(d1, [m3])
 
-      assert yjs_gap == %{"sv" => %{"5" => 2}, "pending" => true, "roots" => %{"t" => "ab", "m" => %{}}}
+      assert yjs_gap == %{
+               "sv" => %{"5" => 2},
+               "pending" => true,
+               "roots" => %{"t" => "ab", "m" => %{}}
+             }
+
       assert observe(d1, ["t", "m"]) == yjs_gap
       assert observe(d2, ["t", "m"]) == yjs_heal
       assert yjs_heal["roots"]["m"] == %{"k2" => "v2", "k4" => "v4"}
@@ -249,6 +370,9 @@ defmodule Yelixer.ClockContiguityTest do
       assert yjs["roots"] == %{"t" => "ab", "a" => []}
     end
   end
+
+  # One struct: insert the single character `char` at the start of root "t".
+  defp struct_c(char), do: <<4, 1, 1, ?t, 1, char>>
 
   defp relay_ids(update),
     do: update |> items() |> Enum.map(&{&1.id.client, &1.id.clock, &1.length}) |> Enum.sort()
@@ -293,7 +417,9 @@ defmodule Yelixer.ClockContiguityTest do
     try do
       {out, status} = System.cmd(node, [script, input], stderr_to_stdout: true)
       assert status == 0, "Yjs oracle failed: #{out}"
-      Jason.decode!(out)
+      %{"yjs" => version, "phases" => phases} = Jason.decode!(out)
+      assert version == "13.6.32"
+      phases
     after
       File.rm(input)
     end

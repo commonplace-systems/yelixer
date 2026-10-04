@@ -8,7 +8,8 @@ defmodule Yelixer.ClockGapHistory do
   checkpoint_history.exs, lines 32-80 and 111-264), minus the checkpoint
   harness and the two post-delivery `:rand` draws (floor, namespaced),
   which run after `delivery`/`withheld` are fixed and so cannot change
-  them. Everything is a pure function of the integer seed.
+  them, plus one `authored` field (see `generate/2`). Everything is a pure
+  function of the integer seed.
   """
 
   alias Yelixer.{DeleteSet, Doc, Encoding, ID, Item}
@@ -30,9 +31,12 @@ defmodule Yelixer.ClockGapHistory do
   # ── generation ──────────────────────────────────────────────────────
 
   @doc """
-  Returns `%{seed, delivery, withheld}`: `delivery` is the ordered list of
-  update binaries the observer receives before the heal step, `withheld`
-  the updates delivered only at heal.
+  Returns `%{seed, delivery, withheld, authored}`: `delivery` is the ordered
+  list of update binaries the observer receives before the heal step,
+  `withheld` the updates delivered only at heal, and `authored` the same
+  updates in authoring order (before `perturb/1` and the withholding) — an
+  in-order replay. `authored` is the one addition to the 5f59785 copy; it
+  draws no `:rand` value.
   """
   def generate(seed, opts \\ []) do
     :rand.seed(:exsss, {seed + 1, seed * 7 + 3, seed * 13 + 5})
@@ -71,8 +75,7 @@ defmodule Yelixer.ClockGapHistory do
         {delivery, []}
       end
 
-
-    %{seed: seed, delivery: delivery, withheld: withheld}
+    %{seed: seed, delivery: delivery, withheld: withheld, authored: updates}
   end
 
   defp step(authors, ups) do

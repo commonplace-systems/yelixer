@@ -884,8 +884,9 @@ defmodule Yelixer.Encoding do
   # parent_sub when they have an origin (Yjs convention — see
   # encode_item); parent_sub is recovered during integration by
   # walking the origin chain via resolve_parent/2. Items whose
-  # origin/right_origin hasn't arrived yet are deferred to a pending
-  # list and retried after the rest of the batch is processed.
+  # origin/right_origin hasn't arrived yet, or whose clock is ahead of
+  # the local state for its client, are deferred to a pending list and
+  # retried after the rest of the batch is processed.
   #
   # CX-cdyi (H1): a batch that STILL has un-integratable items after
   # every within-batch retry is exhausted is no longer pushed into the
@@ -923,8 +924,9 @@ defmodule Yelixer.Encoding do
   ## Two-phase integration, then bounded blob buffering (H1)
 
   1. **First pass** — items are integrated in arrival order. Any item
-     whose origin or right_origin hasn't been seen yet is deferred to
-     a pending list rather than failing the entire apply.
+     whose origin or right_origin hasn't been seen yet, or whose clock
+     is ahead of the local state for its client, is deferred to a
+     pending list rather than failing the entire apply.
   2. **Within-batch retry** — pending items are retried to a fixpoint;
      by then their dependencies may have arrived elsewhere in the
      batch.
@@ -1431,16 +1433,10 @@ defmodule Yelixer.Encoding do
         end
 
       item.id.clock > client_clock ->
-        # Clock gap (yelixer#9) — this client's clocks between the local
-        # state and `item.id.clock` have not arrived. Yjs integrates a
-        # struct only when `id.clock === getState(client)`
-        # (`integrateStructs`/`getMissing`); anything ahead of that waits.
-        # Integrating it here would make `BlockStore.state_vector/1`
-        # claim the gap as seen, so the late earlier update would then be
-        # dropped by the "fully known" clause above, and a re-encode would
-        # write the structs back-to-back with no Skip, re-clocking every
-        # struct after the gap for the receiving peer. Defer it and block
-        # the client's later items until the gap fills.
+        # Clock gap (yelixer#9): defer until the earlier clocks arrive, as
+        # Yjs does (integrate only when id.clock === getState(client)).
+        # Integrating would let the state vector claim the gap, dropping
+        # the late update and re-clocking re-encoded structs for peers.
         integrate_items(rest, doc, sv, [item | pending], MapSet.put(blocked_clients, client))
 
       true ->
