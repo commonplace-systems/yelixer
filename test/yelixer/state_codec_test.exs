@@ -234,10 +234,10 @@ defmodule Yelixer.StateCodecTest do
       assert {:item, 1, _} = bad.("type content", put_elem(good, 7, %{1 => [bad_type]}))
     end
 
-    test "a reachable per-client clock gap is preserved, not refused" do
-      # The pinned apply_update/2 integrates a client's later update before
-      # its earlier one when the later items' dependencies are satisfied,
-      # leaving a clock gap in that client's bucket (and an SV past it).
+    test "an out-of-order update is held pending (fix #9) and the codec keeps it" do
+      # With the clock-contiguity fix (yelixer#9) a client's later update no
+      # longer integrates past a gap: it waits in pending, the state vector
+      # stays at the contiguous end, and the codec must round-trip that.
       p = Doc.new(client_id: 5) |> Text.insert("t", 0, "ab")
       u1 = Encoding.encode_update(p)
       p3 = YMap.set(p, "m", "k2", 1)
@@ -245,36 +245,35 @@ defmodule Yelixer.StateCodecTest do
       {:ok, o} = Encoding.apply_update(Doc.new(client_id: 9), u1)
       {:ok, o} = Encoding.apply_update(o, u4)
 
-      [a, b] = Doc.all_items(o)
-      assert b.id.clock > a.id.clock + a.length, "fixture must contain a gap"
+      assert [%{id: %{client: 5, clock: 0}, length: 2}] = Doc.all_items(o)
+      assert o.pending != [], "the gapped update must be held pending"
+      assert Doc.state_vector(o).clocks == %{5 => 2}
 
       {:ok, restored} = StateCodec.decode(encode!(o), @key)
       assert StateCodec.canonical_state(restored) === StateCodec.canonical_state(o)
+      assert restored.pending == o.pending
+    end
 
-      # Shifting the later block further keeps a gap and is still accepted;
-      # moving it into the earlier block is an overlap and is refused.
+    test "a forged per-client clock gap is still accepted (faithful to the store), overlap refused" do
+      # Plan ruling #42693 (a): the codec stays faithful to whatever the store
+      # holds and does not enforce clock contiguity. Engines before #9 could
+      # produce such buckets; checkpoints from them are discarded by the
+      # engine-identity key, not by this codec.
+      p = Doc.new(client_id: 5) |> Text.insert("t", 0, "ab")
+      {:ok, o} = Encoding.apply_update(Doc.new(client_id: 9), Encoding.encode_update(p))
       {:ok, good} = StateCodec.canonical_state(o)
-      [ta, tb] = elem(good, 7)[5]
+      [ta] = elem(good, 7)[5]
+      clear = fn t -> t |> put_elem(8, %{}) |> put_elem(9, %{}) |> put_elem(10, %{}) end
 
       assert {:ok, _} =
                StateCodec.decode(
-                 forge(
-                   put_elem(good, 7, %{5 => [ta, put_elem(tb, 0, 9)]})
-                   |> put_elem(8, %{})
-                   |> put_elem(9, %{})
-                   |> put_elem(10, %{})
-                 ),
+                 forge(clear.(put_elem(good, 7, %{5 => [ta, put_elem(ta, 0, 4)]}))),
                  @key
                )
 
       assert {:error, {:malformed, {:overlap, 5, 1}}} =
                StateCodec.decode(
-                 forge(
-                   put_elem(good, 7, %{5 => [ta, put_elem(tb, 0, 1)]})
-                   |> put_elem(8, %{})
-                   |> put_elem(9, %{})
-                   |> put_elem(10, %{})
-                 ),
+                 forge(clear.(put_elem(good, 7, %{5 => [ta, put_elem(ta, 0, 1)]}))),
                  @key
                )
     end
