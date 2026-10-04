@@ -1,8 +1,28 @@
 # Yelixer
 
+> **⚠️ EXPERIMENTAL — known to diverge from Yjs. commonplace is moving to [Yrs](https://github.com/y-crdt/y-crdt)** (the reference Rust port, maintained by the Yjs authors).
+> Do not rely on this library where exact agreement with Yjs matters. See **Known failure modes** below.
+
 An Elixir implementation of Yjs V1 document updates and shared data types.
 Documents are immutable values; an optional `Yelixer.DocServer` owns a document
 in a GenServer and broadcasts local changes to subscribers.
+
+## Known failure modes
+
+All of these were found in October 2026 by commonplace's S3 equivalence generator and its diagnoses, which compare against Yjs 13.6.32. **`main` has none of the fixes.** Where a fix exists, it lives only on a work branch.
+
+| Issue | Severity class | Failure | Fix status |
+|---|---|---|---|
+| [#9](https://github.com/commonplace-systems/yelixer/issues/9) CLOCK-GAP | **Data loss** | An out-of-order update is integrated past a clock gap, so the state vector over-claims and the late update's content is dropped. | Fixed on branch only: `9646ab7` (in `work/checkpoint-snap-1-yelixer-integration`) |
+| [#11](https://github.com/commonplace-systems/yelixer/issues/11) MAP-ORDER | **Non-convergence** | The map-key winner depends on delivery order, so replicas can disagree permanently. | Fixed on branch only: `08793e9` (in `work/checkpoint-snap-1-yelixer-integration`; StateCodec format v2) |
+| [#15](https://github.com/commonplace-systems/yelixer/issues/15) NESTED-ORDER | **Wrong read (permanent)** | A nested type whose child integrates before its parent is registered `:unknown` and reads `nil` forever. Applying one healthy full-state blob triggers it whenever a child's client id is higher than the parent's, because encoders emit clients in descending order. | **Open**, not fixed |
+| [#8](https://github.com/commonplace-systems/yelixer/issues/8) ROOT-MIX | Wrong integration / crash | A text item is integrated into an array root's sequence, and `Array.to_list` raises. | Fixed on branch only: `7951bfc` (in `work/checkpoint-snap-1-yelixer-integration`) |
+| [#10](https://github.com/commonplace-systems/yelixer/issues/10) GC-PARENT | Divergence | An explicit-parent item under a GC struct is kept; Yjs drops it to GC. | **Open** |
+| [#12](https://github.com/commonplace-systems/yelixer/issues/12) PENDING-GROWTH | Performance / unbounded memory | Gaps that never heal accumulate in pending, with quadratic replay and no dedup. | **Open** |
+| [#13](https://github.com/commonplace-systems/yelixer/issues/13) SKIP-DECODE | Interop: sync refused | Incoming Skip structs (ref 10) are rejected as malformed. | **Open** |
+| [#14](https://github.com/commonplace-systems/yelixer/issues/14) XML-1 | Divergence | XML element/fragment roots differ from Yjs, regardless of delivery order. | **Open** |
+
+Fixes for the open issues are **not planned**: the replacement is Yrs.
 
 ## Installation
 
