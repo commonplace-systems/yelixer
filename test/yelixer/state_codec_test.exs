@@ -22,6 +22,12 @@ defmodule Yelixer.StateCodecTest do
     %{doc | client_namespaces: %{77 => "ns-hash"}, clock_floor: 9}
   end
 
+  defp forge(term) do
+    {:ok, payload} = StateCodec.encode_term(term)
+    header = <<"YXSC", 1::16, byte_size(@key)::32, @key::binary, byte_size(payload)::64>>
+    header <> :crypto.hash(:sha256, [header, payload]) <> payload
+  end
+
   defp encode!(doc, key \\ @key) do
     {:ok, bytes} = StateCodec.encode(doc, key)
     bytes
@@ -136,6 +142,154 @@ defmodule Yelixer.StateCodecTest do
 
       # Wrong top-level arity.
       assert {:error, {:malformed, _}} = StateCodec.decode(forge.({1, 2}), @key)
+    end
+
+    test "forged payloads violating BlockStore invariants are refused" do
+      # A doc with two clients, a map key, a deletion, a pending blob.
+      doc =
+        Doc.new(client_id: 1)
+        |> Text.insert("t", 0, "abc")
+        |> YMap.set("m", "k", 1)
+        |> Text.delete("t", 0, 1)
+
+      {:ok, good} = StateCodec.canonical_state(%{doc | pending: ["xy"], pending_bytes: 2})
+      assert {:ok, _} = StateCodec.decode(forge(good), @key)
+
+      bad = fn label, term ->
+        assert {:error, {:malformed, reason}} = StateCodec.decode(forge(term), @key), label
+        reason
+      end
+
+      clients = elem(good, 7)
+      [first | rest] = clients[1]
+      last = List.last(clients[1])
+
+      # Bucket overlap: shift every block after the first back into it.
+      overlapped = [put_elem(first, 6, {:string, "aa"}) |> put_elem(7, 2) | rest]
+      assert {:overlap, 1, _} = bad.("overlap", put_elem(good, 7, %{1 => overlapped}))
+
+      # Dangling map_index id.
+      assert :map_index = bad.("map_index", put_elem(good, 10, %{"m" => %{"k" => [{1, 999}]}}))
+
+      # Delete-set ranges: inverted, empty, unsorted, overlapping.
+      assert :delete_set = bad.("inverted", put_elem(good, 6, %{1 => [{3, 1}]}))
+      assert :delete_set = bad.("empty range", put_elem(good, 6, %{1 => [{1, 1}]}))
+      assert :delete_set = bad.("unsorted", put_elem(good, 6, %{1 => [{5, 6}, {0, 1}]}))
+      assert :delete_set = bad.("overlap", put_elem(good, 6, %{1 => [{0, 3}, {2, 4}]}))
+      assert :delete_set = bad.("no ranges", put_elem(good, 6, %{1 => []}))
+
+      # pending_bytes must be the sum of the blob sizes.
+      assert :pending_bytes_sum = bad.("pending sum", put_elem(good, 5, 3))
+
+      # sequence_len must match each sequence.
+      seq_len = elem(good, 9)
+
+      assert :sequence_len =
+               bad.("seq len", put_elem(good, 9, Map.update!(seq_len, "t", &(&1 + 1))))
+
+      assert :sequence_len = bad.("seq len extra", put_elem(good, 9, Map.put(seq_len, "zz", 1)))
+
+      # Sequence ids unique, and their items' parent is the sequence's type.
+      seqs = elem(good, 8)
+      [t0 | _] = seqs["t"]
+
+      assert :sequence_duplicate =
+               bad.("dup", put_elem(good, 8, Map.put(seqs, "t", [t0 | seqs["t"]])))
+
+      moved = seqs |> Map.put("t", tl(seqs["t"])) |> Map.put("m", [t0 | seqs["m"]])
+      moved_len = seq_len |> Map.update!("t", &(&1 - 1)) |> Map.update!("m", &(&1 + 1))
+
+      assert :sequence_parent =
+               bad.("parent", good |> put_elem(8, moved) |> put_elem(9, moved_len))
+
+      # Ids and clocks stay in the Yjs number domain (< 2^53).
+      assert :client_id = bad.("client_id", put_elem(good, 0, 9_007_199_254_740_992))
+      assert :pending_bytes = bad.("pending_bytes", put_elem(good, 5, 9_007_199_254_740_992))
+
+      far = %{9_007_199_254_740_992 => [put_elem(first, 0, 0)]}
+      assert :clients = bad.("client bound", put_elem(good, 7, Map.merge(clients, far)))
+
+      huge = put_elem(last, 0, 9_007_199_254_740_992)
+      assert {:item, 1, _} = bad.("clock bound", put_elem(good, 7, %{1 => [huge]}))
+
+      # Typed refs and content shapes.
+      assert :types = bad.("type ref", put_elem(good, 2, %{"t" => :inherit}))
+      assert :types = bad.("xml tag", put_elem(good, 2, %{"t" => {:xml_element, 1}}))
+      doc_content = put_elem(first, 6, {:doc, "sub"})
+      assert {:item, 1, _} = bad.("doc content", put_elem(good, 7, %{1 => [doc_content | rest]}))
+      type_content = put_elem(first, 6, {:type, :map}) |> put_elem(7, 1)
+
+      assert {:ok, _} =
+               StateCodec.decode(
+                 forge(
+                   put_elem(good, 7, %{1 => [type_content]})
+                   |> put_elem(8, %{})
+                   |> put_elem(9, %{})
+                   |> put_elem(10, %{})
+                 ),
+                 @key
+               )
+
+      bad_type = put_elem(type_content, 6, {:type, :gc})
+      assert {:item, 1, _} = bad.("type content", put_elem(good, 7, %{1 => [bad_type]}))
+    end
+
+    test "a reachable per-client clock gap is preserved, not refused" do
+      # The pinned apply_update/2 integrates a client's later update before
+      # its earlier one when the later items' dependencies are satisfied,
+      # leaving a clock gap in that client's bucket (and an SV past it).
+      p = Doc.new(client_id: 5) |> Text.insert("t", 0, "ab")
+      u1 = Encoding.encode_update(p)
+      p3 = YMap.set(p, "m", "k2", 1)
+      u4 = p3 |> YMap.set("m", "k4", 3) |> Encoding.encode_diff(Doc.state_vector(p3))
+      {:ok, o} = Encoding.apply_update(Doc.new(client_id: 9), u1)
+      {:ok, o} = Encoding.apply_update(o, u4)
+
+      [a, b] = Doc.all_items(o)
+      assert b.id.clock > a.id.clock + a.length, "fixture must contain a gap"
+
+      {:ok, restored} = StateCodec.decode(encode!(o), @key)
+      assert StateCodec.canonical_state(restored) === StateCodec.canonical_state(o)
+
+      # Shifting the later block further keeps a gap and is still accepted;
+      # moving it into the earlier block is an overlap and is refused.
+      {:ok, good} = StateCodec.canonical_state(o)
+      [ta, tb] = elem(good, 7)[5]
+
+      assert {:ok, _} =
+               StateCodec.decode(
+                 forge(
+                   put_elem(good, 7, %{5 => [ta, put_elem(tb, 0, 9)]})
+                   |> put_elem(8, %{})
+                   |> put_elem(9, %{})
+                   |> put_elem(10, %{})
+                 ),
+                 @key
+               )
+
+      assert {:error, {:malformed, {:overlap, 5, 1}}} =
+               StateCodec.decode(
+                 forge(
+                   put_elem(good, 7, %{5 => [ta, put_elem(tb, 0, 1)]})
+                   |> put_elem(8, %{})
+                   |> put_elem(9, %{})
+                   |> put_elem(10, %{})
+                 ),
+                 @key
+               )
+    end
+
+    test "decode bounds" do
+      # Nesting deeper than the limit.
+      deep = :binary.copy(<<8, 1>>, 300) <> <<0>>
+      assert {:error, {:malformed, :too_deep}} = StateCodec.decode_term(deep)
+
+      # A magnitude whose size exceeds the remaining input.
+      assert {:error, {:malformed, :magnitude}} = StateCodec.decode_term(<<4, 200, 1, 2, 3>>)
+
+      # A varint whose tenth group overflows 64 bits.
+      over = <<7>> <> :binary.copy(<<0xFF>>, 9) <> <<0x7F>>
+      assert {:error, {:malformed, :varint_overflow}} = StateCodec.decode_term(over)
     end
 
     test "non-canonical term encodings are refused" do

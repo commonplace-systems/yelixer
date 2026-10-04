@@ -78,7 +78,34 @@ defmodule Yelixer.CheckpointHistory do
         {delivery, []}
       end
 
-    %{seed: seed, delivery: delivery, withheld: withheld}
+    # Local bookkeeping the wire never carries: a mint-clock floor on the
+    # observers, and per-update namespace provenance.
+    floor = if :rand.uniform() < 0.3, do: 1_000 + :rand.uniform(9_000), else: 0
+    namespaced = :rand.uniform() < 0.3
+
+    %{seed: seed, delivery: delivery, withheld: withheld, floor: floor, namespaced: namespaced}
+  end
+
+  @doc "An observer replica for history `h`."
+  def observer(client_id, h) do
+    %{registered(client_id) | clock_floor: Map.get(h, :floor, 0)}
+  end
+
+  @doc """
+  Delivers `updates` to `doc`, the first being delivery index `offset`.
+  Namespaced histories record provenance under one of three namespaces.
+  """
+  def deliver(doc, updates, h, offset \\ 0) do
+    updates
+    |> Enum.with_index(offset)
+    |> Enum.reduce(doc, fn {u, i}, d ->
+      {:ok, d} =
+        if Map.get(h, :namespaced, false),
+          do: Encoding.apply_update_in_namespace(d, u, "ns#{rem(i, 3)}"),
+          else: Encoding.apply_update(d, u)
+
+      d
+    end)
   end
 
   defp step(authors, ups) do
@@ -235,21 +262,11 @@ defmodule Yelixer.CheckpointHistory do
     end)
   end
 
-  @doc "Wire- and behaviour-visible observation of a replica."
+  @doc """
+  Wire- and behaviour-visible observation of a replica. `types` and
+  `pending` echo internal fields; every other key is behaviour.
+  """
   def observe(doc) do
-    %{
-      update: Encoding.encode_update(doc),
-      state_vector: Doc.state_vector(doc),
-      delete_set: doc.delete_set,
-      pending: {doc.pending, doc.pending_bytes},
-      render: render(doc),
-      snapshot: snapshot(doc)
-    }
-  end
-
-  defp snapshot(doc), do: safe(fn -> Doc.snapshot_update(doc) end)
-
-  defp render(doc) do
     visible =
       doc.types
       |> Map.keys()
@@ -262,7 +279,12 @@ defmodule Yelixer.CheckpointHistory do
       end)
 
     %{
+      update: Encoding.encode_update(doc),
+      state_vector: Doc.state_vector(doc),
+      delete_set: doc.delete_set,
+      pending: {doc.pending, doc.pending_bytes},
       types: doc.types,
+      snapshot: safe(fn -> Doc.snapshot_update(doc) end),
       visible: visible,
       text: safe(fn -> Text.to_string(doc, "t") end),
       map: safe(fn -> YMap.to_json(doc, "m") end),
@@ -271,9 +293,21 @@ defmodule Yelixer.CheckpointHistory do
       xml_attrs: safe(fn -> XMLElement.get_attributes(doc, "x") end),
       fragment: safe(fn -> XMLFragment.to_string(doc, "f") end),
       rich: safe(fn -> Text.to_string(doc, "rich") end),
-      nested: safe(fn -> YMap.to_json(doc, "nm") end)
+      nested: safe(fn -> YMap.to_json(doc, "nm") end),
+      next_clock: Doc.mint_clock(doc),
+      provenance: provenance(doc)
     }
   end
+
+  defp provenance(doc) do
+    for c <- Enum.sort(Doc.client_ids(doc)),
+        ns <- ~w(ns0 ns1 ns2),
+        Doc.clientID_in_namespace?(doc, c, ns),
+        do: {c, ns}
+  end
+
+  @rendered [:visible, :text, :map, :array, :xml, :xml_attrs, :fragment, :rich, :nested]
+  def rendered_fields, do: @rendered
 
   # A renderer that raises on a state is itself observable behaviour: both
   # replicas must raise the same way. (Pre-existing renderer crashes on
@@ -328,12 +362,21 @@ defmodule Yelixer.CheckpointHistory do
 
   @doc """
   Cut points for a delivery of length `n`: 0, n, up to six random interior
-  points, and the first point at which the observer holds pending blobs.
+  points, the first point at which the observer holds pending blobs, and
+  the point at which it holds the most pending bytes.
+  `pending_points` is `[{index, pending_bytes}]` in delivery order.
   """
   def cut_points(n, pending_points, seed) do
     :rand.seed(:exsss, {seed + 11, seed + 17, seed + 23})
     interior = if n > 1, do: Enum.map(1..6, fn _ -> :rand.uniform(n - 1) end), else: []
-    Enum.uniq([0, n] ++ interior ++ Enum.take(pending_points, 1)) |> Enum.sort()
+
+    pending =
+      case pending_points do
+        [] -> []
+        [{first, _} | _] -> [first, elem(Enum.max_by(pending_points, &elem(&1, 1)), 0)]
+      end
+
+    Enum.uniq([0, n] ++ interior ++ pending) |> Enum.sort()
   end
 
   @doc """
@@ -341,7 +384,7 @@ defmodule Yelixer.CheckpointHistory do
   Returns `%{mismatches: [...], cuts: n, pending_cuts: n, pending_end: bool}`.
   A mismatch is `{seed, cut, stage, [differing fields]}`.
   """
-  def prove(%{seed: seed, delivery: delivery, withheld: withheld}, {checkpoint, restore}) do
+  def prove(%{seed: seed, delivery: delivery} = h, {checkpoint, restore}) do
     n = length(delivery)
 
     # A: the whole history, one update at a time, remembering which
@@ -349,9 +392,9 @@ defmodule Yelixer.CheckpointHistory do
     {a_states, pending_points} =
       delivery
       |> Enum.with_index(1)
-      |> Enum.reduce({[{0, registered(@observer_a)}], []}, fn {u, i}, {[{_, d} | _] = acc, pp} ->
-        {:ok, d} = Encoding.apply_update(d, u)
-        {[{i, d} | acc], if(d.pending != [], do: [i | pp], else: pp)}
+      |> Enum.reduce({[{0, observer(@observer_a, h)}], []}, fn {u, i}, {[{_, d} | _] = acc, pp} ->
+        d = deliver(d, [u], h, i - 1)
+        {[{i, d} | acc], if(d.pending != [], do: [{i, d.pending_bytes} | pp], else: pp)}
       end)
 
     a_by_cut = Map.new(a_states)
@@ -360,14 +403,14 @@ defmodule Yelixer.CheckpointHistory do
     a = Map.fetch!(a_by_cut, n)
 
     # C: a fresh, independent full replay under a different observer id.
-    c = apply_all(registered(@observer_c), delivery)
+    c = deliver(observer(@observer_c, h), delivery, h)
     a_obs = observe(a)
 
     baseline =
       diff_fields(a_obs, observe(%{c | client_id: @observer_a}), "baseline A/C") ++
         state_diff(a, %{c | client_id: @observer_a}, "baseline A/C")
 
-    {a_post, p_a, a_healed, p_a_healed} = continue(a, delivery, withheld)
+    {a_post, p_a, a_healed, p_a_healed} = continue(a, h)
 
     mismatches =
       Enum.flat_map(cuts, fn f ->
@@ -377,12 +420,12 @@ defmodule Yelixer.CheckpointHistory do
         at_cut =
           diff_fields(observe(a_f), observe(b_f), "at cut") ++ state_diff(a_f, b_f, "at cut")
 
-        b = apply_all(b_f, Enum.drop(delivery, f))
+        b = deliver(b_f, Enum.drop(delivery, f), h, f)
 
         suffix =
           diff_fields(a_obs, observe(b), "after suffix") ++ state_diff(a, b, "after suffix")
 
-        {b_post, p_b, b_healed, p_b_healed} = continue(b, delivery, withheld)
+        {b_post, p_b, b_healed, p_b_healed} = continue(b, h)
 
         (at_cut ++
            suffix ++
@@ -402,28 +445,33 @@ defmodule Yelixer.CheckpointHistory do
       cuts: length(cuts),
       pending_cuts: Enum.count(cuts, &(Map.fetch!(a_by_cut, &1).pending != [])),
       pending_end: a.pending != [],
-      healed_clean: a_healed.pending == []
+      healed_clean: a_healed.pending == [],
+      floor: Map.get(h, :floor, 0) > 0,
+      namespaced: Map.get(h, :namespaced, false)
     }
   end
 
-  defp continue(x, delivery, withheld) do
+  defp continue(x, %{delivery: delivery, withheld: withheld} = h) do
     x = local_edits(x)
     {x, p} = sync(x, stale_peer(delivery))
-    {x, p, apply_all(x, withheld), apply_all(p, withheld)}
+    n = length(delivery)
+    {x, p, deliver(x, withheld, h, n), deliver(p, withheld, h, n)}
   end
 
+  # Strict (===) so 1 vs 1.0 or -0.0 vs 0.0 cannot hide a change.
   defp diff_fields(a, b, stage) do
-    case Enum.reject(Map.keys(a), &(Map.fetch!(a, &1) == Map.fetch!(b, &1))) do
+    case Enum.reject(Map.keys(a), &(Map.fetch!(a, &1) === Map.fetch!(b, &1))) do
       [] -> []
       fields -> [{stage, fields}]
     end
   end
 
   # Full internal causal state, beyond what the wire shows.
+  # Both sides must actually produce a state: two {:error, _} are not a match.
   defp state_diff(a, b, stage) do
-    if StateCodec.canonical_state(a) == StateCodec.canonical_state(b),
-      do: [],
-      else: [{stage, [:canonical_state]}]
+    {:ok, sa} = StateCodec.canonical_state(a)
+    {:ok, sb} = StateCodec.canonical_state(b)
+    if sa === sb, do: [], else: [{stage, [:canonical_state]}]
   end
 
   @doc "Behaviour-visible fields only (the red arms must fail on these, not only on internal state)."

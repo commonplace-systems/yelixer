@@ -38,6 +38,25 @@ defmodule Yelixer.StateCodec do
   digest, payload grammar, structural invariants. Any failure returns
   `{:error, reason}`; a partially-decoded state is never returned.
 
+  Structural invariants enforced (by decode, and by encode, which runs
+  the same validator): every id, clock, counter and `pending_bytes` is a
+  non-negative integer below 2^53 (the Yjs number domain); each client's
+  blocks are sorted and non-overlapping with lengths matching their
+  content (clock gaps are allowed: the pinned `apply_update/2` produces
+  them, see `decode_bucket/4`); delete-set ranges are sorted, disjoint, non-empty and
+  non-inverted; `pending_bytes` is the sum of the pending blob sizes;
+  every sequence entry is a unique block start whose item's parent is
+  that sequence's type; `sequence_len` equals each sequence's length;
+  every `map_index` id names a stored block; type refs are known atoms or
+  `{:xml_element, tag}`; embed/format values are JSON-shaped; `{:doc, _}`
+  content (which has no wire encoding) is refused.
+
+  ## Versioning
+
+  Any change to the payload grammar, the atom table or the invariants
+  above that changes which bytes are accepted bumps `@version`. Decoders
+  refuse every version they do not know.
+
   The digest detects corruption only. It is not authentication: a party
   that can write the checkpoint can forge one. Trust is the caller's
   filesystem trust boundary plus the key.
@@ -84,11 +103,13 @@ defmodule Yelixer.StateCodec do
   @magic "YXSC"
   @version 1
   @max_key_size 4096
-  @default_max_bytes 1_073_741_824
+  @default_max_bytes 268_435_456
   @max_depth 256
+  @max_safe_int 9_007_199_254_740_992
+  @type_atoms [:text, :map, :array, :xml_element, :xml_fragment, :xml_hook, :xml_text, :unknown]
 
-  # v1 atom table. Append-only within a format version; reordering is a
-  # format change and requires a new @version.
+  # v1 atom table. ANY change to this table (adding, removing, reordering)
+  # is a format change and bumps @version.
   @atoms [
     :named,
     :id,
@@ -189,7 +210,9 @@ defmodule Yelixer.StateCodec do
   Decodes a checkpoint produced by `encode/2`, requiring it to have been
   written under exactly `key`.
 
-  Options: `:max_bytes` bounds the payload size (default 1 GiB).
+  Options: `:max_bytes` bounds the payload size (default 256 MiB). Callers
+  should pass a bound that fits their own storage limits; the decoder
+  holds the whole payload and the restored doc in memory.
   """
   @spec decode(binary(), binary(), keyword()) :: {:ok, Doc.t()} | {:error, error()}
   def decode(bytes, key, opts \\ [])
@@ -201,7 +224,7 @@ defmodule Yelixer.StateCodec do
          {:ok, payload} <- open_envelope(bytes, key, max_bytes),
          {:ok, term} <- decode_term(payload),
          {:ok, doc} <- doc_from_canonical(term) do
-      {:ok, doc}
+      {:ok, %{doc | pending: Enum.map(doc.pending, &:binary.copy/1)}}
     end
   end
 
@@ -443,18 +466,25 @@ defmodule Yelixer.StateCodec do
           sequences, sequence_len, map_index}
        ) do
     try do
-      with :ok <- nn_int(client_id, :client_id),
-           :ok <- nn_int(clock_floor, :clock_floor),
-           :ok <- map_of(types, &is_binary/1, fn _ -> true end, :types),
-           :ok <- map_of(namespaces, &nn_int?/1, &is_binary/1, :client_namespaces),
+      with :ok <- check(id_int?(client_id), :client_id),
+           :ok <- check(id_int?(clock_floor), :clock_floor),
+           :ok <- map_of(types, &is_binary/1, &type_ref?/1, :types),
+           :ok <- map_of(namespaces, &id_int?/1, &is_binary/1, :client_namespaces),
            :ok <- list_of(pending, &is_binary/1, :pending),
-           :ok <- nn_int(pending_bytes, :pending_bytes),
-           :ok <- map_of(ds_clients, &nn_int?/1, &ranges?/1, :delete_set),
+           :ok <- check(id_int?(pending_bytes), :pending_bytes),
+           :ok <-
+             check(
+               pending_bytes == Enum.reduce(pending, 0, &(byte_size(&1) + &2)),
+               :pending_bytes_sum
+             ),
+           :ok <- map_of(ds_clients, &id_int?/1, &ranges?/1, :delete_set),
            {:ok, items_by_client} <- decode_clients(clients),
+           index = block_index(items_by_client),
            :ok <- map_of(sequences, &is_binary/1, &id_tuple_list?/1, :sequences),
-           :ok <- check_sequence_targets(sequences, items_by_client),
-           :ok <- map_of(sequence_len, &is_binary/1, &nn_int?/1, :sequence_len),
-           :ok <- check_map_index(map_index) do
+           :ok <- check_sequences(sequences, index),
+           :ok <- map_of(sequence_len, &is_binary/1, &id_int?/1, :sequence_len),
+           :ok <- check_sequence_len(sequences, sequence_len),
+           :ok <- check_map_index(map_index, index) do
         store = %BlockStore{
           clients: items_by_client,
           sequences: Map.new(sequences, fn {name, ids} -> {name, Enum.map(ids, &to_id/1)} end),
@@ -485,8 +515,12 @@ defmodule Yelixer.StateCodec do
 
   defp doc_from_canonical(other), do: {:error, {:malformed, {:top_level, kind_of(other)}}}
 
-  defp nn_int?(n), do: is_integer(n) and n >= 0
-  defp nn_int(n, label), do: if(nn_int?(n), do: :ok, else: {:error, {:malformed, label}})
+  defp check(true, _label), do: :ok
+  defp check(_, label), do: {:error, {:malformed, label}}
+
+  # Yjs ids, clocks and counters are JavaScript numbers: integers must stay
+  # below 2^53 to mean the same thing on every peer.
+  defp id_int?(n), do: is_integer(n) and n >= 0 and n < @max_safe_int
 
   defp map_of(m, key_ok, val_ok, label) when is_map(m) do
     if Enum.all?(m, fn {k, v} -> key_ok.(k) and val_ok.(v) end),
@@ -502,16 +536,19 @@ defmodule Yelixer.StateCodec do
 
   defp list_of(_l, _ok, label), do: {:error, {:malformed, label}}
 
-  defp ranges?(l) when is_list(l) do
-    Enum.all?(l, fn
-      {s, e} -> nn_int?(s) and nn_int?(e)
-      _ -> false
-    end)
-  end
-
+  # DeleteSet's own invariant: sorted, disjoint, non-empty, non-inverted.
+  defp ranges?(l) when is_list(l) and l != [], do: ranges?(l, -1)
   defp ranges?(_), do: false
 
-  defp id_tuple?({c, k}), do: nn_int?(c) and nn_int?(k)
+  defp ranges?([], _prev_end), do: true
+
+  defp ranges?([{s, e} | rest], prev_end) do
+    id_int?(s) and id_int?(e) and s < e and s >= prev_end and ranges?(rest, e)
+  end
+
+  defp ranges?(_, _), do: false
+
+  defp id_tuple?({c, k}), do: id_int?(c) and id_int?(k)
   defp id_tuple?(_), do: false
 
   defp opt_id_tuple?(nil), do: true
@@ -523,11 +560,18 @@ defmodule Yelixer.StateCodec do
   defp to_id(nil), do: nil
   defp to_id({c, k}), do: ID.new(c, k)
 
+  defp type_ref?(a) when a in @type_atoms, do: true
+  defp type_ref?({:xml_element, tag}), do: is_binary(tag)
+  defp type_ref?(_), do: false
+
   defp decode_clients(clients) when is_map(clients) do
     Enum.reduce_while(clients, {:ok, %{}}, fn
-      {client, tuples}, {:ok, acc} when is_integer(client) and client >= 0 and is_list(tuples) ->
-        case decode_bucket(client, tuples, nil, []) do
-          {:ok, items} -> {:cont, {:ok, Map.put(acc, client, items)}}
+      {client, [_ | _] = tuples}, {:ok, acc} ->
+        with true <- id_int?(client),
+             {:ok, items} <- decode_bucket(client, tuples, nil, []) do
+          {:cont, {:ok, Map.put(acc, client, items)}}
+        else
+          false -> {:halt, {:error, {:malformed, :clients}}}
           err -> {:halt, err}
         end
 
@@ -540,11 +584,24 @@ defmodule Yelixer.StateCodec do
 
   defp decode_bucket(_client, [], _next_free, acc), do: {:ok, Enum.reverse(acc)}
 
+  # BlockStore invariants 1 and 3: a client's blocks are sorted and
+  # non-overlapping.
+  #
+  # Invariant 2 (contiguity, no clock gaps) is NOT enforced: the pinned
+  # `Encoding.apply_update/2` itself produces gapped buckets whenever a
+  # client's later update arrives before an earlier one and the later
+  # items' dependencies are otherwise satisfied (e.g. a YMap write with an
+  # explicit parent). Those are reachable states — 89 of the 200 proof
+  # histories reach one — and this codec preserves them exactly rather
+  # than refusing them.
   defp decode_bucket(client, [tuple | rest], next_free, acc) do
     with {:ok, %Item{id: %ID{clock: clock}, length: len} = item} <- decode_item(client, tuple) do
       cond do
         len < 1 ->
           {:error, {:malformed, {:empty_item, client, clock}}}
+
+        not id_int?(clock + len) ->
+          {:error, {:malformed, {:clock_bound, client, clock}}}
 
         next_free != nil and clock < next_free ->
           {:error, {:malformed, {:overlap, client, clock}}}
@@ -559,20 +616,20 @@ defmodule Yelixer.StateCodec do
          client,
          {clock, origin, right_origin, parent, parent_sub, deleted, content, length}
        ) do
-    with true <- nn_int?(clock) and opt_id_tuple?(origin) and opt_id_tuple?(right_origin),
+    with true <- id_int?(clock) and opt_id_tuple?(origin) and opt_id_tuple?(right_origin),
          true <- parent_ok?(parent),
          true <- parent_sub == nil or parent_sub == :inherit or is_binary(parent_sub),
          true <- is_boolean(deleted),
          true <- content_ok?(content),
-         true <- nn_int?(length),
+         true <- id_int?(length),
          rebuilt =
            Item.new(
              ID.new(client, clock),
              to_id(origin),
              to_id(right_origin),
-             content,
+             copy_content(content),
              decode_parent(parent),
-             parent_sub
+             copy(parent_sub)
            ),
          true <- rebuilt.length == length do
       {:ok, %{rebuilt | deleted: deleted}}
@@ -589,45 +646,79 @@ defmodule Yelixer.StateCodec do
   defp parent_ok?(_), do: false
 
   defp decode_parent({:id, t}), do: {:id, to_id(t)}
+  defp decode_parent({:named, name}), do: {:named, copy(name)}
   defp decode_parent(other), do: other
 
+  # Content shapes the wire encoder can produce. `{:doc, _}` has no wire
+  # encoding at all and is refused. `:any` keeps any grammar term: it is
+  # exactly what the local type APIs stored.
   defp content_ok?({:string, s}), do: is_binary(s) and String.valid?(s)
   defp content_ok?({:any, l}), do: is_list(l)
   defp content_ok?({:binary, b}), do: is_binary(b)
-  defp content_ok?({:deleted, n}), do: nn_int?(n)
-  defp content_ok?({:gc, n}), do: nn_int?(n)
-  defp content_ok?({:embed, _}), do: true
-  defp content_ok?({:format, {k, _v}}), do: is_binary(k)
-  defp content_ok?({:type, _}), do: true
-  defp content_ok?({:json, l}), do: is_list(l)
-  defp content_ok?({:doc, _}), do: true
+  defp content_ok?({:deleted, n}), do: id_int?(n)
+  defp content_ok?({:gc, n}), do: id_int?(n)
+  defp content_ok?({:embed, v}), do: json?(v)
+  defp content_ok?({:format, {k, v}}), do: is_binary(k) and json?(v)
+  defp content_ok?({:type, ref}), do: type_ref?(ref)
+  defp content_ok?({:json, l}), do: is_list(l) and Enum.all?(l, &is_binary/1)
   defp content_ok?(_), do: false
 
-  # Every sequence entry must name the exact start of a stored block.
-  defp check_sequence_targets(sequences, items_by_client) do
-    starts =
-      Map.new(items_by_client, fn {c, items} ->
-        {c, MapSet.new(items, & &1.id.clock)}
-      end)
+  defp json?(v) when is_nil(v) or is_boolean(v) or is_number(v) or is_binary(v), do: true
+  defp json?(l) when is_list(l), do: Enum.all?(l, &json?/1)
 
-    ok =
-      Enum.all?(sequences, fn {_name, ids} ->
-        Enum.all?(ids, fn {c, k} ->
-          case Map.get(starts, c) do
-            nil -> false
-            set -> MapSet.member?(set, k)
-          end
-        end)
-      end)
+  defp json?(m) when is_map(m) and not is_struct(m),
+    do: Enum.all?(m, fn {k, v} -> is_binary(k) and json?(v) end)
 
-    if ok, do: :ok, else: {:error, {:malformed, :sequence_target}}
+  defp json?(_), do: false
+
+  defp block_index(items_by_client) do
+    for {_c, items} <- items_by_client, item <- items, into: %{} do
+      {{item.id.client, item.id.clock}, item}
+    end
   end
 
-  defp check_map_index(mi) when is_map(mi) do
+  # BlockStore invariant 5 and its sequence shape: every entry names the
+  # exact start of a stored block, appears once in its sequence, and that
+  # block's parent is the type the sequence belongs to.
+  defp check_sequences(sequences, index) do
+    Enum.reduce_while(sequences, :ok, fn {name, ids}, :ok ->
+      cond do
+        length(Enum.uniq(ids)) != length(ids) ->
+          {:halt, {:error, {:malformed, :sequence_duplicate}}}
+
+        not Enum.all?(ids, &Map.has_key?(index, &1)) ->
+          {:halt, {:error, {:malformed, :sequence_target}}}
+
+        not Enum.all?(ids, &(parent_key(Map.fetch!(index, &1)) == name)) ->
+          {:halt, {:error, {:malformed, :sequence_parent}}}
+
+        true ->
+          {:cont, :ok}
+      end
+    end)
+  end
+
+  defp parent_key(%Item{parent: {:named, name}}), do: name
+  defp parent_key(%Item{parent: {:id, %ID{client: c, clock: k}}}), do: "__sub:#{c}:#{k}"
+  defp parent_key(_), do: nil
+
+  # With every pending write drained, the O(1) length counter must equal
+  # the real sequence length for every type.
+  defp check_sequence_len(sequences, sequence_len) do
+    names = MapSet.union(MapSet.new(Map.keys(sequences)), MapSet.new(Map.keys(sequence_len)))
+
+    if Enum.all?(names, &(Map.get(sequence_len, &1, 0) == length(Map.get(sequences, &1, [])))),
+      do: :ok,
+      else: {:error, {:malformed, :sequence_len}}
+  end
+
+  defp check_map_index(mi, index) when is_map(mi) do
     ok =
       Enum.all?(mi, fn
         {tk, subs} when is_binary(tk) and is_map(subs) ->
-          Enum.all?(subs, fn {_sub, ids} -> id_tuple_list?(ids) end)
+          Enum.all?(subs, fn {_sub, ids} ->
+            id_tuple_list?(ids) and Enum.all?(ids, &Map.has_key?(index, &1))
+          end)
 
         _ ->
           false
@@ -636,7 +727,15 @@ defmodule Yelixer.StateCodec do
     if ok, do: :ok, else: {:error, {:malformed, :map_index}}
   end
 
-  defp check_map_index(_), do: {:error, {:malformed, :map_index}}
+  defp check_map_index(_, _), do: {:error, {:malformed, :map_index}}
+
+  # Decoded binaries are sub-binaries of the payload; copy the larger ones
+  # so a restored doc does not keep the whole checkpoint alive.
+  defp copy(b) when is_binary(b) and byte_size(b) > 64, do: :binary.copy(b)
+  defp copy(other), do: other
+
+  defp copy_content({tag, b}) when tag in [:string, :binary], do: {tag, copy(b)}
+  defp copy_content(other), do: other
 
   defp kind_of(t) when is_tuple(t), do: {:tuple, tuple_size(t)}
   defp kind_of(t) when is_map(t), do: :map
@@ -830,14 +929,17 @@ defmodule Yelixer.StateCodec do
     end
   end
 
-  # Minimal LEB128, at most 64 bits.
+  # Minimal LEB128 whose value fits in 64 bits (at most ten groups, and
+  # the result is checked, since the tenth group could carry 70 bits).
   defp dec_varint(bin), do: dec_varint(bin, 0, 0)
 
   defp dec_varint(_bin, _acc, shift) when shift > 63, do: throw({:malformed, :varint_overflow})
 
   defp dec_varint(<<0::1, v::7, rest::binary>>, acc, shift) do
     if v == 0 and shift > 0, do: throw({:malformed, :varint_overlong})
-    {Bitwise.bor(acc, Bitwise.bsl(v, shift)), rest}
+    value = Bitwise.bor(acc, Bitwise.bsl(v, shift))
+    if value > 0xFFFF_FFFF_FFFF_FFFF, do: throw({:malformed, :varint_overflow})
+    {value, rest}
   end
 
   defp dec_varint(<<1::1, v::7, rest::binary>>, acc, shift),

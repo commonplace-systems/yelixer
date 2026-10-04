@@ -34,7 +34,12 @@ defmodule Yelixer.CheckpointResumeProofTest do
   @seeds 1..200
   @long_seeds 10_001..10_004
 
-  defp corpus do
+  # Built once per module; the red arms reuse it.
+  setup_all do
+    %{corpus: corpus()}
+  end
+
+  def corpus do
     Enum.map(@seeds, &CheckpointHistory.generate/1) ++
       Enum.map(@long_seeds, &CheckpointHistory.generate(&1, steps: 300)) ++
       [
@@ -67,35 +72,25 @@ defmodule Yelixer.CheckpointResumeProofTest do
     ]
   end
 
-  defp prove_all(histories, codec) do
-    Enum.map(histories, &CheckpointHistory.prove(&1, codec))
-  end
-
-  test "checkpoint + suffix is indistinguishable from full replay over the generated corpus" do
-    histories = corpus()
+  test "checkpoint + suffix is indistinguishable from full replay over the generated corpus",
+       %{corpus: histories} do
     assert length(histories) >= 200
-    results = prove_all(histories, CheckpointHistory.real_codec())
+    results = Enum.map(histories, &CheckpointHistory.prove(&1, CheckpointHistory.real_codec()))
 
     mismatches = Enum.flat_map(results, & &1.mismatches)
     assert mismatches == [], "first mismatches: #{inspect(Enum.take(mismatches, 5))}"
 
     # Non-vacuity of the corpus itself, so a green here is about something.
-    total_cuts = Enum.sum(Enum.map(results, & &1.cuts))
-    pending_cuts = Enum.sum(Enum.map(results, & &1.pending_cuts))
-    pending_ends = Enum.count(results, & &1.pending_end)
-
-    IO.puts(
-      "checkpoint proof: histories=#{length(results)} cuts=#{total_cuts} " <>
-        "pending_cuts=#{pending_cuts} pending_at_end=#{pending_ends}"
-    )
-
-    assert total_cuts >= 1000
-    assert pending_cuts > 0, "no cut point held pending blobs; the pending arm is vacuous"
-    assert pending_ends > 0, "no history ended with pending; the heal stage is vacuous"
-    assert Enum.any?(results, & &1.healed_clean), "no heal ever drained pending"
+    assert Enum.sum(Enum.map(results, & &1.cuts)) >= 1000
+    assert Enum.sum(Enum.map(results, & &1.pending_cuts)) > 0, "no cut held pending blobs"
+    assert Enum.any?(results, & &1.pending_end), "no history ended with pending"
+    assert Enum.any?(results, &(&1.pending_end and &1.healed_clean)), "no heal drained pending"
+    assert Enum.any?(results, & &1.floor), "no history exercised clock_floor"
+    assert Enum.any?(results, & &1.namespaced), "no history exercised client_namespaces"
   end
 
-  test "the corpus is path-dependent: other admission orders give other bytes" do
+  test "the corpus is path-dependent: other admission orders give other bytes",
+       %{corpus: histories} do
     # A comparison that cannot see admission order would also pass a
     # codec that rebuilds an equivalent-but-different state. Show the
     # corpus contains histories where order changes the encoded state.
@@ -118,7 +113,7 @@ defmodule Yelixer.CheckpointResumeProofTest do
 
     # And across the generated corpus, reordering changes bytes somewhere.
     reordered =
-      Enum.count(Enum.map(@seeds, &CheckpointHistory.generate/1), fn %{delivery: d} ->
+      Enum.count(Enum.take(histories, 200), fn %{delivery: d} ->
         length(d) > 2 and
           Encoding.encode_update(obs.(d)) != Encoding.encode_update(obs.(Enum.reverse(d)))
       end)
@@ -127,62 +122,83 @@ defmodule Yelixer.CheckpointResumeProofTest do
   end
 
   # ── red arms ──────────────────────────────────────────────────────
+  #
+  # Each arm must fail on BEHAVIOUR: rendered content, wire bytes, state
+  # vector or delete set — never only on a field that echoes the dropped
+  # one (`types`, `pending`) or on internal canonical state.
 
   defp lossy(transform) do
     {checkpoint, restore} = CheckpointHistory.real_codec()
     {fn doc -> checkpoint.(doc) end, fn bytes -> transform.(restore.(bytes)) end}
   end
 
-  defp red_arm(codec) do
-    # Stops at the first history the arm fails on; the full corpus is the bound.
-    corpus()
-    |> Enum.find_value(fn h ->
-      case Enum.filter(
-             CheckpointHistory.prove(h, codec).mismatches,
-             &CheckpointHistory.behavioural?/1
-           ) do
-        [] -> nil
-        [m | _] -> m
-      end
+  # First mismatch over the corpus satisfying `pred`, or nil.
+  defp red_arm(corpus, codec, pred) do
+    Enum.find_value(corpus, fn h ->
+      Enum.find(CheckpointHistory.prove(h, codec).mismatches, pred)
     end)
   end
 
-  test "RED: a codec that drops the delete set fails the proof" do
-    assert {_seed, _cut, _stage, fields} = red_arm(lossy(&%{&1 | delete_set: DeleteSet.new()}))
-    assert :delete_set in fields or :update in fields
+  defp has?(fields, wanted), do: Enum.any?(fields, &(&1 in wanted))
+
+  test "RED: a codec that drops the delete set fails the proof on behaviour", %{corpus: c} do
+    pred = fn {_, _, _, fields} ->
+      has?(fields, [:update | CheckpointHistory.rendered_fields()])
+    end
+
+    assert {_, _, _, _} = red_arm(c, lossy(&%{&1 | delete_set: DeleteSet.new()}), pred)
   end
 
-  test "RED: a codec that drops pending blobs fails the proof" do
-    assert {_seed, _cut, _stage, fields} =
-             red_arm(lossy(&%{&1 | pending: [], pending_bytes: 0}))
+  test "RED: a codec that drops pending blobs diverges once the heal arrives", %{corpus: c} do
+    pred = fn {_, _, stage, fields} ->
+      stage == "after heal" and has?(fields, [:update | CheckpointHistory.rendered_fields()])
+    end
 
-    assert :pending in fields
+    assert {_, _, "after heal", _} =
+             red_arm(c, lossy(&%{&1 | pending: [], pending_bytes: 0}), pred)
   end
 
-  test "RED: a codec that drops the local type registry fails the proof" do
-    assert {_seed, _cut, _stage, fields} = red_arm(lossy(&%{&1 | types: %{}}))
-    assert :render in fields
+  test "RED: a codec that drops the local type registry renders differently", %{corpus: c} do
+    pred = fn {_, _, _, fields} -> has?(fields, [:text, :xml, :fragment, :rich, :nested]) end
+    assert {_, _, _, _} = red_arm(c, lossy(&%{&1 | types: %{}}), pred)
   end
 
-  test "RED: a plain Yjs full update (encode_update + apply_update) is not a sufficient codec" do
+  test "RED: a plain Yjs full update (encode_update + apply_update) is not a sufficient codec",
+       %{corpus: c} do
+    # Fair variant: the statically known roots are re-registered and the
+    # client id is kept. What it still loses, each shown by behaviour:
     plain =
       {fn doc -> {doc.client_id, Encoding.encode_update(doc)} end,
        fn {client_id, bytes} ->
-         # Fair variant: the statically known roots are re-registered.
          {:ok, doc} = Encoding.apply_update(CheckpointHistory.registered(client_id), bytes)
          doc
        end}
 
-    assert {_seed, _cut, _stage, fields} = red_arm(plain)
-    IO.puts("plain-Yjs red arm first behavioural mismatch fields: #{inspect(fields)}")
+    # (1) pending blobs: the healed replica differs on the wire.
+    assert {_, _, "after heal", _} =
+             red_arm(c, plain, fn {_, _, stage, f} ->
+               stage == "after heal" and has?(f, [:update, :state_vector])
+             end)
+
+    # (2) clock_floor: the replica's next local edits mint different ids.
+    assert {_, _, _, _} =
+             red_arm(Enum.filter(c, &(Map.get(&1, :floor, 0) > 0)), plain, fn {_, _, _, f} ->
+               :next_clock in f
+             end)
+
+    # (3) client_namespaces: provenance queries answer differently.
+    assert {_, _, _, _} =
+             red_arm(Enum.filter(c, &Map.get(&1, :namespaced, false)), plain, fn {_, _, _, f} ->
+               :provenance in f
+             end)
   end
 
-  test "the real codec's checkpoint is canonical (re-encoding a restore is byte-identical)" do
+  test "the real codec's checkpoint is canonical (re-encoding a restore is byte-identical)",
+       %{corpus: c} do
     {checkpoint, restore} = CheckpointHistory.real_codec()
 
-    for seed <- 1..40 do
-      %{delivery: d} = CheckpointHistory.generate(seed)
-      a = CheckpointHistory.apply_all(CheckpointHistory.registered(1), d)
+    for %{delivery: d} = h <- Enum.take(c, 40) do
+      a = CheckpointHistory.deliver(CheckpointHistory.observer(1, h), d, h)
       bytes = checkpoint.(a)
       assert checkpoint.(restore.(bytes)) == bytes
       assert {:ok, _} = StateCodec.decode(bytes, "checkpoint-proof")
