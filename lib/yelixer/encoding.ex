@@ -1430,8 +1430,22 @@ defmodule Yelixer.Encoding do
             integrate_items(rest, doc, sv, [trimmed | pending], blocked_clients)
         end
 
+      item.id.clock > client_clock ->
+        # Clock gap (yelixer#9) — this client's clocks between the local
+        # state and `item.id.clock` have not arrived. Yjs integrates a
+        # struct only when `id.clock === getState(client)`
+        # (`integrateStructs`/`getMissing`); anything ahead of that waits.
+        # Integrating it here would make `BlockStore.state_vector/1`
+        # claim the gap as seen, so the late earlier update would then be
+        # dropped by the "fully known" clause above, and a re-encode would
+        # write the structs back-to-back with no Skip, re-clocking every
+        # struct after the gap for the receiving peer. Defer it and block
+        # the client's later items until the gap fills.
+        integrate_items(rest, doc, sv, [item | pending], MapSet.put(blocked_clients, client))
+
       true ->
-        # Completely new — integrate as-is
+        # Completely new and contiguous (item.id.clock == client_clock) —
+        # integrate as-is
         case try_integrate_item(item, doc, sv) do
           {:ok, doc, sv} ->
             integrate_items(rest, doc, sv, pending, blocked_clients)
