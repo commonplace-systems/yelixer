@@ -317,15 +317,18 @@ defmodule Yelixer.Integrate do
   # new item mid-sequence, forcing an O(n) `List.insert_at/3` splice —
   # THIS clause is what actually avoids that splice.
   #
-  # `BlockStore.map_live_ids/3` (CX-xes3/E4) names the id(s) currently
-  # undisputed-live for this key. When it's exactly `[origin_id]` — our
-  # origin is still the sole live writer, nothing raced ahead of us —
-  # this write is unambiguously the new winner and can be appended at
-  # the sequence's true end, no scan, no mid-splice.
+  # `BlockStore.map_winner_ids/3` (CX-xes3/E4, yelixer#11) names this
+  # key's rightmost write, deleted or not. When it's exactly
+  # `[origin_id]` — our origin is still the key's rightmost write,
+  # nothing raced ahead of us — no same-key item lies right of the
+  # origin, so this write is unambiguously the new rightmost and can be
+  # appended at the sequence's true end, no scan, no mid-splice. (The
+  # pre-#11 cache held the rightmost UNDELETED write instead, which
+  # could sit left of a deleted same-key write.)
   #
   # Correctness for genuine concurrent same-key writes doesn't depend
   # on this clause firing for both sides: at most one concurrent writer
-  # sees `map_live_ids == [origin_id]` at integration time (the first
+  # sees `map_winner_ids == [origin_id]` at integration time (the first
   # one integrated on a given replica) and takes this shortcut; every
   # later writer targeting the same key sees a DIFFERENT live id and
   # falls through to the slow, fully general two-set scan below. That
@@ -344,7 +347,7 @@ defmodule Yelixer.Integrate do
          type_name
        )
        when sub not in [nil, :inherit] do
-    case BlockStore.map_live_ids(store, type_name, sub) do
+    case BlockStore.map_winner_ids(store, type_name, sub) do
       [^origin_id] -> {:ok, BlockStore.sequence_length(store, type_name)}
       _ -> :slow
     end

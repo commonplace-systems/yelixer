@@ -243,8 +243,10 @@ defmodule Yelixer.RehydrateTest do
     # These are the tests that specifically reproduce the CX-2sv bug class:
     # a single client with items in TWO sequences (envelope-style) that
     # undergoes a delete-then-modify round-trip. Without the Item.split
-    # and remap_gc_origin fixes, the text items' parents would be
-    # remapped to point into the map sequence, corrupting the decode.
+    # fix, the text items' parents would be resolved into the map
+    # sequence, corrupting the decode. (The later remap_gc_origin
+    # rewrite was itself removed for issue #8: it caused this same bug
+    # class after Doc.gc.)
 
     defp new_envelope_doc(client_id \\ 1) do
       # Mimics Commonplace.Document.ContentType.create/3's envelope:

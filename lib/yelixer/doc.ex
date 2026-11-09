@@ -203,7 +203,8 @@ defmodule Yelixer.Doc do
 
   `apply_update/2` never lets an un-integratable update binary poison
   the store: when a batch ends with items that still can't integrate
-  (a missing origin/right_origin dependency), the ORIGINAL update
+  (a missing origin/right_origin dependency, or a clock ahead of the
+  local state for its client), the ORIGINAL update
   binary is buffered in `doc.pending` rather than being pushed into
   the block store without sequence integration. Because `pending` is
   never consulted by `encode_update`/`encode_diff`/the derived state
@@ -396,9 +397,10 @@ defmodule Yelixer.Doc do
 
   Walks every item: leaves live items alone, rewrites `deleted: true`
   items to `content: {:gc, item.length}` (no-op if already a `:gc`
-  block). Anchors pointing *through* a GC'd block are remapped to the
-  nearest live neighbour by `Yelixer.Encoding.encode_item/2` at encode
-  time — `gc/1` itself doesn't touch anchors. The block-tuple cache
+  block). Anchors pointing into a GC'd block are left alone: the block
+  keeps its origin and parent and `Yelixer.Encoding.encode_diff/2` sends
+  it as a `:deleted` item, as Yjs sends ContentDeleted, so a neighbour's
+  origin still resolves on the receiver (issue #8). The block-tuple cache
   (`client_tuples`) is rebuilt once from the collected payloads. Immutable
   lookups can then reuse it instead of rebuilding and discarding it per read.
   """

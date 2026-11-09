@@ -3,7 +3,7 @@ defmodule Yelixer.CXXes3DequadraticTest do
   CX-xes3 (E3/E4) regression coverage: the map-key conflict resolution
   and delete-application quadratic paths this issue de-quadratic-ed,
   plus a correctness pin for the conflict-resolution fast path added
-  along the way (`Yelixer.BlockStore.map_live_ids/3` +
+  along the way (`Yelixer.BlockStore.map_winner_ids/3` +
   `Yelixer.Integrate`'s map-aware `fast_append_index/3` clause).
 
   Every scaling assertion here replays *wire-encoded updates* — a list
