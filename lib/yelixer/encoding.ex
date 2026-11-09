@@ -772,6 +772,25 @@ defmodule Yelixer.Encoding do
   defp encode_any(true), do: <<120>>
   defp encode_any(false), do: <<121>>
 
+  # The decoder refuses a signed varint wider than @max_varint_bytes (magnitude
+  # 2^69 and up). Such an integer is written as float64 (tag 123), the lib0
+  # number form, only when the double holds it EXACTLY. Otherwise encoding
+  # raises: a rounded value would leave peers holding a different number than
+  # the author (silent replica divergence). The message names only the bit length.
+  @max_varint_int Bitwise.bsl(1, 6 + 7 * (@max_varint_bytes - 1))
+  defp encode_any(n) when is_integer(n) and (n >= @max_varint_int or n <= -@max_varint_int) do
+    f = n * 1.0
+
+    if trunc(f) == n do
+      <<123, f::float-64>>
+    else
+      bits = n |> abs() |> Integer.digits(2) |> length()
+
+      raise ArgumentError,
+            "integer of #{bits} bits is not exactly representable as a lib0 float64"
+    end
+  end
+
   defp encode_any(n) when is_integer(n) do
     <<125, encode_var_int(n)::binary>>
   end
