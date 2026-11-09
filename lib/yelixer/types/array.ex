@@ -113,6 +113,8 @@ defmodule Yelixer.Types.Array do
   sub-type.
   """
   def insert(%Doc{} = doc, type_name, index, values) when is_list(values) do
+    Yelixer.Encoding.validate_any_value!(values)
+
     Enum.with_index(values)
     |> Enum.reduce(doc, fn {value, i}, doc ->
       {origin, right_origin} = find_origins(doc.store, type_name, index + i)

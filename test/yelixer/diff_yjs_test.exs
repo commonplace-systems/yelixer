@@ -63,7 +63,16 @@ defmodule Yelixer.DiffYjsTest do
 
   setup %{oracle: oracle} do
     port = open_driver(oracle)
-    on_exit(fn -> if Port.info(port), do: Port.close(port) end)
+    # The driver may exit between any check and the close; closing an
+    # already-closed port raises ArgumentError, which is the same outcome.
+    on_exit(fn ->
+      try do
+        Port.close(port)
+      rescue
+        ArgumentError -> :ok
+      end
+    end)
+
     {:ok, port: port}
   end
 

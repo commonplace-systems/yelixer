@@ -105,6 +105,7 @@ defmodule Yelixer.Types.YMap do
     3. Pass to `Yelixer.Integrate.integrate/3` for YATA placement.
   """
   def set(%Doc{} = doc, type_name, key, value) do
+    Yelixer.Encoding.validate_any_value!(value)
     winner = find_winner(doc.store, type_name, key)
     doc = delete_existing(doc, type_name, key)
 
@@ -169,10 +170,10 @@ defmodule Yelixer.Types.YMap do
   @doc """
   Renders live entries as an Elixir map.
 
-  Folds the YATA sequence with `Map.put/3`; later Items overwrite earlier
-  ones, so the rightmost entry per key (LWW winner) is the final value.
-  Items with no `parent_sub` are skipped (unexpected in a well-formed YMap,
-  but harmless). Values use the same projection as `get/3` and `to_json/2`,
+  Each key's value is its rightmost write in the YATA sequence, tombstones
+  included (yelixer#11): a key whose rightmost write is tombstoned is absent,
+  even if an earlier write is live. Items without a binary `parent_sub` are
+  skipped (unexpected in a well-formed YMap, but harmless). Values use the same projection as `get/3` and `to_json/2`,
   including nested types and explicit buffer wrappers. JSON serialization of
   wrappers requires a caller-selected representation.
   """

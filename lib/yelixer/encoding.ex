@@ -772,27 +772,12 @@ defmodule Yelixer.Encoding do
   defp encode_any(true), do: <<120>>
   defp encode_any(false), do: <<121>>
 
-  # The decoder refuses a signed varint wider than @max_varint_bytes (magnitude
-  # 2^69 and up). Such an integer is written as float64 (tag 123), the lib0
-  # number form, only when the double holds it EXACTLY. Otherwise encoding
-  # raises: a rounded value would leave peers holding a different number than
-  # the author (silent replica divergence). The message names only the bit length.
-  @max_varint_int Bitwise.bsl(1, 6 + 7 * (@max_varint_bytes - 1))
-  defp encode_any(n) when is_integer(n) and (n >= @max_varint_int or n <= -@max_varint_int) do
-    f = n * 1.0
-
-    if trunc(f) == n do
-      <<123, f::float-64>>
-    else
-      bits = n |> abs() |> Integer.digits(2) |> length()
-
-      raise ArgumentError,
-            "integer of #{bits} bits is not exactly representable as a lib0 float64"
-    end
-  end
-
   defp encode_any(n) when is_integer(n) do
-    <<125, encode_var_int(n)::binary>>
+    case any_integer_form(n) do
+      :varint -> <<125, encode_var_int(n)::binary>>
+      {:float64, f} -> <<123, f::float-64>>
+      :inexact -> raise_inexact_integer(n)
+    end
   end
 
   defp encode_any(f) when is_float(f) do
@@ -819,6 +804,69 @@ defmodule Yelixer.Encoding do
 
   @doc "Encodes a lib0 Any value, including `Yelixer.Any` wrappers. Returns a binary."
   def encode_any_value(value), do: encode_any(value)
+
+  # The decoder refuses a signed varint wider than @max_varint_bytes (magnitude
+  # 2^69 and up). Such an integer is written as float64 (tag 123), the lib0
+  # number form, only when the double holds it EXACTLY. Otherwise it is
+  # refused: a rounded value would leave peers holding a different number than
+  # the author (silent replica divergence). Above float range (|n| >= 2^1024)
+  # `n * 1.0` raises ArithmeticError; that is refused the same way.
+  @max_varint_int Bitwise.bsl(1, 6 + 7 * (@max_varint_bytes - 1))
+
+  @doc """
+  How lib0 Any carries integer `n`: `:varint` (tag 125) below 2^69 in
+  magnitude, `{:float64, f}` (tag 123) when the double `f` holds `n` exactly,
+  or `:inexact` when no lib0 number form holds it. The one predicate behind
+  both `encode_any_value/1` and `validate_any_value!/1`.
+  """
+  def any_integer_form(n) when is_integer(n) and n > -@max_varint_int and n < @max_varint_int,
+    do: :varint
+
+  def any_integer_form(n) when is_integer(n) do
+    f =
+      try do
+        n * 1.0
+      rescue
+        ArithmeticError -> nil
+      end
+
+    if is_float(f) and trunc(f) == n, do: {:float64, f}, else: :inexact
+  end
+
+  @doc """
+  Raises the encoder's `ArgumentError` when `value` holds an integer that lib0
+  Any cannot carry exactly (`any_integer_form/1` returns `:inexact`), looking
+  inside lists and map values as `encode_any_value/1` does. Returns `:ok`
+  otherwise. It refuses nothing that encodes: other terms are left to the
+  encoder. The public insert paths call it so a bad value fails at the write,
+  not at every later encode of the whole document.
+  """
+  def validate_any_value!(n) when is_integer(n) do
+    if any_integer_form(n) == :inexact, do: raise_inexact_integer(n), else: :ok
+  end
+
+  def validate_any_value!(list) when is_list(list), do: validate_any_list!(list)
+
+  def validate_any_value!(%_{}), do: :ok
+
+  def validate_any_value!(map) when is_map(map) do
+    Enum.each(map, fn {_key, value} -> validate_any_value!(value) end)
+  end
+
+  def validate_any_value!(_other), do: :ok
+
+  defp validate_any_list!([head | tail]) do
+    validate_any_value!(head)
+    validate_any_list!(tail)
+  end
+
+  defp validate_any_list!(_tail), do: :ok
+
+  # The message names only the bit length, never the value.
+  defp raise_inexact_integer(n) do
+    bits = n |> abs() |> Integer.digits(2) |> length()
+    raise ArgumentError, "integer of #{bits} bits is not exactly representable as a lib0 float64"
+  end
 
   @doc """
   Decodes a lib0 Any value from `binary`, returning `{value, rest}`.

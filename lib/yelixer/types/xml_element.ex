@@ -70,6 +70,7 @@ defmodule Yelixer.Types.XMLElement do
   outline reparent flaked on random client-id order).
   """
   def set_attribute(%Doc{} = doc, type_name, key, value) do
+    Yelixer.Encoding.validate_any_value!(value)
     existing = find_current_attr(doc.store, type_name, key)
     doc = delete_existing_attr(doc, type_name, key)
 
